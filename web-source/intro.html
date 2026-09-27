@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>游戏王OCG201103天梯服务器 使用介绍</title>
+<link rel="stylesheet" href="/assets/common.css">
+<style>
+  .deck-section { margin-top: 28px; }
+  .deck-group { margin: 18px 0; }
+  .deck-group h3 { color: #9db8d0; font-size: 15px; margin: 0 0 8px; }
+  .deck-list { display: flex; flex-wrap: wrap; gap: 8px 12px; }
+  .deck-list a { color: #7ec4ff; background: #1d2a38; border: 1px solid #2c3e50; padding: 7px 10px; text-decoration: none; }
+  .deck-list a:hover { background: #2f5c86; color: #fff; }
+  .notice-box { color: #f0c27a; background: #1e2a3a; padding: 10px 14px 10px 34px; border-radius: 4px; border-left: 3px solid #f0c27a; }
+  .notice-box li { margin: 7px 0; }
+  .notice-box a { color: #ffd875; }
+</style>
+</head>
+<body>
+<div data-site-shell></div>
+<div>
+    <h2 data-i18n="server_intro_title">服务器介绍：</h2>
+    <p data-i18n="server_intro_pool">本服务器适用于游戏王OCG 201103 Nexus环境，禁限卡表使用2011年3月禁卡表，卡池使用2011年8月31日及之前OCG发行的所有卡片，不额外规制“<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血之代偿(80604091)</a>”</p>
+    <p data-i18n="server_intro_srvpro">本服务器基于<a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>代码搭建，在此特别感谢srvpro的开发者</p>
+    <p data-i18n="server_intro_ladder">天梯模式由<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>在srvpro的基础上开发，源码位于<a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a></p>
+    <p data-i18n="server_intro_ai">本服务器代码开发过程中大量使用AI，非中文内容均由AI翻译</p>
+    <p data-i18n="server_intro_reconnect">本服务器现在支持掉线重连但不支持云录像</p>
+    <p data-i18n="server_intro_qq">服务器QQ群：<button type="button" onclick="copyContent('749717894')">749717894</button>（点击群号复制）。点击<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>加入。</p>
+    <p data-i18n="server_intro_discord">服务器Discord群：点击<a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>加入。</p>
+    <h2 data-i18n="title0">下载地址：</h2>
+    <p data-i18n="content0">如果你没有ygopro客户端的话，可以从这里下载一个<a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" data-i18n="download_link">点击这里下载 KoishiPro</a></p>
+    <h2 data-i18n="notice_title">注意事项：</h2>
+    <ul class="notice-box">
+      <li data-i18n="ads_notice">ads gateball server使用的ads客户端版本过于老旧，本服务器已经不再支持，请下载一个最新版本的ads客户端或者使用上面的下载链接</li>
+      <li data-i18n="password_notice">本服务器功能目前较为简陋，账号可以随意注册且不修改用户名的情况下ygopro会保存你的密码，因此注册时不要使用你其他账号平时常用的密码，使用简单密码即可</li>
+      <li data-i18n="script_notice">由于本服务器的卡片脚本会不定期更新以还原2011年的旧裁定，卡片脚本跟ygopro正式服务器的脚本不同。若录像文件无法打开，可在这里进行下载：<a href="https://github.com/301zrg/specials/tree/master/706" target="_blank" rel="noopener">点击这里查看脚本地址</a></li>
+      <li data-i18n="offering_notice">本服务器并不额外准限制卡片“<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血之代偿(80604091)</a>”，后续是否额外准限制本卡片依赖玩家反馈</li>
+    </ul>
+    <h2 data-i18n="title1">连接方式：</h2>
+    <h3 data-i18n="title3">常规联机模式：</h3>
+    <p data-i18n="content1">点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent('121.4.34.71')">121.4.34.71</button>，第二个填<button onclick="copyContent('7911')">7911</button>，一个输入框填<button onclick="copyContent('121.4.34.71:7911')">121.4.34.71:7911</button>->昵称输入用户名->房间密码含义参考：<a href="https://ygo233.com/usage" target="_blank">点击这里</a>->点加入游戏，不要点建立主机</p>
+    <h3 data-i18n="title4">天梯模式：</h3>
+    <p data-i18n="content2">点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent('121.4.34.71')">121.4.34.71</button>，第二个填<button onclick="copyContent('7911')">7911</button>，一个输入框填<button onclick="copyContent('121.4.34.71:7911')">121.4.34.71:7911</button>->昵称输入用户名$密码，若该用户名未注册则自动注册且密码自动设置为本次输入的密码，若已注册则密码正确可连接，否则不能连接->房间密码只输入<button onclick="copyContent('TT')">TT</button>，可参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">点击这里</a> ->点加入游戏，不要点建立主机</p>
+    <p data-i18n="content_ladder_tip">在聊天框内输入/tip获得提示，输入/zh切换为中文，此方法也可判断你是否疑似掉线</p>
+    <p data-i18n="content3">天梯模式目前按总等级分排序</p>
+</div>
+<section class="deck-section" aria-labelledby="deckTitle">
+  <h2 id="deckTitle" data-i18n="deck_title">示例卡组</h2>
+  <div id="deckGroups"></div>
+</section>
+<script src="/assets/site-shell.js"></script>
+<script>
+var I18N = {
+  zh: {
+    title: '游戏王OCG201103天梯服务器 使用介绍',
+    server_intro_title: '服务器介绍：', notice_title: '注意事项：',
+    title0: '下载地址：', title1: '连接方式：', title3: '常规联机模式：', title4: '天梯模式：', deck_title: '示例卡组', deck_load_fail: '示例卡组配置加载失败',
+    server_intro_pool: '本服务器适用于游戏王OCG 201103 Nexus环境，禁限卡表使用2011年3月禁卡表，卡池使用2011年8月31日及之前OCG发行的所有卡片，不额外规制“<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血之代偿(80604091)</a>”',
+    server_intro_srvpro: '本服务器基于<a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>代码搭建，在此特别感谢srvpro的开发者',
+    server_intro_ladder: '天梯模式由<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>在srvpro的基础上开发，源码位于<a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>',
+    server_intro_ai: '本服务器代码开发过程中大量使用AI，非中文内容均由AI翻译',
+    server_intro_reconnect: '本服务器现在支持掉线重连但不支持云录像',
+    server_intro_qq: '服务器QQ群：<button type="button" onclick="copyContent(\'749717894\')">749717894</button>（点击群号复制）。点击<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>加入。',
+    server_intro_discord: '服务器Discord群：点击<a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>加入。',
+    ads_notice: 'ads gateball server使用的ads客户端版本过于老旧，本服务器已经不再支持，请下载一个最新版本的ads客户端或者使用上面的下载链接',
+    password_notice: '本服务器功能目前较为简陋，账号可以随意注册且不修改用户名的情况下ygopro会保存你的密码，因此注册时不要使用你其他账号平时常用的密码，使用简单密码即可',
+    script_notice: '由于本服务器的卡片脚本会不定期更新以还原2011年的旧裁定，卡片脚本跟ygopro正式服务器的脚本不同。若录像文件无法打开，可在这里进行下载：<a href="https://github.com/301zrg/specials/tree/master/706" target="_blank" rel="noopener">点击这里查看脚本地址</a>',
+    offering_notice: '本服务器并不额外准限制卡片“<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血之代偿(80604091)</a>”，后续是否额外准限制本卡片依赖玩家反馈',
+    content0: '如果你没有ygopro客户端的话，可以从这里下载一个<a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" data-i18n="download_link">点击这里下载 KoishiPro</a>',
+    content1: '点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>，第二个填<button onclick="copyContent(\'7911\')">7911</button>，一个输入框填<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>->昵称输入用户名->房间密码含义参考：<a href="https://ygo233.com/usage" target="_blank">点击这里</a>->点加入游戏，不要点建立主机',
+    content2: '点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>，第二个填<button onclick="copyContent(\'7911\')">7911</button>，一个输入框填<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>->昵称输入用户名$密码，若该用户名未注册则自动注册且密码自动设置为本次输入的密码，若已注册则密码正确可连接，否则不能连接->房间密码只输入<button onclick="copyContent(\'TT\')">TT</button>，可参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">点击这里</a> ->点加入游戏，不要点建立主机',
+    content_ladder_tip: '在聊天框内输入/tip获得提示，输入/zh切换为中文，此方法也可判断你是否疑似掉线',
+    content3: '天梯模式目前按等级分排序', content3_points: '天梯模式目前按等级分排序', content3_wins: '天梯模式目前按纯胜场排序', content3_diff: '天梯模式目前按胜负差（胜场减去负场）排序', content3_winRate: '天梯模式目前按胜率排序', deck_download: '下载'
+  },
+  ja: {
+    title: '遊戯王OCG 201103 ランキングサーバー 使用紹介',
+    server_intro_title: 'サーバー紹介：', notice_title: '注意事項：',
+    title0: 'ダウンロードリンク：', title1: '接続方法：', title3: '通常接続モード：', title4: 'ランキングモード：', deck_title: 'サンプルデッキ', deck_load_fail: 'サンプルデッキ設定を読み込めません',
+    server_intro_pool: '本サーバーは遊戯王OCG 201103 Nexus環境向けです。2011年3月制限改訂を使用し、カードプールは2011年8月31日までにOCGで発売された全カードです。「<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血の代償(80604091)</a>」に独自の追加規制は設けません。',
+    server_intro_srvpro: '本サーバーは<a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>をもとに構築されています。srvproの開発者の皆様に深く感謝いたします。',
+    server_intro_ladder: 'ランキングモードは<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>がsrvproをもとに開発しました。ソースコードは<a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>にあります。',
+    server_intro_ai: '本サーバーのコード開発ではAIを多用しており、中国語以外の内容はすべてAIによる翻訳です。',
+    server_intro_reconnect: '本サーバーは現在、切断後の再接続に対応していますが、クラウドリプレイには対応していません。',
+    server_intro_qq: 'サーバーのQQグループ：<button type="button" onclick="copyContent(\'749717894\')">749717894</button>（番号をクリックするとコピーできます）。<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>から参加できます。',
+    server_intro_discord: 'サーバーのDiscordグループ：<a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>から参加できます。',
+    ads_notice: 'ads gateball serverで使用されているADSクライアントは古すぎるため、本サーバーではサポートしていません。最新版のADSクライアント、または上記のダウンロードリンクをご利用ください。',
+    password_notice: '本サーバーの機能はまだ簡素で、アカウントは自由に登録できます。また、ユーザー名を変更しない限りygoproがパスワードを保存します。登録時はほかのアカウントで普段使用しているパスワードを避け、簡単な専用パスワードを使用してください。',
+    script_notice: '2011年当時の裁定を再現するため、本サーバーのカードスクリプトは不定期に更新され、ygopro公式サーバーのものとは異なります。リプレイを開けない場合は、<a href="https://github.com/301zrg/specials/tree/master/706" target="_blank" rel="noopener">こちらからスクリプトをダウンロードしてください</a>。',
+    offering_notice: '本サーバーでは「<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血の代償(80604091)</a>」を独自に準制限・制限していません。今後追加規制を行うかはプレイヤーからのフィードバックに基づいて判断します。',
+    content0: 'ygoproクライアントをお持ちでない場合は、こちらからダウンロードできます。<a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" data-i18n="download_link">ここをクリックしてKoishiProをダウンロード</a>',
+    content1: 'オンラインモードボタンをクリック->ホスト情報：2つの入力ボックスがある場合、1つ目に<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>、2つ目に<button onclick="copyContent(\'7911\')">7911</button>を入力。1つの入力ボックスの場合は<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>を入力->ニックネームにユーザー名を入力->ルームパスワードの意味は<a href="https://ygo233.com/usage" target="_blank">こちら</a>を参照->「ゲームに参加」をクリック。「ホストを作成」はクリックしないでください',
+    content2: 'オンラインモードボタンをクリック->ホスト情報：2つの入力ボックスがある場合、1つ目に<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>、2つ目に<button onclick="copyContent(\'7911\')">7911</button>を入力。1つの入力ボックスの場合は<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>を入力->ニックネームに「ユーザー名$パスワード」を入力。ユーザー名が未登録の場合は自動登録され、今回入力したパスワードが設定されます。既に登録されている場合はパスワードが正しい場合のみ接続可能->ルームパスワードは<button onclick="copyContent(\'TT\')">TT</button>のみを入力。参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">こちら</a> ->「ゲームに参加」をクリック。「ホストを作成」はクリックしないでください',
+    content_ladder_tip: 'チャット欄に/tipと入力するとヒントを表示し、/jaと入力すると日本語に切り替わります。これらのコマンドへの応答は、切断している可能性がないか判断する目安にもなります。',
+    content3: 'ランキングモードの順位はレートによって決定されます', content3_points: 'ランキングモードの順位はレートによって決定されます', content3_wins: 'ランキングモードの順位は勝利数によって決定されます', content3_diff: 'ランキングモードの順位は勝利数から敗北数を引いた値によって決定されます', content3_winRate: 'ランキングモードの順位は勝率によって決定されます', deck_download: 'ダウンロード'
+  },
+  en: {
+    title: 'Yu-Gi-Oh! OCG 201103 Ladder Server User Guide',
+    server_intro_title: 'Server Introduction:', notice_title: 'Important Notes:',
+    title0: 'Download Link:', title1: 'Connection Method:', title3: 'Regular Connection Mode:', title4: 'Ladder Mode:', deck_title: 'Example Decks', deck_load_fail: 'Failed to load example deck configuration',
+    server_intro_pool: 'This server is intended for the Yu-Gi-Oh! OCG 201103 Nexus environment. It uses the March 2011 Forbidden & Limited List and all OCG cards released on or before August 31, 2011. No additional restriction is applied to “<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">Ultimate Offering (80604091)</a>”.',
+    server_intro_srvpro: 'This server is built on <a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>. Special thanks to the srvpro developers.',
+    server_intro_ladder: 'The ladder mode was developed by <a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a> on top of srvpro. Its source code is available at <a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>.',
+    server_intro_ai: 'AI was used extensively while developing this server. All non-Chinese content was translated by AI.',
+    server_intro_reconnect: 'This server now supports reconnection after a disconnect, but does not support cloud replays.',
+    server_intro_qq: 'Server QQ group: <button type="button" onclick="copyContent(\'749717894\')">749717894</button> (click the number to copy it). Join <a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>.',
+    server_intro_discord: 'Server Discord group: Join <a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>.',
+    ads_notice: 'The ADS client used by ads gateball server is too old and is no longer supported. Please use a current ADS client or the download link above.',
+    password_notice: 'This server currently provides only basic account features, and accounts can be registered freely. Ygopro also saves your password unless you change the username. Do not reuse a password from another account; use a simple password dedicated to this server.',
+    script_notice: 'This server updates card scripts from time to time to reproduce 2011 rulings, so its scripts differ from those on official ygopro servers. If a replay cannot be opened, <a href="https://github.com/301zrg/specials/tree/master/706" target="_blank" rel="noopener">download the required scripts here</a>.',
+    offering_notice: 'This server does not apply an additional Semi-Limited or Limited status to “<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">Ultimate Offering (80604091)</a>”. Any future restriction will depend on player feedback.',
+    content0: 'If you do not have the ygopro client, you can download it here: <a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" data-i18n="download_link">Click here to download KoishiPro</a>',
+    content1: 'Click the online mode button -> Host Information: If there are two input boxes, enter <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button> in the first and <button onclick="copyContent(\'7911\')">7911</button> in the second. If there is one input box, enter <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button> -> Enter your username as nickname -> For room password meaning, refer to: <a href="https://ygo233.com/usage" target="_blank">Click here</a> -> Click "Join Game", do not click "Create Host"',
+    content2: 'Click the online mode button -> Host Information: If there are two input boxes, enter <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button> in the first and <button onclick="copyContent(\'7911\')">7911</button> in the second. If there is one input box, enter <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button> -> Enter "username$password" as nickname. If the username is not registered, it will be automatically registered with the password you entered. If already registered, you can only connect if the password is correct -> Enter only <button onclick="copyContent(\'TT\')">TT</button> as the room password. Reference: <a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">Click here</a> -> Click "Join Game", do not click "Create Host"',
+    content_ladder_tip: 'Enter /tip in the chat box to get a tip, or enter /en to switch to English. A response to either command can also help you tell whether you may have disconnected.',
+    content3: 'The ladder ranking is currently determined by rating points', content3_points: 'The ladder ranking is currently determined by rating points', content3_wins: 'The ladder ranking is currently determined by wins', content3_diff: 'The ladder ranking is currently determined by wins minus losses', content3_winRate: 'The ladder ranking is currently determined by win rate', deck_download: 'Download'
+  },
+  ko: {
+    title: '유희왕 OCG 201103 랭킹 서버 사용 가이드',
+    server_intro_title: '서버 소개：', notice_title: '주의 사항：',
+    title0: '다운로드 링크：', title1: '연결 방법：', title3: '일반 연결 모드：', title4: '랭킹 모드：', deck_title: '예시 덱', deck_load_fail: '예시 덱 설정을 불러오지 못했습니다',
+    server_intro_pool: '본 서버는 유희왕 OCG 201103 Nexus 환경용입니다. 2011년 3월 금지·제한 목록을 사용하며, 카드 풀은 2011년 8월 31일까지 OCG로 발매된 모든 카드입니다. “<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">희생의 제물(80604091)</a>”에는 별도의 추가 규제를 적용하지 않습니다.',
+    server_intro_srvpro: '본 서버는 <a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a> 코드를 기반으로 구축되었습니다. srvpro 개발자 여러분께 특별히 감사드립니다.',
+    server_intro_ladder: '랭킹 모드는 <a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>가 srvpro를 기반으로 개발했습니다. 소스 코드는 <a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>에 있습니다.',
+    server_intro_ai: '본 서버의 코드 개발 과정에서 AI를 많이 사용했으며, 중국어 이외의 내용은 모두 AI로 번역했습니다.',
+    server_intro_reconnect: '본 서버는 현재 접속 종료 후 재접속을 지원하지만 클라우드 리플레이는 지원하지 않습니다.',
+    server_intro_qq: '서버 QQ 그룹: <button type="button" onclick="copyContent(\'749717894\')">749717894</button> (번호를 클릭하면 복사됩니다). <a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>에 가입하세요.',
+    server_intro_discord: '서버 Discord 그룹: <a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>에 가입하세요.',
+    ads_notice: 'ads gateball server에서 사용하는 ADS 클라이언트는 너무 오래되어 본 서버에서 지원하지 않습니다. 최신 ADS 클라이언트 또는 위의 다운로드 링크를 이용하세요.',
+    password_notice: '본 서버의 계정 기능은 아직 단순하고 계정은 자유롭게 등록할 수 있습니다. 또한 사용자명을 바꾸지 않으면 ygopro가 비밀번호를 저장합니다. 다른 계정에서 평소 사용하는 비밀번호를 재사용하지 말고, 이 서버 전용의 간단한 비밀번호를 사용하세요.',
+    script_notice: '2011년 당시의 재정을 재현하기 위해 본 서버의 카드 스크립트는 비정기적으로 갱신되며 ygopro 공식 서버의 스크립트와 다릅니다. 리플레이 파일이 열리지 않으면 <a href="https://github.com/301zrg/specials/tree/master/706" target="_blank" rel="noopener">여기에서 스크립트를 다운로드하세요</a>.',
+    offering_notice: '본 서버에서는 “<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">희생의 제물(80604091)</a>”을 별도로 준제한 또는 제한하지 않습니다. 향후 추가 규제 여부는 플레이어 의견에 따라 결정합니다.',
+    content0: 'ygopro 클라이언트가 없다면 여기에서 다운로드할 수 있습니다: <a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" data-i18n="download_link">여기를 클릭하여 KoishiPro 다운로드</a>',
+    content1: '온라인 모드 버튼 클릭 -> 호스트 정보: 입력창이 두 개인 경우 첫 번째에 <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>을, 두 번째에 <button onclick="copyContent(\'7911\')">7911</button>을 입력. 입력창이 하나인 경우 <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>을 입력 -> 닉네임에 사용자명 입력 -> 방 비밀번호 의미는 <a href="https://ygo233.com/usage" target="_blank">여기</a> 참조 -> "게임 참가" 클릭. "호스트 만들기"는 클릭하지 마세요',
+    content2: '온라인 모드 버튼 클릭 -> 호스트 정보: 입력창이 두 개인 경우 첫 번째에 <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>을, 두 번째에 <button onclick="copyContent(\'7911\')">7911</button>을 입력. 입력창이 하나인 경우 <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>을 입력 -> 닉네임에 "사용자명$비밀번호"를 입력. 사용자명이 미등록인 경우 자동 등록되며 이번에 입력한 비밀번호가 설정됩니다. 이미 등록된 경우 비밀번호가 맞아야만 연결 가능 -> 방 비밀번호는 <button onclick="copyContent(\'TT\')">TT</button>만 입력. 참고: <a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">여기</a> -> "게임 참가" 클릭. "호스트 만들기"는 클릭하지 마세요',
+    content_ladder_tip: '채팅창에 /tip을 입력하면 도움말을 볼 수 있고, /ko를 입력하면 한국어로 전환됩니다. 이 명령에 응답이 오는지를 통해 접속이 끊어진 것으로 의심되는지 판단할 수도 있습니다.',
+    content3: '랭킹 모드의 순위는 레이팅 점수에 따라 결정됩니다', content3_points: '랭킹 모드의 순위는 레이팅 점수에 따라 결정됩니다', content3_wins: '랭킹 모드의 순위는 승수에 따라 결정됩니다', content3_diff: '랭킹 모드의 순위는 승리 수에서 패배 수를 뺀 값에 따라 결정됩니다', content3_winRate: '랭킹 모드의 순위는 승률에 따라 결정됩니다', deck_download: '다운로드'
+  }
+};
+var deckGroups = null;
+var lang = SrvproWeb.getLanguage();
+function t(key) { return SrvproWeb.t(I18N, key); }
+var currentRankingBasis = 'points';
+function updateRankingBasisText() {
+  var content = document.querySelector('[data-i18n="content3"]');
+  if (content) content.innerHTML = t('content3_' + currentRankingBasis);
+}
+async function loadRankingBasis() {
+  try {
+    var response = await fetch('/api/ladder-config?t=' + Date.now());
+    var data = await response.json();
+    if (data.rankingBasis) currentRankingBasis = data.rankingBasis;
+    updateRankingBasisText();
+  } catch (e) {
+    updateRankingBasisText();
+  }
+}
+function renderDecks() {
+  var container = document.getElementById('deckGroups');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!deckGroups) return;
+  if (!deckGroups.length) {
+    container.textContent = t('deck_load_fail');
+    return;
+  }
+  deckGroups.forEach(function (group) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'deck-group';
+    var heading = document.createElement('h3');
+    heading.textContent = (group.name && (group.name[lang] || group.name.zh)) || group.id;
+    wrapper.appendChild(heading);
+    var list = document.createElement('div');
+    list.className = 'deck-list';
+    (group.decks || []).forEach(function (deck) {
+      var link = document.createElement('a');
+      var localizedName = (deck.name && (deck.name[lang] || deck.name.zh)) || deck.file;
+      link.href = 'example_decks/' + encodeURIComponent(deck.file);
+      link.download = localizedName + '.ydk';
+      link.textContent = localizedName;
+      link.title = t('deck_download');
+      list.appendChild(link);
+    });
+    wrapper.appendChild(list);
+    container.appendChild(wrapper);
+  });
+}
+async function loadExampleDecks() {
+  try {
+    var response = await fetch('/api/example-decks?t=' + Date.now());
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var result = await response.json();
+    deckGroups = Array.isArray(result.groups) ? result.groups : [];
+  } catch (e) {
+    deckGroups = [];
+  }
+  renderDecks();
+}
+function copyContent(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(
+      function() { alert('已复制: ' + text); },
+      function(err) {
+        // clipboard API 失败时使用 fallback
+        fallbackCopy(text);
+      }
+    );
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  var textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  try {
+    var successful = document.execCommand('copy');
+    if (successful) {
+      alert('已复制: ' + text);
+    } else {
+      alert('复制失败，请手动复制');
+    }
+  } catch (err) {
+    alert('复制失败，请手动复制');
+  }
+  document.body.removeChild(textarea);
+}
+SrvproWeb.init({
+  translations: I18N,
+  htmlKeys: ['server_intro_pool', 'server_intro_srvpro', 'server_intro_ladder', 'server_intro_qq', 'server_intro_discord', 'script_notice', 'offering_notice', 'content0', 'content1', 'content2'],
+  onLanguageChange: function (code) {
+    lang = code;
+    renderDecks();
+    updateRankingBasisText();
+  }
+});
+renderDecks();
+updateRankingBasisText();
+loadRankingBasis();
+loadExampleDecks();
+</script>
+</body>
+</html>

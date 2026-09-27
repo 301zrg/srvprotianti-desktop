@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "player": {
+    "launchName": ""
+  },
+  "server": {
+    "gameHost": "121.4.34.71",
+    "gamePort": 7911,
+    "apiBaseUrl": "http://121.4.34.71:7922"
+  },
+  "game": {
+    "executable": "ygopro.exe"
+  },
+  "ui": {
+    "language": "zh"
+  }
+}
