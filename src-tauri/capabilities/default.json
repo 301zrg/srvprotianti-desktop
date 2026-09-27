@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Local pages may invoke only the commands implemented by this application.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "clipboard-manager:allow-write-text"]
 }

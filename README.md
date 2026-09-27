@@ -2,13 +2,13 @@
 
 放在 YGOPro 或 KoishiPro 根目录的 Windows 桌面客户端。当前为开发中的首版，需求与验收范围见 [DESIGN.md](DESIGN.md)。
 
-程序保留服务器网页的八个页面及中、日、英、韩四种语言。常规联机只预填连接信息；天梯按钮直接加入 TT；已开局的公开房间可点击观战。卡组与录像保存到游戏的 deck/replay 目录后直接打开。设置和旧裁定脚本更新位于设置页。
+程序保留服务器网页的八个页面及中、日、英、韩四种语言。介绍页的 QQ 群号、IP、端口、合并地址和 TT 房间密码按钮可点击复制；常规联机行末的启动按钮只预填连接信息，天梯行末的启动按钮直接加入 TT。已开局的公开房间可点击观战。卡组与录像保存到游戏的 deck/replay 目录后直接打开。设置和旧裁定脚本更新位于设置页。
 
 ## 开发
 
 需要 Node.js、Rust stable 的 Windows MSVC 工具链、Microsoft C++ Build Tools、WebView2。Tauri 的 [Windows 前置条件](https://v2.tauri.app/start/prerequisites/) 有安装说明。
 
-仓库包含 [Windows 构建工作流](.github/workflows/windows-desktop.yml)，可运行前端检查、Rust 测试并生成便携版构建产物。当前源码尚需在完整的 MSVC 环境和实际 YGOPro/KoishiPro 目录验收；请勿把未测试的构建当作正式发行版。
+仓库包含 [Windows 构建工作流](.github/workflows/windows-desktop.yml)，可运行前端检查、Rust 测试并生成便携版构建产物。CI 已在 MSVC 环境中通过；实际 YGOPro/KoishiPro 目录中的联机、录像和脚本行为仍需验收，请勿把未做游戏实测的构建当作正式发行版。
 
 ~~~powershell
 npm ci

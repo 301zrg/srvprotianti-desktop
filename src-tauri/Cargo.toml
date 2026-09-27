@@ -22,3 +22,4 @@ sha2 = "0.10"
 uuid = { version = "1", features = ["v4"] }
 open = "5"
 sysinfo = "0.39"
+tauri-plugin-clipboard-manager = "2"

@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 
 type Language = 'zh' | 'ja' | 'en' | 'ko';
 type Settings = {
@@ -39,6 +40,7 @@ declare global {
 const languages: Language[] = ['zh', 'ja', 'en', 'ko'];
 const messages: Record<Language, Record<string, string>> = {
   zh: {
+    copied: '已复制：',
     savedDeck: '卡组已保存并在游戏中打开', savedReplay: '录像已保存并在游戏中播放',
     savedNotOpened: '文件已保存，但游戏未能启动', retryOpen: '重试打开',
     failed: '操作失败', setName: '请先在设置中填写游戏昵称', openDeck: '保存并编辑',
@@ -46,6 +48,7 @@ const messages: Record<Language, Record<string, string>> = {
     roomGone: '房间已关闭或状态已变化，请刷新后重试', roomLocked: '该房间暂不能直接观战'
   },
   ja: {
+    copied: 'コピーしました：',
     savedDeck: 'デッキを保存してゲームで開きました', savedReplay: 'リプレイを保存してゲームで再生しました',
     savedNotOpened: 'ファイルは保存されましたが、ゲームを起動できませんでした', retryOpen: 'もう一度開く',
     failed: '失敗', setName: '設定でゲーム名を入力してください', openDeck: '保存して編集',
@@ -53,6 +56,7 @@ const messages: Record<Language, Record<string, string>> = {
     roomGone: 'ルームが終了または変更されました。更新してください', roomLocked: 'このルームは直接観戦できません'
   },
   en: {
+    copied: 'Copied: ',
     savedDeck: 'Deck saved and opened in the game', savedReplay: 'Replay saved and opened in the game',
     savedNotOpened: 'File saved, but the game could not start', retryOpen: 'Retry opening',
     failed: 'Operation failed', setName: 'Set your game name in Settings first', openDeck: 'Save and edit',
@@ -60,6 +64,7 @@ const messages: Record<Language, Record<string, string>> = {
     roomGone: 'The room closed or changed. Refresh and try again', roomLocked: 'This room cannot be watched directly'
   },
   ko: {
+    copied: '복사됨: ',
     savedDeck: '덱을 저장하고 게임에서 열었습니다', savedReplay: '리플레이를 저장하고 게임에서 재생했습니다',
     savedNotOpened: '파일은 저장했지만 게임을 실행하지 못했습니다', retryOpen: '다시 열기',
     failed: '작업 실패', setName: '설정에서 게임 이름을 입력하세요', openDeck: '저장 후 편집',
@@ -279,18 +284,16 @@ document.addEventListener('click', event => {
 
 function updateIntroButtons() {
   if (location.pathname !== '/intro.html' || !cachedSettings) return;
-  const labels = [
-    cachedSettings.server.gameHost,
-    String(cachedSettings.server.gamePort),
-    cachedSettings.server.gameHost + ':' + cachedSettings.server.gamePort
-  ];
-  for (const action of ['desktopRegular()', 'desktopLadder()']) {
-    const buttons = document.querySelectorAll<HTMLButtonElement>('button[onclick="' + action + '"]');
-    buttons.forEach((button, index) => {
-      const label = labels[index] || 'TT';
-      if (button.textContent !== label) button.textContent = label;
-    });
-  }
+  const labels: Record<string, string> = {
+    host: cachedSettings.server.gameHost,
+    port: String(cachedSettings.server.gamePort),
+    address: cachedSettings.server.gameHost + ':' + cachedSettings.server.gamePort,
+    password: 'TT'
+  };
+  document.querySelectorAll<HTMLButtonElement>('button[data-copy-connection]').forEach(button => {
+    const label = labels[button.dataset.copyConnection || ''];
+    if (label && button.textContent !== label) button.textContent = label;
+  });
   document.getElementById('updateScriptsShortcut')?.setAttribute('title', msg('update'));
 }
 function updateDownloadLabels() {
@@ -326,6 +329,48 @@ async function launch(kind: 'regular' | 'ladder') {
     await invoke('launch_game', { kind, roomName: null });
   } catch (error) { toast(msg('failed') + ': ' + String(error), true); }
 }
+
+async function copyIntroValue(button: HTMLButtonElement): Promise<void> {
+  try {
+    const field = button.dataset.copyConnection;
+    let value = button.dataset.copyValue;
+    if (field) {
+      const settings = cachedSettings || await settingsPromise;
+      const values: Record<string, string> = {
+        host: settings.server.gameHost,
+        port: String(settings.server.gamePort),
+        address: settings.server.gameHost + ':' + settings.server.gamePort,
+        password: 'TT'
+      };
+      value = values[field];
+    }
+    if (!value) throw new Error('No value to copy');
+    if (tauriAvailable) await writeText(value);
+    else if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(value);
+    else throw new Error('Clipboard is unavailable');
+    toast(msg('copied') + value);
+  } catch (error) {
+    toast(msg('failed') + ': ' + String(error), true);
+  }
+}
+
+document.addEventListener('click', event => {
+  const target = event.target;
+  const button = target instanceof Element ? target.closest('button') : null;
+  if (!(button instanceof HTMLButtonElement) || !button.closest('[data-i18n="content1"], [data-i18n="content2"], [data-i18n="server_intro_qq"]')) return;
+  if (button.hasAttribute('data-copy-connection') || button.hasAttribute('data-copy-value')) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    void copyIntroValue(button);
+    return;
+  }
+  const kind = button.dataset.desktopLaunch;
+  if (kind === 'regular' || kind === 'ladder') {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    void launch(kind);
+  }
+}, true);
 
 const progressCallbacks = new Set<(progress: ScriptProgress) => void>();
 if (tauriAvailable) {

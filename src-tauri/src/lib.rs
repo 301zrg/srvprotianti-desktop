@@ -208,6 +208,7 @@ pub fn run() {
         script_lock: Mutex::new(()),
     };
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(state)
         .setup(move |app| {
             #[cfg(windows)]
