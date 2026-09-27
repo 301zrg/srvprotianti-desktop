@@ -1,0 +1,38 @@
+name: Windows desktop
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Install JavaScript dependencies
+        run: npm ci
+      - name: Check pages and TypeScript
+        run: npm run check
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - name: Test Rust behavior
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+      - name: Build desktop application
+        run: npm run build
+      - name: Prepare portable files
+        run: npm run package:portable
+      - uses: actions/upload-artifact@v4
+        with:
+          name: srvprotianti-desktop-windows-x64
+          path: release-portable/
