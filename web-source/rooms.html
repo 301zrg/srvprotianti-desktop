@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>游戏王OCG201103天梯服务器 房间列表</title>
+<link rel="stylesheet" href="/assets/common.css">
+<style>
+  .stats { display: flex; gap: 24px; margin: 10px 0 16px; font-size: 14px; flex-wrap: wrap; }
+  .stats b { color: #7ec4ff; font-size: 20px; }
+  td.playing { color: #ffd875; }
+  td.waiting { color: #7fe07f; }
+  .room-name { display: flex; align-items: center; justify-content: space-between; }
+  @media (max-width: 640px) {
+    .stats { gap: 10px 16px; font-size: 12px; }
+    .stats b { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div data-site-shell></div>
+<div class="stats">
+  <span data-i18n="rooms_total">房间总数</span> <b id="sRooms">-</b>
+  <span data-i18n="playing_now">对局中</span> <b id="sPlaying">-</b>
+  <span data-i18n="players_online">在线玩家</span> <b id="sPlayers">-</b>
+  <span data-i18n="update_time">更新时间</span> <b id="sTime">-</b>
+</div>
+<div>
+  <button onclick="refresh()" style="background:#2f5c86; color:#fff; padding:6px 16px; font-size:13px;" data-i18n="refresh">手动刷新</button>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th data-i18n="th_roomname">房名</th><th data-i18n="th_type">类型</th><th data-i18n="th_mode">模式</th><th data-i18n="th_players">玩家</th><th data-i18n="th_status">状态</th></tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+<div class="hint" data-i18n="hint">页面不会自动刷新,请点击「手动刷新」或按 F5 查看最新房间。房名中的密码部分不会显示。</div>
+<script src="/assets/site-shell.js"></script>
+<script>
+var I18N = {
+  zh: {
+    title: '游戏王OCG201103天梯服务器 实时房间', rooms_total: '房间总数', playing_now: '对局中', players_online: '在线玩家', update_time: '更新时间',
+    refresh: '手动刷新',
+    th_roomname: '房名', th_type: '类型', th_mode: '模式', th_players: '玩家', th_status: '状态',
+    hint: '页面不会自动刷新,请点击「手动刷新」或按 F5 查看最新房间。房名中的密码部分不会显示。',
+    waiting: '等待中', waiting_match: '等待匹配中', watch_btn: '点击观战', not_started: '尚未开局', protected_room: '密码房暂不支持直接观战', load_fail: '加载失败',
+    ladder_match: '天梯随机(比赛)', random_single: '随机·单局', random_match: '随机·比赛', random_tag: '随机·双打', ai_battle: 'AI 对战', match_room: '比赛房', tag_room: '双打房'
+  },
+  ja: {
+    title: '遊戯王OCG 201103 ランキングサーバー ルーム一覧', rooms_total: '全ルーム', playing_now: '対戦中', players_online: 'オンライン', update_time: '更新時刻',
+    refresh: '更新',
+    th_roomname: 'ルーム名', th_type: '種別', th_mode: 'モード', th_players: 'プレイヤー', th_status: '状態',
+    hint: '自動更新はありません。「更新」またはF5で最新のルームを表示します。ルーム名のパスワード部分は表示されません。',
+    waiting: '待機中', waiting_match: 'マッチ待ち', watch_btn: '観戦する', not_started: 'まだ開始していません', protected_room: 'パスワード付きルームは直接観戦できません', load_fail: '読み込み失敗',
+    ladder_match: 'ランクマッチ(MT)', random_single: 'ランダム(1本)', random_match: 'ランダム(MT)', random_tag: 'ランダム(2v2)', ai_battle: 'AI対戦', match_room: 'マッチ部屋', tag_room: '2v2部屋'
+  },
+  en: {
+    title: 'Yu-Gi-Oh! OCG 201103 Ladder Server Live Rooms', rooms_total: 'Rooms', playing_now: 'In Duel', players_online: 'Online Players', update_time: 'Updated',
+    refresh: 'Refresh',
+    th_roomname: 'Room', th_type: 'Type', th_mode: 'Mode', th_players: 'Players', th_status: 'Status',
+    hint: 'No auto refresh. Click "Refresh" or press F5 for the latest rooms. Password parts of room names are hidden.',
+    waiting: 'Waiting', waiting_match: 'Waiting for match', watch_btn: 'Watch game', not_started: 'Not started yet', protected_room: 'Password room cannot be watched directly', load_fail: 'Load failed',
+    ladder_match: 'Ladder Match', random_single: 'Random Single', random_match: 'Random Match', random_tag: 'Random Tag', ai_battle: 'AI Battle', match_room: 'Match Room', tag_room: 'Tag Room'
+  },
+  ko: {
+    title: '유희왕 OCG 201103 랭킹 서버 라이브 룸', rooms_total: '전체 룸', playing_now: '듀얼 중', players_online: '온라인 플레이어', update_time: '업데이트',
+    refresh: '새로고침',
+    th_roomname: '룸 이름', th_type: '종류', th_mode: '모드', th_players: '플레이어', th_status: '상태',
+    hint: '자동 새로고침되지 않습니다. 「새로고침」 또는 F5로 최신 룸을 확인하세요. 비밀번호 부분은 표시되지 않습니다.',
+    waiting: '대기 중', waiting_match: '매칭 대기 중', watch_btn: '관전하기', not_started: '아직 시작하지 않음', protected_room: '비밀번호 방은 직접 관전할 수 없습니다', load_fail: '로드 실패',
+    ladder_match: '랭크 매치(MT)', random_single: '랜덤(1판)', random_match: '랜덤(MT)', random_tag: '랜덤(2v2)', ai_battle: 'AI 대전', match_room: '매치 룸', tag_room: '2v2 룸'
+  }
+};
+var lang = SrvproWeb.getLanguage();
+function t(key) { return SrvproWeb.t(I18N, key); }
+function friendlyName(name) {
+  if (/^M?#?TT,RANDOM#/.test(name)) return t('ladder_match');
+  if (/^TT,RANDOM#/.test(name)) return t('ladder_match');
+  if (/^S,RANDOM#/.test(name)) return t('random_single');
+  if (/^M,RANDOM#/.test(name)) return t('random_match');
+  if (/^T,RANDOM#/.test(name)) return t('random_tag');
+  if (/^AI#/.test(name)) return t('ai_battle');
+  if (/^M#/.test(name)) return t('match_room');
+  if (/^T#/.test(name)) return t('tag_room');
+  if (name.indexOf('$') !== -1) return name.split('$')[0];
+  return name;
+}
+function modeName(mode) {
+  return mode === 1 ? 'MATCH' : mode === 2 ? 'TAG' : 'SINGLE';
+}
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character];
+  });
+}
+async function refresh() {
+  try {
+    const res = await fetch('/api/public/rooms?t=' + Date.now());
+    const data = await res.json();
+    const rooms = data.rooms || [];
+    let players = 0, playing = 0;
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
+    for (const r of rooms) {
+      const isPlaying = r.istart !== 'wait';
+      if (isPlaying) playing++;
+      const names = (r.users || []).map(u => u.name).join('、') || '(' + t('waiting') + ')';
+      players += (r.users || []).length;
+      const tr = document.createElement('tr');
+      const roomName = r.roomname ? r.roomname.split('$')[0] : ('#' + r.roomid);
+      const dispType = friendlyName(r.roomname);
+      const isLadder = /^M?#?TT,RANDOM#/.test(r.roomname);
+      const playersCell = (r.istart !== 'wait' || !isLadder) ? names : t('waiting_match');
+      tr.innerHTML = '<td class="room-name">' + escapeHtml(roomName) + '</td>' +
+        '<td>' + escapeHtml(dispType) + '</td>' +
+        '<td>' + modeName(r.roommode) + '</td>' +
+        '<td>' + escapeHtml(playersCell) + '</td>' +
+        '<td class="' + (isPlaying ? 'playing' : 'waiting') + '">' + escapeHtml(r.istart) + '</td>';
+      const copyButton = document.createElement('button');
+      const canWatch = Boolean(r.roomname) && typeof r.istart === 'string' && r.istart.startsWith('Duel:') && r.needpass === 'false';
+      copyButton.textContent = r.needpass === 'true' ? t('protected_room') : canWatch ? t('watch_btn') : t('not_started');
+      copyButton.disabled = !canWatch;
+      copyButton.onclick = function () { if (canWatch) window.SrvproDesktop.watchRoom(r); };
+      tr.firstElementChild.appendChild(copyButton);
+      tbody.appendChild(tr);
+    }
+    document.getElementById('sRooms').textContent = rooms.length;
+    document.getElementById('sPlaying').textContent = playing;
+    document.getElementById('sPlayers').textContent = players;
+    document.getElementById('sTime').textContent = new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById('sTime').textContent = t('load_fail') + ': ' + e;
+  }
+}
+SrvproWeb.init({
+  translations: I18N,
+  onLanguageChange: function (code) { lang = code; refresh(); }
+});
+refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>游戏王OCG201103天梯服务器 天梯排行</title>
+<link rel="stylesheet" href="/assets/common.css">
+<style>
+  .tabs { margin: 12px 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .tabs .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tabs button { background: #243447; color: #9db8d0; border: none; padding: 8px 18px; cursor: pointer; font-size: 13px; border-radius: 4px; transition: .2s; }
+  .tabs button.active { background: #2f5c86; color: #fff; }
+  .tabs .ranking-group { flex-basis: 100%; }
+  .tabs .right-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+  .tabs .right-group select { background: #243447; color: #dce6f0; border: 1px solid #2c3e50; padding: 6px 10px; font-size: 13px; border-radius: 4px; }
+  .tabs .right-group button { background: #2f5c86; color: #fff; padding: 8px 18px; }
+  .tabs .right-group button.outline { background: #243447; color: #9db8d0; }
+  th.ranking-basis, td.ranking-basis { background: #3b4263; font-weight: bold; }
+  th.ranking-basis { color: #c8c1ff; box-shadow: inset 0 -2px 0 #9b8cff; }
+  tr.top1 { background: linear-gradient(90deg, rgba(255,216,117,.13), transparent 55%); }
+  tr.top2 { background: linear-gradient(90deg, rgba(216,216,216,.10), transparent 55%); }
+  tr.top3 { background: linear-gradient(90deg, rgba(224,160,106,.11), transparent 55%); }
+  tr.top1 td:first-child, tr.top1 td:nth-child(2) { color: #ffd875; font-weight: bold; text-shadow: 0 0 8px rgba(255,216,117,.25); }
+  tr.top2 td:first-child, tr.top2 td:nth-child(2) { color: #d8d8d8; font-weight: bold; }
+  tr.top3 td:first-child, tr.top3 td:nth-child(2) { color: #e0a06a; font-weight: bold; }
+  tr.top1 td:nth-child(2) a, tr.top2 td:nth-child(2) a, tr.top3 td:nth-child(2) a { color: inherit; }
+  tr.top1 td:first-child { box-shadow: inset 3px 0 0 #ffd875; }
+  tr.top2 td:first-child { box-shadow: inset 3px 0 0 #d8d8d8; }
+  tr.top3 td:first-child { box-shadow: inset 3px 0 0 #e0a06a; }
+  .privacy-hint { color: #6c8299; font-size: 12px; margin-top: 6px; }
+  .data-retention-hint { color: #6c8299; font-size: 12px; margin-top: 4px; padding-bottom: 10px; border-bottom: 1px solid #2c3e50; }
+  .search-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 8px 0; }
+  .search-row input { background: #243447; color: #dce6f0; border: 1px solid #2c3e50; padding: 6px 10px; font-size: 13px; flex: 1 1 180px; min-width: 120px; border-radius: 4px; }
+  .search-row button { background: #2f5c86; color: #fff; border: none; padding: 6px 14px; cursor: pointer; font-size: 13px; border-radius: 4px; }
+  .search-row button.outline { background: #243447; color: #9db8d0; }
+  .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; }
+  .pagination button { background: #243447; color: #9db8d0; border: none; padding: 6px 14px; cursor: pointer; border-radius: 4px; }
+  .pagination button.primary { background: #2f5c86; color: #fff; }
+  .pagination span { margin: 0 6px; color: #9db8d0; }
+  @media (max-width: 640px) {
+    .tabs { flex-direction: column; align-items: stretch; gap: 6px; }
+    .tabs .btn-group { justify-content: center; }
+    .tabs .right-group { margin-left: 0; justify-content: center; }
+    .tabs .right-group select { width: 100%; max-width: 160px; }
+    .search-row input { flex: 1 1 140px; }
+  }
+</style>
+</head>
+<body>
+<div data-site-shell></div>
+<div class="search-row">
+  <input id="searchInput" data-i18n-ph="search_ph" placeholder="输入玩家 ID 搜索其战绩" />
+  <button onclick="doSearch()" data-i18n="search">搜索</button>
+  <button class="outline" onclick="clearSearch()" data-i18n="clear">清空</button>
+</div>
+<div class="tabs">
+  <div class="btn-group">
+    <button id="tabTotal" class="active" data-i18n="tab_total">总战绩</button>
+    <button id="tabMonth" data-i18n="tab_month">当月战绩</button>
+  </div>
+  <div class="btn-group ranking-group">
+    <button id="rankPoints" data-ranking-basis="points" data-i18n="rank_points">按等级分</button>
+    <button id="rankWins" data-ranking-basis="wins" data-i18n="rank_wins">按纯胜场</button>
+    <button id="rankDiff" data-ranking-basis="diff" data-i18n="rank_diff">按胜负差</button>
+    <button id="rankWinRate" data-ranking-basis="winRate" data-i18n="rank_winrate">按胜率</button>
+  </div>
+  <div class="right-group">
+    <label for="monthSelect" style="color:#9db8d0; font-size:13px;" data-i18n="month_label">月份</label>
+    <select id="monthSelect"></select>
+    <button onclick="refresh()" data-i18n="refresh">手动刷新</button>
+  </div>
+</div>
+<div class="privacy-hint" data-i18n="privacy_hint">排名后30%的玩家ID将在总榜上隐藏</div>
+<div class="data-retention-hint" data-i18n="data_retention_hint">等级分、胜场、负场、胜负差的总数据不会清除，月度数据每月重新统计</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th data-i18n="th_rank">排名</th><th data-i18n="th_player">玩家</th><th data-ranking-column="points" data-i18n="th_points">等级分</th><th data-ranking-column="wins" data-i18n="th_win">胜</th><th data-i18n="th_lose">负</th><th data-ranking-column="diff" data-i18n="th_diff">胜负差</th><th data-ranking-column="winRate" data-i18n="th_winrate">胜率</th></tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+<div class="pagination">
+  <button id="btnFirst" onclick="goPage(1)" data-i18n="first_page">首页</button>
+  <button id="btnPrev" onclick="goPage(currentPage - 1)" data-i18n="prev">上一页</button>
+  <span id="pageInfo" style="margin:0 6px; color:#9db8d0;">-</span>
+  <button id="btnNext" onclick="goPage(currentPage + 1)" data-i18n="next">下一页</button>
+  <button class="primary" onclick="refresh()" data-i18n="refresh_page">刷新本页</button>
+</div>
+<div class="hint" data-i18n="hint">页面不会自动刷新,请点击「手动刷新」或按 F5 获取最新排名。天梯仅统计随机房间输入 TT 的天梯模式对决;玩家密码永不在页面上显示。</div>
+<script src="/assets/site-shell.js"></script>
+<script>
+var I18N = {
+  zh: {
+    title: '游戏王OCG201103天梯服务器 天梯排行',
+    search_ph: '输入玩家 ID 搜索其战绩', search: '搜索', clear: '清空',
+    tab_total: '总战绩', tab_month: '当月战绩', rank_points: '按等级分', rank_wins: '按纯胜场', rank_diff: '按胜负差', rank_winrate: '按胜率', refresh: '手动刷新', month_label: '月份',
+    th_rank: '排名', th_player: '玩家', th_points: '等级分', th_win: '胜', th_lose: '负', th_diff: '胜负差', th_winrate: '胜率',
+    first_page: '首页', prev: '上一页', next: '下一页', refresh_page: '刷新本页',
+    hint: '页面不会自动刷新,请点击「手动刷新」或按 F5 获取最新排名。天梯仅统计随机房间输入 TT 的天梯模式对决;玩家密码永不在页面上显示。',
+    no_data: '暂无数据', load_fail: '加载失败',
+    page_info: '第 %p% / %t% 页,共 %n% 个玩家', search_info: '关键词「%s%」:共 %n% 条匹配 · ',
+    privacy_hint: '排名后30%的玩家ID将在总榜上隐藏',
+    data_retention_hint: '等级分、胜场、负场、胜负差的总数据不会清除，月度数据每月重新统计'
+  },
+  ja: {
+    title: '遊戯王OCG 201103 ランキングサーバー ランキング',
+    search_ph: 'プレイヤーIDで戦績を検索', search: '検索', clear: 'クリア',
+    tab_total: '通算戦績', tab_month: '今月', rank_points: 'レート順', rank_wins: '勝数順', rank_diff: '得失差順', rank_winrate: '勝率順', refresh: '更新', month_label: '月',
+    th_rank: '順位', th_player: 'プレイヤー', th_points: 'レート', th_win: '勝', th_lose: '敗', th_diff: '得失', th_winrate: '勝率',
+    first_page: '最初', prev: '前へ', next: '次へ', refresh_page: '更新',
+    hint: '自動更新はありません。「更新」またはF5で最新のランキングを表示します。ランクマッチ(TT)のみ集計。パスワードは表示されません。',
+    no_data: 'データなし', load_fail: '読み込み失敗',
+    page_info: '%p% / %t% ページ(全 %n% 人)', search_info: '「%s%」: 全 %n% 件一致 · ',
+    privacy_hint: 'ランキング下位30%のプレイヤーIDは総合ランキングで非表示になります',
+    data_retention_hint: '通算のレート・勝数・敗数・得失差はリセットされません。月間データは毎月改めて集計されます'
+  },
+  en: {
+    title: 'Yu-Gi-Oh! OCG 201103 Ladder Server Ranking',
+    search_ph: 'Search player stats by ID', search: 'Search', clear: 'Clear',
+    tab_total: 'Total', tab_month: 'Monthly', rank_points: 'Points', rank_wins: 'Wins', rank_diff: 'W-L Diff', rank_winrate: 'Win Rate', refresh: 'Refresh', month_label: 'Month',
+    th_rank: 'Rank', th_player: 'Player', th_points: 'Points', th_win: 'W', th_lose: 'L', th_diff: 'Diff', th_winrate: 'Win Rate',
+    first_page: 'First', prev: 'Prev', next: 'Next', refresh_page: 'Refresh',
+    hint: 'No auto refresh. Click "Refresh" or press F5 for the latest ranking. Only ladder (TT) duels count; passwords are never shown.',
+    no_data: 'No data', load_fail: 'Load failed',
+    page_info: 'Page %p% / %t% (Total %n% players)', search_info: '"%s%": %n% matches · ',
+    privacy_hint: 'Player IDs in the bottom 30% of rankings will be hidden on the overall leaderboard',
+    data_retention_hint: 'All-time points, wins, losses, and win-loss difference are never reset; monthly statistics restart each month'
+  },
+  ko: {
+    title: '유희왕 OCG 201103 랭킹 서버 순위',
+    search_ph: '플레이어 ID로 전적 검색', search: '검색', clear: '초기화',
+    tab_total: '통산 전적', tab_month: '이번 달', rank_points: '점수순', rank_wins: '승수순', rank_diff: '득실차순', rank_winrate: '승률순', refresh: '새로고침', month_label: '월',
+    th_rank: '순위', th_player: '플레이어', th_points: '점수', th_win: '승', th_lose: '패', th_diff: '득실', th_winrate: '승률',
+    first_page: '처음', prev: '이전', next: '다음', refresh_page: '새로고침',
+    hint: '자동 새로고침되지 않습니다. 「새로고침」 또는 F5로 최신 랭킹을 확인하세요. 랭크 매치(TT)만 집계. 비밀번호는 표시되지 않습니다.',
+    no_data: '데이터 없음', load_fail: '로드 실패',
+    page_info: '%p% / %t% 페이지(총 %n%명)', search_info: '「%s%」: %n%건 일치 · ',
+    privacy_hint: '하위 30% 순위의 플레이어 ID는 전체 랭킹에서 숨겨집니다',
+    data_retention_hint: '통산 점수·승·패·득실차는 초기화되지 않으며 월간 데이터는 매월 새로 집계됩니다'
+  }
+};
+var pageQuery = new URLSearchParams(location.search);
+var lang = SrvproWeb.getLanguage();
+function t(key) { return SrvproWeb.t(I18N, key); }
+function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function colored(value, color) { return '<span style="color:' + color + '">' + escapeHtml(value) + '</span>'; }
+function applyPageLanguage() {
+  document.getElementById('tabTotal').className = currentType === 'total' ? 'active' : '';
+  document.getElementById('tabMonth').className = currentType === 'month' ? 'active' : '';
+  updateRankingBasisButtons();
+  refresh();
+}
+let currentPage = 1;
+const pageSize = 50;
+let searchKeyword = '';
+let currentType = pageQuery.get('type') === 'month' ? 'month' : 'total';
+let requestedRankingBasis = pageQuery.get('rankingBasis');
+let useConfiguredRankingBasis = !['points', 'wins', 'diff', 'winRate'].includes(requestedRankingBasis);
+let rankingBasis = useConfiguredRankingBasis ? null : requestedRankingBasis;
+let selectedMonth = normalizeMonthKey(pageQuery.get('month')) || getCurrentMonthKey();
+function getCurrentMonthKey() {
+  const now = new Date();
+  return now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0');
+}
+function normalizeMonthKey(value) {
+  return /^\d{4}(0[1-9]|1[0-2])$/.test(String(value || '')) ? String(value) : '';
+}
+function syncViewParams() {
+  var url = new URL(location.href);
+  url.searchParams.set('type', currentType);
+  url.searchParams.set('month', selectedMonth);
+  if (useConfiguredRankingBasis) url.searchParams.delete('rankingBasis');
+  else url.searchParams.set('rankingBasis', rankingBasis);
+  history.replaceState(null, '', url.toString());
+}
+function fillMonthOptions() {
+  const select = document.getElementById('monthSelect');
+  if (!select) return;
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0');
+    months.push(key);
+  }
+  if (selectedMonth && !months.includes(selectedMonth)) months.unshift(selectedMonth);
+  select.innerHTML = months.map(function (m) {
+    return '<option value="' + m + '">' + m.slice(0, 4) + '-' + m.slice(4) + '</option>';
+  }).join('');
+  select.value = selectedMonth;
+  select.onchange = function () {
+    selectedMonth = select.value;
+    currentPage = 1;
+    syncViewParams();
+    if (currentType === 'month') refresh();
+  };
+}
+function doSearch() {
+  searchKeyword = document.getElementById('searchInput').value.trim();
+  currentPage = 1;
+  refresh();
+}
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  searchKeyword = '';
+  currentPage = 1;
+  refresh();
+}
+function setType(type) {
+  currentType = type;
+  currentPage = 1;
+  document.getElementById('tabTotal').className = type === 'total' ? 'active' : '';
+  document.getElementById('tabMonth').className = type === 'month' ? 'active' : '';
+  syncViewParams();
+  refresh();
+}
+function getRankingBasisColumn() {
+  if (rankingBasis === 'wins') return 'wins';
+  if (rankingBasis === 'diff') return 'diff';
+  if (rankingBasis === 'winRate') return 'winRate';
+  return 'points';
+}
+function updateRankingBasisStyle() {
+  var column = getRankingBasisColumn();
+  document.querySelectorAll('[data-ranking-column]').forEach(function (el) {
+    el.classList.toggle('ranking-basis', el.getAttribute('data-ranking-column') === column);
+  });
+}
+function updateRankingBasisButtons() {
+  document.querySelectorAll('[data-ranking-basis]').forEach(function (button) {
+    button.classList.toggle('active', button.getAttribute('data-ranking-basis') === rankingBasis);
+  });
+}
+document.getElementById('tabTotal').onclick = function () { setType('total'); };
+document.getElementById('tabMonth').onclick = function () { setType('month'); };
+document.querySelectorAll('[data-ranking-basis]').forEach(function (button) {
+  button.onclick = function () {
+    rankingBasis = button.getAttribute('data-ranking-basis');
+    useConfiguredRankingBasis = false;
+    currentPage = 1;
+    syncViewParams();
+    updateRankingBasisButtons();
+    refresh();
+  };
+});
+async function refresh() {
+  try {
+    const monthParam = currentType === 'month' ? '&month=' + encodeURIComponent(selectedMonth) : '';
+    const rankingBasisParam = !useConfiguredRankingBasis && rankingBasis ? '&rankingBasis=' + encodeURIComponent(rankingBasis) : '';
+    const res = await fetch('/api/ladder?type=' + currentType + '&t=' + Date.now() + '&page=' + currentPage + '&pageSize=' + pageSize + '&search=' + encodeURIComponent(searchKeyword) + monthParam + rankingBasisParam);
+    const data = await res.json();
+    if (data.rankingBasis) rankingBasis = data.rankingBasis;
+    updateRankingBasisButtons();
+    updateRankingBasisStyle();
+    const total = data.total || 0;
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
+    const list = data.ladder || [];
+    if (!list.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="7">' + t('no_data') + '</td>';
+      tbody.appendChild(tr);
+    }
+    for (let i = 0; i < list.length; i++) {
+      const u = list[i];
+      const tr = document.createElement('tr');
+      if (u.rank <= 3) tr.className = 'top' + u.rank;
+      const showName = currentType === 'month' || (total > 0 && (u.rank / total < 0.7 || searchKeyword !== '')) ? u.name : '******';
+      const points = Number(u.duelPoints ?? 1000);
+      const wins = Number(u.wins || 0);
+      const losses = Number(u.losses || 0);
+      const diff = Number(u.diff || 0);
+      const winRate = wins + losses ? wins / (wins + losses) * 100 : 0;
+      const rankingColumn = getRankingBasisColumn();
+      var playerCell = showName === '******' ? showName : '<a href="/player-stats.html?player=' + encodeURIComponent(showName) + '&month=' + encodeURIComponent(selectedMonth) + (lang === 'zh' ? '' : '&L=' + lang) + '">' + escapeHtml(showName) + '</a>';
+      tr.innerHTML = '<td>' + u.rank + '</td><td>' + playerCell + '</td><td class="' + (rankingColumn === 'points' ? 'ranking-basis' : '') + '">' + points + '</td><td class="' + (rankingColumn === 'wins' ? 'ranking-basis' : '') + '">' + colored(wins, '#73d6a3') + '</td><td>' + colored(losses, '#ef837f') + '</td><td class="' + (rankingColumn === 'diff' ? 'ranking-basis' : '') + '">' + colored(diff, SrvproWeb.semanticColor(diff)) + '</td><td class="' + (rankingColumn === 'winRate' ? 'ranking-basis' : '') + '">' + colored(winRate.toFixed(2) + '%', SrvproWeb.rateColor(winRate)) + '</td>';
+      tbody.appendChild(tr);
+    }
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    let info = '';
+    if (searchKeyword) {
+      info += t('search_info').replace('%s%', searchKeyword).replace('%n%', total);
+    }
+    info += t('page_info').replace('%p%', currentPage).replace('%t%', totalPages).replace('%n%', total);
+    document.getElementById('pageInfo').textContent = info;
+    document.getElementById('btnFirst').disabled = currentPage <= 1;
+    document.getElementById('btnPrev').disabled = currentPage <= 1;
+    document.getElementById('btnNext').disabled = currentPage >= totalPages;
+  } catch (e) {
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="7">' + t('load_fail') + ': ' + e + '</td></tr>';
+  }
+}
+function goPage(p) {
+  if (p < 1) return;
+  currentPage = p;
+  refresh();
+}
+fillMonthOptions();
+SrvproWeb.init({
+  translations: I18N,
+  onLanguageChange: function (code) { lang = code; applyPageLanguage(); }
+});
+document.getElementById('tabTotal').className = currentType === 'total' ? 'active' : '';
+document.getElementById('tabMonth').className = currentType === 'month' ? 'active' : '';
+updateRankingBasisButtons();
+refresh();
+</script>
+</body>
+</html>

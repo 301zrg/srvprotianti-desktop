@@ -1,0 +1,11 @@
+node_modules/
+.npm-cache/
+.tooling/
+dist/
+public/
+src-tauri/target/
+src-tauri/gen/schemas/
+release-portable/
+*.log
+*.tmp
+srvprotianti-desktop-data/

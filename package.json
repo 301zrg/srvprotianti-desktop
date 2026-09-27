@@ -1,0 +1,27 @@
+{
+  "name": "srvprotianti-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "prepare:pages": "node scripts/prepare-pages.mjs",
+    "predev": "npm run prepare:pages && esbuild src/desktop-bridge.ts --bundle --format=iife --platform=browser --target=es2022 --outfile=public/assets/desktop-bridge.js",
+    "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
+    "build:web": "npm run predev && vite build --outDir dist",
+    "build": "tauri build --no-bundle",
+    "build:installer": "tauri build",
+    "package:portable": "node scripts/package-portable.mjs",
+    "check": "tsc --noEmit && npm run build:web",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0"
+  }
+}

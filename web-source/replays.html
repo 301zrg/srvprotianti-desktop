@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>游戏王OCG201103天梯服务器 录像下载</title>
+<link rel="stylesheet" href="/assets/common.css">
+<style>
+  @media (max-width: 640px) {
+    #searchInput { width: 100% !important; margin-left: 0 !important; }
+  }
+  #deckFilter { background:#243447; color:#dce6f0; border:1px solid #2c3e50; padding:6px 10px; font-size:13px; max-width:220px; }
+</style>
+</head>
+<body>
+<div data-site-shell></div>
+<div class="nav">
+  <input id="searchInput" data-i18n-ph="search_ph" placeholder="输入玩家 ID 搜索其全部录像" style="background:#243447; color:#dce6f0; border:1px solid #2c3e50; padding:6px 10px; width:220px; font-size:13px;" />
+  <button onclick="doSearch()" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="search">搜索</button>
+  <select id="deckFilter" aria-label="卡组类型筛选"></select>
+  <button onclick="clearSearch()" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="clear">清空</button>
+</div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th data-i18n="th_time">时间</th><th data-i18n="th_players">对战双方</th><th data-i18n="th_game">小局</th><th data-i18n="th_winner">胜者</th><th data-i18n="th_size">大小</th><th data-i18n="th_replay_download">录像下载</th><th data-i18n="th_player1_type">玩家1类型</th><th data-i18n="th_player2_type">玩家2类型</th><th data-i18n="th_player1_deck">玩家1卡组下载</th><th data-i18n="th_player2_deck">玩家2卡组下载</th></tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+<div style="margin-top:12px; font-size:13px;">
+  <button id="btnFirst" onclick="goPage(1)" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="first_page">首页</button>
+  <button id="btnPrev" onclick="goPage(currentPage - 1)" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="prev">上一页</button>
+  <span id="pageInfo" style="margin:0 12px; color:#9db8d0;">-</span>
+  <button id="btnNext" onclick="goPage(currentPage + 1)" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="next">下一页</button>
+  <button onclick="refresh()" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; margin-left:16px; cursor:pointer;" data-i18n="refresh_page">刷新本页</button>
+</div>
+<div class="hint" data-i18n="hint">页面不会自动刷新,请点击「刷新本页」获取最新录像。每页 20 条。当前只保存天梯(TT)模式的对局录像。文件名为"时间 玩家1 VS 玩家2.yrp"。</div>
+<script src="/assets/site-shell.js"></script>
+<script>
+var I18N = {
+  zh: {
+    title: '游戏王OCG201103天梯服务器 录像下载(天梯对局)',
+    search_ph: '输入玩家 ID 搜索其全部录像', search: '搜索', clear: '清空',
+    th_time: '时间', th_players: '对战双方', th_game: '第几小局', th_winner: '胜者', th_size: '大小', th_replay_download: '录像下载', th_player1_type: '玩家1卡组类型', th_player2_type: '玩家2卡组类型', th_player1_deck: '玩家1卡组下载', th_player2_deck: '玩家2卡组下载', all_decks: '全部卡组类型',
+    first_page: '首页', prev: '上一页', next: '下一页', refresh_page: '刷新本页',
+    hint: '页面不会自动刷新,请点击「刷新本页」获取最新录像。每页 20 条。当前只保存天梯(TT)模式的对局录像。文件名为"时间 玩家1 VS 玩家2.yrp"。',
+    no_replays: '暂无录像', load_fail: '加载失败', download: '下载', deck_download_fail: '卡组下载失败',
+    page_info: '第 %p% / %t% 页,共 %n% 个录像', search_info: '关键词「%s%」:共 %n% 条匹配 · '
+  },
+  ja: {
+    title: '遊戯王OCG 201103 ランキングサーバー リプレイ(ランクマッチ)',
+    search_ph: 'プレイヤーIDでリプレイを検索', search: '検索', clear: 'クリア',
+    th_time: '時刻', th_players: '対戦者', th_game: 'ゲーム', th_winner: '勝者', th_size: 'サイズ', th_replay_download: 'リプレイDL', th_player1_type: 'プレイヤー1デッキ種別', th_player2_type: 'プレイヤー2デッキ種別', th_player1_deck: 'プレイヤー1デッキDL', th_player2_deck: 'プレイヤー2デッキDL', all_decks: '全デッキ種別',
+    first_page: '最初', prev: '前へ', next: '次へ', refresh_page: '更新',
+    hint: '自動更新はありません。「更新」で最新のリプレイを表示します。1ページ20件。ランクマッチ(TT)のみ保存されます。',
+    no_replays: 'リプレイなし', load_fail: '読み込み失敗', download: 'DL', deck_download_fail: 'デッキのダウンロードに失敗しました',
+    page_info: '%p% / %t% ページ(全 %n% 件)', search_info: '「%s%」: 全 %n% 件一致 · '
+  },
+  en: {
+    title: 'Yu-Gi-Oh! OCG 201103 Ladder Server Replays',
+    search_ph: 'Search all replays by player ID', search: 'Search', clear: 'Clear',
+    th_time: 'Time', th_players: 'Players', th_game: 'Game', th_winner: 'Winner', th_size: 'Size', th_replay_download: 'Replay', th_player1_type: 'Player 1 type', th_player2_type: 'Player 2 type', th_player1_deck: 'Player 1 deck download', th_player2_deck: 'Player 2 deck download', all_decks: 'All deck types',
+    first_page: 'First', prev: 'Prev', next: 'Next', refresh_page: 'Refresh',
+    hint: 'No auto refresh. Click "Refresh" for the latest replays. 20 per page. Only ladder (TT) duels are saved.',
+    no_replays: 'No replays', load_fail: 'Load failed', download: 'Download', deck_download_fail: 'Deck download failed',
+    page_info: 'Page %p% / %t% (Total %n%)', search_info: '"%s%": %n% matches · '
+  },
+  ko: {
+    title: '유희왕 OCG 201103 랭킹 서버 리플레이',
+    search_ph: '플레이어 ID로 리플레이 검색', search: '검색', clear: '초기화',
+    th_time: '시간', th_players: '대전자', th_game: '게임', th_winner: '승자', th_size: '크기', th_replay_download: '리플레이', th_player1_type: '플레이어 1 덱 종류', th_player2_type: '플레이어 2 덱 종류', th_player1_deck: '플레이어 1 덱 다운로드', th_player2_deck: '플레이어 2 덱 다운로드', all_decks: '모든 덱 종류',
+    first_page: '처음', prev: '이전', next: '다음', refresh_page: '새로고침',
+    hint: '자동 새로고침되지 않습니다. 「새로고침」으로 최신 리플레이를 확인하세요. 1페이지 20개. 랭크 매치(TT)만 저장됩니다.',
+    no_replays: '리플레이 없음', load_fail: '로드 실패', download: '다운로드', deck_download_fail: '덱 다운로드 실패',
+    page_info: '%p% / %t% 페이지(총 %n%개)', search_info: '「%s%」: %n%건 일치 · '
+  }
+};
+var lang = SrvproWeb.getLanguage();
+function t(key) { return SrvproWeb.t(I18N, key); }
+let currentPage = 1;
+const pageSize = 20;
+let searchKeyword = '';
+let deckTypeId = '';
+let deckTypes = [];
+function localName(names) { return names && (names[lang] || names.zh) || '-'; }
+function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function fillDeckFilter() {
+  const select = document.getElementById('deckFilter');
+  select.setAttribute('aria-label', t('all_decks'));
+  select.innerHTML = '<option value="">' + t('all_decks') + '</option>' + deckTypes.map(function (deck) {
+    return '<option value="' + Number(deck.id) + '">' + escapeHtml(localName(deck.names)) + '</option>';
+  }).join('');
+  select.value = deckTypeId;
+}
+function doSearch() {
+  searchKeyword = document.getElementById('searchInput').value.trim();
+  currentPage = 1;
+  refresh();
+}
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  searchKeyword = '';
+  deckTypeId = '';
+  fillDeckFilter();
+  currentPage = 1;
+  refresh();
+}
+document.getElementById('searchInput').addEventListener('keydown', function (ev) {
+  if (ev.key === 'Enter') doSearch();
+});
+document.getElementById('deckFilter').addEventListener('change', function (ev) {
+  deckTypeId = ev.target.value;
+  currentPage = 1;
+  refresh();
+});
+function fmtSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(2) + ' MB';
+}
+function parseName(name) {
+  // 形如: 2026-08-25 14-30-00.123 abc VS def.yrp(文件名是数据,不翻译)
+  const m = name.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}-\d{2}-\d{2}(?:\.\d+)?) (.*)\.yrp$/);
+  if (!m) return { time: '-', players: name };
+  const players = m[3].replace(/\s+VS\s+/g, ' VS ').replace(/\s+&\s+/g, ' & ');
+  return { time: m[1] + ' ' + m[2].replace(/-/g, ':'), players: players };
+}
+function downloadDeck(replayName, duelCount, player) {
+  if (!player || !player.deckbuffer) return;
+  try {
+    const binary = atob(player.deckbuffer);
+    const bytes = Uint8Array.from(binary, function (character) { return character.charCodeAt(0); });
+    const view = new DataView(bytes.buffer);
+    const mainCount = view.getUint32(0, true);
+    const sideCount = view.getUint32(4, true);
+    const expectedLength = 8 + (mainCount + sideCount) * 4;
+    if (expectedLength > bytes.length) throw new Error('invalid deckbuffer');
+    const main = [];
+    const side = [];
+    for (let i = 0; i < mainCount; i++) main.push(view.getUint32(8 + i * 4, true));
+    for (let i = 0; i < sideCount; i++) side.push(view.getUint32(8 + (mainCount + i) * 4, true));
+    const ydk = '#created by srvpro\n#main\n' + main.join('\n') + '\n#extra\n\n!side\n' + side.join('\n') + '\n';
+    const blob = new Blob([ydk], { type: 'text/plain;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = replayName + '-g' + Number(duelCount || 1) + '-' + player.id + '.ydk';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch (e) {
+    alert(t('deck_download_fail'));
+  }
+}
+async function refresh() {
+  try {
+    const res = await fetch('/api/public/replays?page=' + currentPage + '&pageSize=' + pageSize + '&search=' + encodeURIComponent(searchKeyword) + '&deckTypeId=' + encodeURIComponent(deckTypeId) + '&t=' + Date.now());
+    const data = await res.json();
+    deckTypes = data.deckTypes || deckTypes;
+    fillDeckFilter();
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = '';
+    const list = data.replays || [];
+    if (!list.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="10">' + t('no_replays') + '</td>';
+      tbody.appendChild(tr);
+    }
+    for (const r of list) {
+      const p = parseName(r.name);
+      const tr = document.createElement('tr');
+      const url = '/api/public/replay/' + encodeURIComponent(r.name);
+      const replayLink = document.createElement('a');
+      replayLink.href = url;
+      replayLink.download = r.name;
+      replayLink.textContent = t('download');
+      const cells = [p.time, p.players, 'G' + Number(r.duelCount || 1), r.winner || '-', fmtSize(r.size)];
+      cells.forEach(function (text) {
+        const td = document.createElement('td');
+        td.textContent = text;
+        tr.appendChild(td);
+      });
+      const replayCell = document.createElement('td');
+      replayCell.appendChild(replayLink);
+      tr.appendChild(replayCell);
+      [0, 1].forEach(function (playerIndex) {
+        const td = document.createElement('td');
+        const player = (r.players || [])[playerIndex];
+        if (player && player.deckTypeId && Number(player.deckTypeId) !== 4095) {
+          const link = document.createElement('a');
+          link.className = 'inline-link';
+          link.textContent = localName(player.deckNames);
+          link.href = '/deck-detail.html?deckTypeId=' + Number(player.deckTypeId) + '&period=all' + (lang === 'zh' ? '' : '&L=' + encodeURIComponent(lang));
+          td.appendChild(link);
+        } else td.textContent = player && player.deckTypeId ? localName(player.deckNames) : '-';
+        tr.appendChild(td);
+      });
+      [0, 1].forEach(function (playerIndex) {
+        const td = document.createElement('td');
+        const player = (r.players || [])[playerIndex];
+        if (player && player.id && player.deckbuffer) {
+          const deckButton = document.createElement('button');
+          deckButton.type = 'button';
+          deckButton.textContent = player.id;
+          deckButton.onclick = function () { downloadDeck(r.name, r.duelCount, player); };
+          td.appendChild(deckButton);
+        } else {
+          td.textContent = '-';
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    }
+    const total = data.total || 0;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    let info = '';
+    if (searchKeyword) {
+      info += t('search_info').replace('%s%', searchKeyword).replace('%n%', total);
+    }
+    info += t('page_info').replace('%p%', currentPage).replace('%t%', totalPages).replace('%n%', total);
+    document.getElementById('pageInfo').textContent = info;
+    document.getElementById('btnFirst').disabled = currentPage <= 1;
+    document.getElementById('btnPrev').disabled = currentPage <= 1;
+    document.getElementById('btnNext').disabled = currentPage >= totalPages;
+  } catch (e) {
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="10">' + t('load_fail') + ': ' + e + '</td></tr>';
+  }
+}
+function goPage(p) {
+  if (p < 1) return;
+  currentPage = p;
+  refresh();
+}
+SrvproWeb.init({
+  translations: I18N,
+  onLanguageChange: function (code) { lang = code; fillDeckFilter(); refresh(); }
+});
+fillDeckFilter();
+refresh();
+</script>
+</body>
+</html>

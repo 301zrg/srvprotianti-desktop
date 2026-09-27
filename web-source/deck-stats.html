@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>游戏王OCG201103天梯服务器 卡组胜率</title>
+  <link rel="stylesheet" href="/assets/common.css">
+  <style>
+    .controls, .tabs { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:14px 0; }
+    label { font-size:13px; color:#9db8d0; }
+    select { background:#243447; color:#dce6f0; border:1px solid #2c3e50; padding:6px 10px; }
+    button { background:#2f5c86; color:#fff; border:none; padding:7px 14px; cursor:pointer; }
+    .tabs button.active {
+      background: #7ec4ff;
+      color: #16202b;
+      font-weight: 600;
+      box-shadow: 0 0 0 1px #7ec4ff;
+    }
+    .small { color:#6c8299; font-size:12px; }
+    .hint {
+      font-size: 13px;
+      color: #9db8d0;
+      margin: 10px 0 4px 0;
+      padding: 6px 10px;
+      background: #1d2a38;
+      border-left: 3px solid #7ec4ff;
+      border-radius: 3px;
+    }
+    .val-colored {
+      font-weight: 500;
+    }
+    /* 自定义 tooltip 样式（用于显示胜场/总场） */
+    .custom-tip {
+      position: fixed;
+      background: #243447;
+      color: #dce6f0;
+      border: 1px solid #7ec4ff;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 9999;
+      display: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .custom-tip::after {
+      content: '';
+      position: absolute;
+      left: 10px;
+      bottom: -6px;
+      width: 0;
+      height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid #7ec4ff;
+    }
+  </style>
+</head>
+<body>
+  <div data-site-shell></div>
+  <div class="controls">
+    <label for="monthSelect" data-i18n="month">月份</label>
+    <select id="monthSelect"></select>
+    <button onclick="loadStats()" data-i18n="refresh">刷新</button>
+  </div>
+  <div class="tabs" id="metricTabs"></div>
+  <div class="hint" id="hintRow" data-i18n="hint"></div>
+  <div class="hint" data-i18n="group_hint">当前页面按卡组大类展示，部分数据由该大类下的多个细分类卡组汇总而成。</div>
+  <div class="small" id="summary">加载中...</div>
+  <div class="table-wrap" style="margin-top:12px;">
+    <table>
+      <thead>
+        <tr id="thead"></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <!-- 自定义 tooltip -->
+  <div id="customTip" class="custom-tip"></div>
+<script src="/assets/site-shell.js"></script>
+<script>
+var I18N={
+  zh:{
+    title:'游戏王OCG201103天梯服务器 卡组胜率',
+    month:'月份',refresh:'刷新',deck_header:'卡组胜率',all:'全部',insufficient:'数据不足',no_data:'暂无数据',loading:'正在加载',
+    summary:'已统计 %n% 个卡组 / %m%',
+    hint:'显示的胜率为左侧卡组对阵上方卡组时的胜率。',
+    group_hint:'当前页面按卡组大类展示，部分数据由该大类下的多个细分类卡组汇总而成。',
+    metrics:['m局综合胜率','m局先攻胜率','m局后攻胜率','单局综合胜率','单局先攻胜率','单局后攻胜率','主牌局单局综合胜率','主牌局单局先攻胜率','主牌局单局后攻胜率','备牌局单局综合胜率','备牌局单局先攻胜率','备牌局单局后攻胜率']
+  },
+  ja:{
+    title:'遊戯王OCG 201103 ランキングサーバー デッキ勝率',
+    month:'月',refresh:'更新',deck_header:'デッキ勝率',all:'全体',insufficient:'データ不足',no_data:'データなし',loading:'読み込み中',
+    summary:'%n% デッキ / %m%',
+    hint:'表示される勝率は、左側のデッキが上側のデッキと対戦した場合の勝率です。',
+    group_hint:'このページは大分類単位で表示しており、一部のデータは配下の複数の細分類デッキを合算しています。',
+    metrics:['マッチ総合','マッチ先攻','マッチ後攻','ゲーム総合','ゲーム先攻','ゲーム後攻','メイン総合','メイン先攻','メイン後攻','サイド総合','サイド先攻','サイド後攻']
+  },
+  en:{
+    title:'Yu-Gi-Oh! OCG 201103 Ladder Server Deck Win Rates',
+    month:'Month',refresh:'Refresh',deck_header:'Deck Rates',all:'All',insufficient:'Insufficient data',no_data:'No data',loading:'Loading',
+    summary:'%n% decks / %m%',
+    hint:'Each win rate is for the deck on the left against the deck at the top.',
+    group_hint:'This page displays broad deck categories; some figures combine multiple subtypes within a category.',
+    metrics:['Match overall','Match first','Match second','Game overall','Game first','Game second','Main overall','Main first','Main second','Side overall','Side first','Side second']
+  },
+  ko:{
+    title:'유희왕 OCG 201103 랭킹 서버 덱 승률',
+    month:'월',refresh:'새로고침',deck_header:'덱 승률',all:'전체',insufficient:'데이터 부족',no_data:'데이터 없음',loading:'로드 중',
+    summary:'%n% 덱 / %m%',
+    hint:'표시된 승률은 왼쪽 덱이 위쪽 덱을 상대했을 때의 승률입니다.',
+    group_hint:'이 페이지는 덱의 대분류를 기준으로 표시하며, 일부 데이터는 해당 대분류의 여러 세부 덱을 합산한 결과입니다.',
+    metrics:['매치 종합','매치 선공','매치 후공','게임 종합','게임 선공','게임 후공','메인 종합','메인 선공','메인 후공','사이드 종합','사이드 선공','사이드 후공']
+  }
+};
+var q=new URLSearchParams(location.search);
+var METRICS=[
+  {id:'matchOverall',total:'matches',wins:'matchWins'},
+  {id:'matchFirst',total:'firstMatches',wins:'firstWins'},
+  {id:'matchSecond',total:'secondMatches',wins:'secondWins'},
+  {id:'gameOverall',total:'games',wins:'gameWins'},
+  {id:'gameFirst',total:'firstGames',wins:'firstGameWins'},
+  {id:'gameSecond',total:'secondGames',wins:'secondGameWins'},
+  {id:'mainOverall',total:'mainGames',wins:'mainGameWins'},
+  {id:'mainFirst',total:'mainFirstGames',wins:'mainFirstGameWins'},
+  {id:'mainSecond',total:'mainSecondGames',wins:'mainSecondGameWins'},
+  {id:'sideOverall',total:'sideGames',wins:'sideGameWins'},
+  {id:'sideFirst',total:'sideFirstGames',wins:'sideFirstGameWins'},
+  {id:'sideSecond',total:'sideSecondGames',wins:'sideSecondGameWins'}
+];
+var requestedMetric=q.get('metric');
+var initialMetric=METRICS.findIndex(function(item){return item.id===requestedMetric;});
+var lang=SrvproWeb.getLanguage(), data=null, metric=initialMetric<0?0:initialMetric, monthSelect=document.getElementById('monthSelect');
+var selectedMonth=normalizeMonthKey(q.get('month'))||currentMonthKey();
+
+function t(k){return SrvproWeb.t(I18N,k);}
+function currentMonthKey(){var n=new Date();return n.getFullYear()+String(n.getMonth()+1).padStart(2,'0');}
+function normalizeMonthKey(value){return /^\d{4}(0[1-9]|1[0-2])$/.test(String(value||''))?String(value):'';}
+function syncViewParams(){
+  var u=new URL(location.href);
+  u.searchParams.set('month',monthSelect.value||selectedMonth);
+  u.searchParams.set('metric',METRICS[metric].id);
+  history.replaceState(null,'',u.toString());
+}
+function applyPageLanguage(){
+  document.getElementById('metricTabs').innerHTML=t('metrics').map(function(x,i){
+    return '<button class="'+(i===metric?'active':'')+'" onclick="setMetric('+i+')">'+x+'</button>';
+  }).join('');
+}
+
+function months(){
+  var a=[],n=new Date();
+  for(var i=0;i<12;i++){
+    var d=new Date(n.getFullYear(),n.getMonth()-i,1);
+    a.push(d.getFullYear()+String(d.getMonth()+1).padStart(2,'0'));
+  }
+  if(selectedMonth&&!a.includes(selectedMonth))a.unshift(selectedMonth);
+  monthSelect.innerHTML=a.map(function(m){return '<option value="'+m+'">'+m.slice(0,4)+'-'+m.slice(4)+'</option>';}).join('');
+  monthSelect.value=selectedMonth;
+  monthSelect.onchange=function(){selectedMonth=monthSelect.value;syncViewParams();};
+}
+
+function setMetric(i){
+  metric=i;
+  syncViewParams();
+  applyPageLanguage();
+  render();
+}
+
+// 生成带自定义 tooltip 的单元格
+function value(item){
+  var p=METRICS[metric];
+  var n=Number(item&&item[p.total]||0);
+  var w=Number(item&&item[p.wins]||0);
+  if (!n) {
+    return '<span class="insufficient">'+t('insufficient')+'</span>';
+  }
+  var rate = (w/n)*100;
+  var rateStr = rate.toFixed(2) + '%';
+  var color = SrvproWeb.rateColor(rate);
+  // 用 data-* 存储胜场和总场，方便 tooltip 读取
+  var winRateStr = w + '/' + n;
+  return '<span class="val-colored" style="color:'+color+';" data-tip="'+winRateStr+'">'+rateStr+'</span>';
+}
+
+function render(){
+  if(!data||!data.decks||!data.decks.length){
+    document.getElementById('thead').innerHTML='';
+    document.getElementById('tbody').innerHTML='<tr><td>'+t('no_data')+'</td></tr>';
+    return;
+  }
+  var decks=data.decks, stats=data.stats||{};
+  document.getElementById('thead').innerHTML='<tr><th>'+t('deck_header')+'</th>'+decks.map(function(d){
+    return '<th>'+((d.name&&d.name[lang])||d.name.zh)+'</th>';
+  }).join('')+'<th>'+t('all')+'</th></tr>';
+  document.getElementById('tbody').innerHTML=decks.map(function(op){
+    var cells=decks.map(function(subject){
+      return '<td>'+value(stats[op.id+'::'+subject.id])+'</td>';
+    }).join('');
+    var total=stats[op.id+'::all']||{};
+    return '<tr><th>'+((op.name&&op.name[lang])||op.name.zh)+'</th>'+cells+'<td>'+value(total)+'</td></tr>';
+  }).join('');
+}
+
+// ---------- 自定义 tooltip 逻辑 ----------
+var customTip = document.getElementById('customTip');
+
+function showTip(e) {
+  var target = e.target.closest('.val-colored');
+  if (!target) return;
+  var tipText = target.getAttribute('data-tip');
+  if (!tipText) return;
+
+  customTip.textContent = tipText;
+  customTip.style.display = 'block';
+
+  // 位置：跟随鼠标右上角（即向右上偏移）
+  var offsetX = 12;
+  var offsetY = -30; // 向上
+
+  var left = e.clientX + offsetX;
+  var top = e.clientY + offsetY;
+
+  // 防止超出右边界
+  var tipWidth = customTip.offsetWidth;
+  if (left + tipWidth > window.innerWidth - 10) {
+    left = e.clientX - tipWidth - 12;
+  }
+  if (left < 10) left = 10;
+
+  // 防止超出上边界
+  if (top < 10) {
+    top = e.clientY + 20;
+    // 调整箭头方向？简单处理，可忽略
+  }
+
+  customTip.style.left = left + 'px';
+  customTip.style.top = top + 'px';
+}
+
+function hideTip() {
+  customTip.style.display = 'none';
+}
+
+document.addEventListener('mouseover', function(e) {
+  if (e.target.closest('.val-colored')) {
+    showTip(e);
+  }
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (e.target.closest('.val-colored')) {
+    showTip(e);
+  } else {
+    hideTip();
+  }
+});
+
+document.addEventListener('mouseout', function(e) {
+  if (e.target.closest('.val-colored') && !e.relatedTarget?.closest('.val-colored')) {
+    hideTip();
+  }
+});
+
+// 页面滚动时隐藏 tooltip
+window.addEventListener('scroll', hideTip, true);
+
+// ------------------------------------
+
+async function loadStats(){
+  document.getElementById('summary').textContent=t('loading');
+  try{
+    var r=await fetch('/api/ladder-deck-stats?month='+encodeURIComponent(monthSelect.value));
+    data=await r.json();
+    document.getElementById('summary').textContent=t('summary').replace('%n%',data.decks?data.decks.length:0).replace('%m%',monthSelect.value);
+    render();
+  }catch(e){
+    data=null;
+    document.getElementById('summary').textContent=t('no_data');
+    render();
+  }
+}
+
+months();
+SrvproWeb.init({
+  translations:I18N,
+  onLanguageChange:function(code){lang=code;applyPageLanguage();render();}
+});
+applyPageLanguage();
+loadStats();
+</script>
+</body>
+</html>
