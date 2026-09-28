@@ -96,7 +96,7 @@ for (const page of pages) {
   if (page === 'replays') {
     html = html.replace(
       '<select id="deckFilter"',
-      '<button type="button" id="updateScriptsShortcut" onclick="desktopUpdateScripts()"></button>\n  <select id="deckFilter"'
+      '<button type="button" id="updateScriptsShortcut"></button>\n  <select id="deckFilter"'
     );
   }
   html = html.replace(
@@ -108,6 +108,9 @@ for (const page of pages) {
     const number = inlineScripts.push(code);
     return '<script src="/assets/pages/' + page + '-' + number + '.js"></script>';
   });
+  if (/<[^>]+\son[a-z]+\s*=/i.test(html) || inlineScripts.some(code => /<[^>]+\son[a-z]+\s*=/i.test(code))) {
+    throw new Error(`${page}: inline HTML event handlers are forbidden; bind controls with addEventListener`);
+  }
   for (const [index, code] of inlineScripts.entries()) {
     await writeFile(path.join(pageScriptRoot, page + '-' + (index + 1) + '.js'), code, 'utf8');
   }

@@ -62,7 +62,7 @@
   <div class="controls">
     <label for="monthSelect" data-i18n="month">月份</label>
     <select id="monthSelect"></select>
-    <button onclick="loadStats()" data-i18n="refresh">刷新</button>
+    <button id="refreshStats" data-i18n="refresh">刷新</button>
   </div>
   <div class="tabs" id="metricTabs"></div>
   <div class="hint" id="hintRow" data-i18n="hint"></div>
@@ -145,7 +145,7 @@ function syncViewParams(){
 }
 function applyPageLanguage(){
   document.getElementById('metricTabs').innerHTML=t('metrics').map(function(x,i){
-    return '<button class="'+(i===metric?'active':'')+'" onclick="setMetric('+i+')">'+x+'</button>';
+    return '<button class="'+(i===metric?'active':'')+'" data-metric="'+i+'">'+x+'</button>';
   }).join('');
 }
 
@@ -282,6 +282,11 @@ async function loadStats(){
   }
 }
 
+document.getElementById('refreshStats').addEventListener('click', loadStats);
+document.getElementById('metricTabs').addEventListener('click', function(event){
+  var button=event.target.closest('button[data-metric]');
+  if(button) setMetric(Number(button.dataset.metric));
+});
 months();
 SrvproWeb.init({
   translations:I18N,

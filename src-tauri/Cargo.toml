@@ -23,3 +23,4 @@ uuid = { version = "1", features = ["v4"] }
 open = "5"
 sysinfo = "0.39"
 tauri-plugin-clipboard-manager = "2"
+zip = { version = "0.6.6", default-features = false, features = ["deflate"] }

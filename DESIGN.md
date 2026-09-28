@@ -241,7 +241,7 @@ GET/POST 均检查响应状态；拒绝把 JSON/HTML 错误页当成 YDK/YRP。Y
 
 点击“检查并更新”即开始检查；有变更则下载并应用，不再额外要求一次普通确认。首次安装同样适用。启动程序或播放录像时不自动更新、不强制安装。网络不可用时现有脚本与已下载录像仍保留。
 
-唯一来源：[301zrg/specials 的 706 目录](https://github.com/301zrg/specials/tree/master/706)。不是本地 KoishiPro 批处理使用的其他 fork，不执行远程批处理。
+旧裁定补丁来源固定为 [301zrg/specials 的 706 目录](https://github.com/301zrg/specials/tree/master/706)；原版 YGOPro 所需的纯净 utility.lua 底稿另取自官方 ygopro-scripts 固定版本。不是本地 KoishiPro 批处理使用的其他 fork，不执行远程批处理。
 
 唯一安装目标是游戏根目录 expansions/script。不会覆盖根目录 script，也不会改游戏配置、内核、数据库、卡图或禁卡表。706 是旧裁定补丁集合，要求游戏已有完整基础脚本和匹配的内核；不保证任意年份、任意内核的旧录像都能通过一次更新重放。
 
@@ -250,14 +250,16 @@ GET/POST 均检查响应状态；拒绝把 JSON/HTML 错误页当成 YDK/YRP。Y
 1. 查询 GitHub API 的 commits/master，固定本次 commit。
 2. 从该 commit 的根树定位 706 子树，并取得文件清单。根分支有其他目录变动而 706 子树相同，不视为脚本内容更新。
 3. 对比本地安装清单和实际文件散列；即使版本号相同，也检测缺失/损坏文件。
-4. 从固定 commit 的 raw 地址下载新增或变化的 Lua 文件，避免查询列表与下载时跨版本。复用内容相同的本地文件，限制并发并支持失败重试。
+4. 复用内容相同的本地文件；有较多变化时优先一次下载固定 commit 的 GitHub ZIP 归档，只提取 706 中需要的 Lua 文件并逐个校验 Git blob SHA。归档失败时退回固定 commit 的 raw 地址逐文件下载。元数据、归档和单文件下载都对临时连接错误作有限重试。
 5. 仅接收受控的普通 .lua 文件；保留相对路径结构但拒绝越界、链接、重复规范化路径、大小写冲突、非预期文件类型。缺少 706、树响应截断或解析失败时中止，绝不能把它解释为空目录并删除本地文件。
 
-使用 HTTPS，遵守 GitHub 限流及重试提示，不把访问令牌打包给玩家。API 只用少量 commit/tree 请求，文件使用固定 raw 地址。首版失败时提示重试，不静默更换不明镜像。
+使用 HTTPS，遵守 GitHub 限流及重试提示，不把访问令牌打包给玩家。下载失败时区分连接失败、限流和服务器错误，说明本地网络、DNS、代理或 GitHub 临时故障均可能导致连接失败；不静默更换不明镜像。
 
 Git blob SHA 按 Git 的 blob 头加字节内容算法校验，不能直接把普通文件 SHA-1 与 blob SHA 比较。另记录本地 SHA-256 用于冲突与恢复检查。这依赖 GitHub HTTPS 和所选仓库，并不等于发行者提供了独立签名。
 
 调研时固定快照为 commit d6008e9832e5666e665a84dca2e8e59810b3cdfa，706 子树 fe58410ca5a60f879e8c92e94c3fba86539e9006，含 390 个平铺 Lua 文件，合计 1,027,712 字节。此数量仅为调研记录，运行时不得硬编码。[固定目录快照](https://github.com/301zrg/specials/tree/d6008e9832e5666e665a84dca2e8e59810b3cdfa/706)。
+
+更新器检查当前选用的游戏 EXE 是否含 KoishiPro 标识。原版 YGOPro 不会自动加载 706 的 special.lua，因此额外从 [官方 ygopro-scripts](https://github.com/Fluorohydride/ygopro-scripts/blob/14745a5a3908861bba65d79cf9c542605c83d9cb/utility.lua) 下载固定版本且经 Git blob SHA 校验的纯净 utility.lua，在 `aux=Auxiliary` 后加入该次 706 提交中的 special.lua 定义与 `Auxiliary.PreloadUds()` 调用，再写入 `expansions/script/utility.lua`。KoishiPro 不生成此文件；切换客户端时只撤销本程序管理的扩展 utility.lua。已有同名扩展文件进入冲突与备份流程，根目录 `script/utility.lua` 始终不改。此设计参照 `F:\MyCardLibrary\ygopro_old\expansions\script\utility.lua` 的开头结构。
 
 ### 9.3 应用与文件所有权
 

@@ -1,22 +1,29 @@
+use crate::game;
 use crate::settings::{self, atomic_write};
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 use sha1::{Digest as Sha1Digest, Sha1};
 use sha2::Sha256;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
-use std::io::Read;
+use std::io::{Cursor, Read};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::thread;
+use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 use sysinfo::System;
 use tauri::{AppHandle, Emitter};
 use uuid::Uuid;
 
 const REPOSITORY: &str = "https://api.github.com/repos/301zrg/specials";
+const OFFICIAL_UTILITY_COMMIT: &str = "14745a5a3908861bba65d79cf9c542605c83d9cb";
+const OFFICIAL_UTILITY_BLOB: &str = "276a70dede210f13fec78bd3a1a59d218523a2c2";
+const OFFICIAL_UTILITY_BYTES: usize = 66473;
 const MAX_FILES: usize = 4096;
 const MAX_FILE_BYTES: usize = 4 * 1024 * 1024;
 const MAX_TOTAL_BYTES: usize = 100 * 1024 * 1024;
+const MAX_ARCHIVE_BYTES: usize = 32 * 1024 * 1024;
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -256,23 +263,49 @@ fn changed_paths(
     Ok(changed)
 }
 fn get_json<T: for<'de> Deserialize<'de>>(client: &Client, address: &str) -> Result<T, String> {
-    let mut response = client
-        .get(address)
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .map_err(|error| format!("GitHub request failed: {error}"))?;
-    if !response.status().is_success() {
-        return Err(format!("GitHub returned HTTP {}", response.status()));
-    }
-    let mut bytes = Vec::new();
-    response
-        .take(2 * 1024 * 1024 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| error.to_string())?;
-    if bytes.len() > 2 * 1024 * 1024 {
-        return Err("GitHub tree response is too large".into());
-    }
+    let bytes = download_bytes(client, address, "GitHub metadata", 2 * 1024 * 1024)?;
     serde_json::from_slice(&bytes).map_err(|_| "GitHub response was invalid".into())
+}
+
+fn download_bytes(
+    client: &Client,
+    address: &str,
+    label: &str,
+    limit: usize,
+) -> Result<Vec<u8>, String> {
+    let mut last_error = String::new();
+    for attempt in 0..3 {
+        if attempt > 0 {
+            thread::sleep(Duration::from_millis(400 * (1 << (attempt - 1))));
+        }
+        match client.get(address).send() {
+            Ok(mut response) => {
+                let status = response.status();
+                if !status.is_success() {
+                    last_error = format!("SCRIPT_HTTP:{}: {label}", status.as_u16());
+                    if status.as_u16() != 408 && status.as_u16() != 429 && !status.is_server_error()
+                    {
+                        break;
+                    }
+                    continue;
+                }
+                if response
+                    .content_length()
+                    .is_some_and(|size| size > limit as u64)
+                {
+                    return Err(format!("{label} exceeds the size limit"));
+                }
+                let mut bytes = Vec::new();
+                match response.take(limit as u64 + 1).read_to_end(&mut bytes) {
+                    Ok(_) if bytes.len() <= limit => return Ok(bytes),
+                    Ok(_) => return Err(format!("{label} exceeds the size limit")),
+                    Err(error) => last_error = format!("SCRIPT_NETWORK: {label}: {error}"),
+                }
+            }
+            Err(error) => last_error = format!("SCRIPT_NETWORK: {label}: {error}"),
+        }
+    }
+    Err(last_error)
 }
 fn valid_sha(sha: &str) -> bool {
     sha.len() == 40 && sha.bytes().all(|byte| byte.is_ascii_hexdigit())
@@ -350,32 +383,119 @@ fn raw_url(commit: &str, path: &str) -> Result<reqwest::Url, String> {
     Ok(url)
 }
 fn download_script(client: &Client, commit: &str, entry: &GitEntry) -> Result<Vec<u8>, String> {
-    let mut response = client
-        .get(raw_url(commit, &entry.path)?)
-        .send()
-        .map_err(|error| format!("Failed to download {}: {error}", entry.path))?;
-    if !response.status().is_success() {
-        return Err(format!(
-            "Downloading {} returned HTTP {}",
-            entry.path,
-            response.status()
-        ));
-    }
-    let mut bytes = Vec::new();
-    response
-        .take(MAX_FILE_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| format!("Failed to read {}: {error}", entry.path))?;
+    let url = raw_url(commit, &entry.path)?;
+    let bytes = download_bytes(client, url.as_str(), &entry.path, MAX_FILE_BYTES)?;
+    verify_blob(entry, &bytes)?;
+    Ok(bytes)
+}
+
+fn verify_blob(entry: &GitEntry, bytes: &[u8]) -> Result<(), String> {
     if bytes.len() > MAX_FILE_BYTES
         || Some(bytes.len()) != entry.size
-        || git_blob_sha(&bytes) != entry.sha
+        || git_blob_sha(bytes) != entry.sha
     {
         return Err(format!(
             "Script {} did not match its GitHub blob",
             entry.path
         ));
     }
+    Ok(())
+}
+
+fn archive_scripts(
+    client: &Client,
+    commit: &str,
+    needed: &[GitEntry],
+) -> Result<HashMap<String, Vec<u8>>, String> {
+    let address = format!("https://codeload.github.com/301zrg/specials/zip/{commit}");
+    let bytes = download_bytes(client, &address, "GitHub script archive", MAX_ARCHIVE_BYTES)?;
+    parse_archive(bytes, commit, needed)
+}
+
+fn parse_archive(
+    bytes: Vec<u8>,
+    commit: &str,
+    needed: &[GitEntry],
+) -> Result<HashMap<String, Vec<u8>>, String> {
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes))
+        .map_err(|error| format!("Invalid GitHub script archive: {error}"))?;
+    let expected: HashMap<&str, &GitEntry> = needed
+        .iter()
+        .map(|entry| (entry.path.as_str(), entry))
+        .collect();
+    let mut found = HashMap::new();
+    let prefix = format!("specials-{commit}/706/");
+    for index in 0..archive.len() {
+        let mut file = archive.by_index(index).map_err(|error| error.to_string())?;
+        if !file.is_file() {
+            continue;
+        }
+        let Some(name) = file.name().strip_prefix(&prefix) else {
+            continue;
+        };
+        let Some(entry) = expected.get(name) else {
+            continue;
+        };
+        if found.contains_key(name) {
+            return Err(format!("Duplicate archive script: {name}"));
+        }
+        if file.size() > MAX_FILE_BYTES as u64 {
+            return Err(format!("Archive script is too large: {name}"));
+        }
+        let mut content = Vec::new();
+        file.take(MAX_FILE_BYTES as u64 + 1)
+            .read_to_end(&mut content)
+            .map_err(|error| format!("Failed to read archive script {name}: {error}"))?;
+        verify_blob(entry, &content)?;
+        found.insert(name.to_string(), content);
+    }
+    if found.len() != needed.len() {
+        return Err("GitHub script archive is missing required files".into());
+    }
+    Ok(found)
+}
+
+fn has_koishi_marker(bytes: &[u8]) -> bool {
+    let marker: Vec<u8> = "KoishiPro"
+        .encode_utf16()
+        .flat_map(u16::to_le_bytes)
+        .collect();
+    bytes
+        .windows(marker.len())
+        .any(|window| window.eq_ignore_ascii_case(&marker))
+        || bytes
+            .windows(9)
+            .any(|window| window.eq_ignore_ascii_case(b"KoishiPro"))
+}
+
+fn is_koishipro(root: &Path) -> Result<bool, String> {
+    let config = settings::load(root)?;
+    let executable = game::executable(root, &config)?;
+    let bytes = fs::read(&executable)
+        .map_err(|error| format!("Cannot inspect game executable: {error}"))?;
+    Ok(has_koishi_marker(&bytes))
+}
+
+fn official_utility(client: &Client) -> Result<Vec<u8>, String> {
+    let url = format!("https://raw.githubusercontent.com/Fluorohydride/ygopro-scripts/{OFFICIAL_UTILITY_COMMIT}/utility.lua");
+    let bytes = download_bytes(client, &url, "official utility.lua", MAX_FILE_BYTES)?;
+    if bytes.len() != OFFICIAL_UTILITY_BYTES || git_blob_sha(&bytes) != OFFICIAL_UTILITY_BLOB {
+        return Err("Official utility.lua did not match its pinned GitHub blob".into());
+    }
     Ok(bytes)
+}
+
+fn merged_utility(base: &[u8], special: &[u8]) -> Result<Vec<u8>, String> {
+    let base = std::str::from_utf8(base).map_err(|_| "Official utility.lua is not UTF-8")?;
+    let special = std::str::from_utf8(special).map_err(|_| "special.lua is not UTF-8")?;
+    let marker = "aux=Auxiliary\n";
+    let (header, remainder) = base
+        .split_once(marker)
+        .ok_or("Official utility.lua has no Auxiliary setup")?;
+    if !header.starts_with("Auxiliary={}") || !special.contains("function Auxiliary.PreloadUds()") {
+        return Err("Official utility.lua or special.lua has an unexpected structure".into());
+    }
+    Ok(format!("{header}{marker}\n-- 706 old-ruling compatibility for original YGOPro\n{special}\nAuxiliary.PreloadUds()\n\n{remainder}").into_bytes())
 }
 fn read_original(root: &Path, relative: &str) -> Result<Vec<u8>, String> {
     if !relative.starts_with("backups/original/")
@@ -484,7 +604,7 @@ fn emit_progress(app: &AppHandle, done: usize, total: usize) {
 
 pub fn update(
     root: &Path,
-    client: &Client,
+    _client: &Client,
     file_lock: &Mutex<()>,
     app: &AppHandle,
     overwrite_conflicts: bool,
@@ -497,8 +617,31 @@ pub fn update(
         recover_pending(root)?;
         ensure_game_stopped(root)?;
     }
+    let client = &Client::builder()
+        .timeout(Duration::from_secs(90))
+        .connect_timeout(Duration::from_secs(15))
+        .redirect(reqwest::redirect::Policy::none())
+        .user_agent("srvprotianti-desktop/0.1")
+        .build()
+        .map_err(|error| error.to_string())?;
     let previous = read_state(root)?;
-    let (commit, tree, entries) = latest_entries(client)?;
+    let (commit, tree, mut entries) = latest_entries(client)?;
+    if !is_koishipro(root)? {
+        let special = entries
+            .iter()
+            .find(|entry| entry.path == "special.lua")
+            .ok_or("The 706 script set has no special.lua")?;
+        if entries.iter().any(|entry| entry.path == "utility.lua") {
+            return Err("The 706 script set unexpectedly includes utility.lua".into());
+        }
+        entries.push(GitEntry {
+            path: "utility.lua".into(),
+            mode: "100644".into(),
+            kind: "blob".into(),
+            sha: git_blob_sha(format!("{}:{}", OFFICIAL_UTILITY_BLOB, special.sha).as_bytes()),
+            size: None,
+        });
+    }
     let remote_paths: HashSet<&str> = entries.iter().map(|entry| entry.path.as_str()).collect();
     let mut conflicts = Vec::new();
     // Keep the exact state seen before network downloads. A newly created or
@@ -533,6 +676,30 @@ pub fn update(
         });
     }
 
+    let needed: Vec<GitEntry> = entries
+        .iter()
+        .filter(|entry| {
+            previous.files.get(&entry.path).is_none_or(|prior| {
+                prior.blob_sha != entry.sha
+                    || observed.get(&entry.path).and_then(Option::as_deref)
+                        != Some(prior.installed_sha256.as_str())
+            })
+        })
+        .filter(|entry| entry.path != "utility.lua")
+        .cloned()
+        .collect();
+    let mut archive_error = None;
+    let archive = if needed.len() > 4 {
+        match archive_scripts(client, &commit, &needed) {
+            Ok(files) => Some(files),
+            Err(error) => {
+                archive_error = Some(error);
+                None
+            }
+        }
+    } else {
+        None
+    };
     let mut next = previous.clone();
     next.commit = Some(commit.clone());
     next.tree = Some(tree.clone());
@@ -552,7 +719,34 @@ pub fn update(
                 continue;
             }
         }
-        let bytes = download_script(client, &commit, entry)?;
+        let bytes = if entry.path == "utility.lua" {
+            let special = planned
+                .iter()
+                .find(|file: &&PlannedFile| file.path == "special.lua")
+                .and_then(|file| file.after.as_deref());
+            let saved_special = if special.is_none() {
+                Some(
+                    fs::read(target_path(root, "special.lua")?)
+                        .map_err(|error| error.to_string())?,
+                )
+            } else {
+                None
+            };
+            let special = special
+                .or(saved_special.as_deref())
+                .ok_or("special.lua was not downloaded")?;
+            merged_utility(&official_utility(client)?, special)?
+        } else if let Some(bytes) = archive.as_ref().and_then(|files| files.get(&entry.path)) {
+            bytes.clone()
+        } else {
+            download_script(client, &commit, entry).map_err(|error| {
+                if let Some(archive_error) = &archive_error {
+                    format!("{error}; archive download also failed: {archive_error}")
+                } else {
+                    error
+                }
+            })?
+        };
         let installed_sha256 = sha256(&bytes);
         let original_backup = match prior {
             Some(prior) => prior.original_backup.clone(),
@@ -702,6 +896,67 @@ pub fn restore(root: &Path, file_lock: &Mutex<()>) -> Result<UpdateResult, Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::Write;
+
+    #[test]
+    fn original_client_utility_runs_special_after_defining_it() {
+        let base = b"Auxiliary={}\naux=Auxiliary\nfunction GetID() end\n";
+        let special = b"function Auxiliary.PreloadUds() end\n";
+        let merged = String::from_utf8(merged_utility(base, special).unwrap()).unwrap();
+        assert!(
+            merged.find("function Auxiliary.PreloadUds()").unwrap()
+                < merged
+                    .find("Auxiliary.PreloadUds()\n\nfunction GetID")
+                    .unwrap()
+        );
+        assert!(merged.ends_with("function GetID() end\n"));
+        assert!(!String::from_utf8_lossy(base).contains("PreloadUds"));
+    }
+
+    #[test]
+    fn executable_marker_distinguishes_clients() {
+        let utf16: Vec<u8> = "KoishiPro"
+            .encode_utf16()
+            .flat_map(u16::to_le_bytes)
+            .collect();
+        assert!(has_koishi_marker(&utf16));
+        assert!(has_koishi_marker(b"xxKoishiProxx"));
+        assert!(!has_koishi_marker(b"YGOPro"));
+    }
+
+    #[test]
+    fn archive_accepts_only_expected_verified_script() {
+        let commit = "0123456789abcdef0123456789abcdef01234567";
+        let content = b"return true\n";
+        let entry = GitEntry {
+            path: "special.lua".into(),
+            mode: "100644".into(),
+            kind: "blob".into(),
+            sha: git_blob_sha(content),
+            size: Some(content.len()),
+        };
+        let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        writer
+            .start_file(
+                format!("specials-{commit}/706/special.lua"),
+                zip::write::FileOptions::default(),
+            )
+            .unwrap();
+        writer.write_all(content).unwrap();
+        writer
+            .start_file(
+                format!("specials-{commit}/other/ignored.lua"),
+                zip::write::FileOptions::default(),
+            )
+            .unwrap();
+        writer.write_all(b"ignored").unwrap();
+        let bytes = writer.finish().unwrap().into_inner();
+        let parsed = parse_archive(bytes.clone(), commit, &[entry.clone()]).unwrap();
+        assert_eq!(parsed.get("special.lua").unwrap(), content);
+        let mut bad = entry;
+        bad.sha = "0000000000000000000000000000000000000000".into();
+        assert!(parse_archive(bytes, commit, &[bad]).is_err());
+    }
 
     #[test]
     fn git_blob_hash_uses_git_header() {

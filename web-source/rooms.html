@@ -26,7 +26,7 @@
   <span data-i18n="update_time">更新时间</span> <b id="sTime">-</b>
 </div>
 <div>
-  <button onclick="refresh()" style="background:#2f5c86; color:#fff; padding:6px 16px; font-size:13px;" data-i18n="refresh">手动刷新</button>
+  <button id="refreshRooms" style="background:#2f5c86; color:#fff; padding:6px 16px; font-size:13px;" data-i18n="refresh">手动刷新</button>
 </div>
 <div class="table-wrap">
 <table>
@@ -132,6 +132,7 @@ async function refresh() {
     document.getElementById('sTime').textContent = t('load_fail') + ': ' + e;
   }
 }
+document.getElementById('refreshRooms').addEventListener('click', refresh);
 SrvproWeb.init({
   translations: I18N,
   onLanguageChange: function (code) { lang = code; refresh(); }

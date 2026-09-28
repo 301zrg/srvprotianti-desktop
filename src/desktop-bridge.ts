@@ -312,6 +312,7 @@ function updateDownloadLabels() {
 document.addEventListener('DOMContentLoaded', () => {
   updateIntroButtons();
   updateDownloadLabels();
+  document.getElementById('updateScriptsShortcut')?.addEventListener('click', () => window.desktopUpdateScripts());
   const observer = new MutationObserver(() => { updateIntroButtons(); updateDownloadLabels(); });
   observer.observe(document.body, { childList: true, subtree: true });
 });

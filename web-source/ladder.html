@@ -50,8 +50,8 @@
 <div data-site-shell></div>
 <div class="search-row">
   <input id="searchInput" data-i18n-ph="search_ph" placeholder="输入玩家 ID 搜索其战绩" />
-  <button onclick="doSearch()" data-i18n="search">搜索</button>
-  <button class="outline" onclick="clearSearch()" data-i18n="clear">清空</button>
+  <button id="searchButton" data-i18n="search">搜索</button>
+  <button id="clearButton" class="outline" data-i18n="clear">清空</button>
 </div>
 <div class="tabs">
   <div class="btn-group">
@@ -67,7 +67,7 @@
   <div class="right-group">
     <label for="monthSelect" style="color:#9db8d0; font-size:13px;" data-i18n="month_label">月份</label>
     <select id="monthSelect"></select>
-    <button onclick="refresh()" data-i18n="refresh">手动刷新</button>
+    <button id="refreshButton" data-i18n="refresh">手动刷新</button>
   </div>
 </div>
 <div class="privacy-hint" data-i18n="privacy_hint">排名后30%的玩家ID将在总榜上隐藏</div>
@@ -79,11 +79,11 @@
 </table>
 </div>
 <div class="pagination">
-  <button id="btnFirst" onclick="goPage(1)" data-i18n="first_page">首页</button>
-  <button id="btnPrev" onclick="goPage(currentPage - 1)" data-i18n="prev">上一页</button>
+  <button id="btnFirst" data-i18n="first_page">首页</button>
+  <button id="btnPrev" data-i18n="prev">上一页</button>
   <span id="pageInfo" style="margin:0 6px; color:#9db8d0;">-</span>
-  <button id="btnNext" onclick="goPage(currentPage + 1)" data-i18n="next">下一页</button>
-  <button class="primary" onclick="refresh()" data-i18n="refresh_page">刷新本页</button>
+  <button id="btnNext" data-i18n="next">下一页</button>
+  <button id="refreshPageButton" class="primary" data-i18n="refresh_page">刷新本页</button>
 </div>
 <div class="hint" data-i18n="hint">页面不会自动刷新,请点击「手动刷新」或按 F5 获取最新排名。天梯仅统计随机房间输入 TT 的天梯模式对决;玩家密码永不在页面上显示。</div>
 <script src="/assets/site-shell.js"></script>
@@ -294,6 +294,13 @@ function goPage(p) {
   currentPage = p;
   refresh();
 }
+document.getElementById('searchButton').addEventListener('click', doSearch);
+document.getElementById('clearButton').addEventListener('click', clearSearch);
+document.getElementById('refreshButton').addEventListener('click', refresh);
+document.getElementById('refreshPageButton').addEventListener('click', refresh);
+document.getElementById('btnFirst').addEventListener('click', function () { goPage(1); });
+document.getElementById('btnPrev').addEventListener('click', function () { goPage(currentPage - 1); });
+document.getElementById('btnNext').addEventListener('click', function () { goPage(currentPage + 1); });
 fillMonthOptions();
 SrvproWeb.init({
   translations: I18N,

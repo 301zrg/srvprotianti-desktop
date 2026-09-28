@@ -112,6 +112,20 @@ const conflictMessages = {
   en: { kept: 'Update cancelled; local scripts were kept.', changed: 'Scripts changed during download. Nothing was overwritten. Check the files and retry.' },
   ko: { kept: '업데이트를 취소하고 로컬 스크립트를 유지했습니다.', changed: '다운로드 중 스크립트가 변경되었습니다. 덮어쓰지 않았습니다. 파일을 확인한 뒤 다시 시도하세요.' }
 };
+const scriptNetworkMessages = {
+  zh: { network: '连接 GitHub 下载脚本失败。可能是本地网络、DNS、代理或 GitHub 临时故障；请检查网络后重试。', rate: 'GitHub 暂时限制请求，请稍后重试。', server: 'GitHub 服务暂时出错，请稍后重试。' },
+  ja: { network: 'GitHub からスクリプトを取得できません。ネットワーク、DNS、プロキシ、または GitHub の一時的な障害を確認して再試行してください。', rate: 'GitHub のリクエスト制限です。しばらくしてから再試行してください。', server: 'GitHub で一時的なエラーが発生しました。後で再試行してください。' },
+  en: { network: 'Could not download scripts from GitHub. Check your connection, DNS or proxy, then retry; GitHub may also be temporarily unavailable.', rate: 'GitHub is temporarily rate limiting requests. Try again later.', server: 'GitHub returned a temporary server error. Try again later.' },
+  ko: { network: 'GitHub에서 스크립트를 다운로드하지 못했습니다. 네트워크, DNS 또는 프록시를 확인한 뒤 다시 시도하세요. GitHub의 일시적인 장애일 수도 있습니다.', rate: 'GitHub 요청 제한이 발생했습니다. 잠시 후 다시 시도하세요.', server: 'GitHub에 일시적인 오류가 발생했습니다. 나중에 다시 시도하세요.' }
+};
+function scriptError(error) {
+  const detail = String(error);
+  const messages = scriptNetworkMessages[SrvproWeb.getLanguage()] || scriptNetworkMessages.en;
+  if (detail.includes('SCRIPT_NETWORK:')) return messages.network + '\n' + detail;
+  if (/SCRIPT_HTTP:(403|429):/.test(detail)) return messages.rate + '\n' + detail;
+  if (/SCRIPT_HTTP:5\d\d:/.test(detail)) return messages.server + '\n' + detail;
+  return detail;
+}
 function t(key) { return SrvproWeb.t(I18N, key); }
 function conflictMessage(key) { return conflictMessages[SrvproWeb.getLanguage()][key]; }
 const desktop = window.SrvproDesktop;
@@ -165,7 +179,7 @@ async function runScriptOperation(operation) {
       setStatus(scriptStatus, t(result.status === 'current' ? 'current' : operation === 'update' ? 'updated' : 'restored'));
     }
   } catch (error) {
-    setStatus(scriptStatus, t('failed') + error, true);
+    setStatus(scriptStatus, t('failed') + scriptError(error), true);
   } finally {
     busy = false;
     document.getElementById('updateScripts').disabled = false;

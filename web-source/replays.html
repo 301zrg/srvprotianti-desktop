@@ -16,9 +16,9 @@
 <div data-site-shell></div>
 <div class="nav">
   <input id="searchInput" data-i18n-ph="search_ph" placeholder="输入玩家 ID 搜索其全部录像" style="background:#243447; color:#dce6f0; border:1px solid #2c3e50; padding:6px 10px; width:220px; font-size:13px;" />
-  <button onclick="doSearch()" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="search">搜索</button>
+  <button id="searchButton" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="search">搜索</button>
   <select id="deckFilter" aria-label="卡组类型筛选"></select>
-  <button onclick="clearSearch()" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="clear">清空</button>
+  <button id="clearButton" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="clear">清空</button>
 </div>
 <div class="table-wrap">
 <table>
@@ -27,11 +27,11 @@
 </table>
 </div>
 <div style="margin-top:12px; font-size:13px;">
-  <button id="btnFirst" onclick="goPage(1)" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="first_page">首页</button>
-  <button id="btnPrev" onclick="goPage(currentPage - 1)" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="prev">上一页</button>
+  <button id="btnFirst" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="first_page">首页</button>
+  <button id="btnPrev" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="prev">上一页</button>
   <span id="pageInfo" style="margin:0 12px; color:#9db8d0;">-</span>
-  <button id="btnNext" onclick="goPage(currentPage + 1)" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="next">下一页</button>
-  <button onclick="refresh()" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; margin-left:16px; cursor:pointer;" data-i18n="refresh_page">刷新本页</button>
+  <button id="btnNext" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="next">下一页</button>
+  <button id="refreshButton" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; margin-left:16px; cursor:pointer;" data-i18n="refresh_page">刷新本页</button>
 </div>
 <div class="hint" data-i18n="hint">页面不会自动刷新,请点击「刷新本页」获取最新录像。每页 20 条。当前只保存天梯(TT)模式的对局录像。文件名为"时间 玩家1 VS 玩家2.yrp"。</div>
 <script src="/assets/site-shell.js"></script>
@@ -228,6 +228,12 @@ function goPage(p) {
   currentPage = p;
   refresh();
 }
+document.getElementById('searchButton').addEventListener('click', doSearch);
+document.getElementById('clearButton').addEventListener('click', clearSearch);
+document.getElementById('btnFirst').addEventListener('click', function () { goPage(1); });
+document.getElementById('btnPrev').addEventListener('click', function () { goPage(currentPage - 1); });
+document.getElementById('btnNext').addEventListener('click', function () { goPage(currentPage + 1); });
+document.getElementById('refreshButton').addEventListener('click', refresh);
 SrvproWeb.init({
   translations: I18N,
   onLanguageChange: function (code) { lang = code; fillDeckFilter(); refresh(); }
