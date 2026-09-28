@@ -23,7 +23,7 @@ pub fn args(
     room_name: Option<&str>,
 ) -> Result<Vec<String>, String> {
     match kind {
-        "regular" | "ladder" | "watch" => {
+        "regular" | "ladder" | "join" | "watch" => {
             if settings.player.launch_name.trim().is_empty() {
                 return Err("Set a game login name in Settings first".into());
             }
@@ -37,7 +37,7 @@ pub fn args(
             ];
             if kind == "ladder" {
                 values.extend(["-w".into(), "TT".into(), "-k".into(), "-j".into()]);
-            } else if kind == "watch" {
+            } else if kind == "join" || kind == "watch" {
                 let room = room_name.ok_or("Missing room name")?;
                 if room.is_empty() || room.contains(['\0', '\n', '\r']) || room.len() > 160 {
                     return Err("Invalid room name".into());
@@ -141,5 +141,9 @@ mod tests {
         assert_eq!(&ladder[6..], &["-w", "TT", "-k", "-j"]);
         let watch = args(&config, "watch", Some("M#Room")).unwrap();
         assert_eq!(&watch[6..], &["-w", "M#Room", "-j"]);
+        let join = args(&config, "join", Some("M#Room")).unwrap();
+        assert_eq!(join, watch);
+        let protected = args(&config, "watch", Some("M#Room$secret with space")).unwrap();
+        assert_eq!(&protected[6..], &["-w", "M#Room$secret with space", "-j"]);
     }
 }

@@ -43,7 +43,7 @@ var I18N = {
     refresh: '手动刷新',
     th_roomname: '房名', th_type: '类型', th_mode: '模式', th_players: '玩家', th_status: '状态',
     hint: '页面不会自动刷新,请点击「手动刷新」或按 F5 查看最新房间。房名中的密码部分不会显示。',
-    waiting: '等待中', waiting_match: '等待匹配中', watch_btn: '点击观战', not_started: '尚未开局', protected_room: '密码房暂不支持直接观战', load_fail: '加载失败',
+    waiting: '等待中', waiting_match: '等待匹配中', join_btn: '点击加入', password_btn: '需要密码', watch_btn: '点击观战', unavailable: '暂不可用', load_fail: '加载失败',
     ladder_match: '天梯随机(比赛)', random_single: '随机·单局', random_match: '随机·比赛', random_tag: '随机·双打', ai_battle: 'AI 对战', match_room: '比赛房', tag_room: '双打房'
   },
   ja: {
@@ -51,7 +51,7 @@ var I18N = {
     refresh: '更新',
     th_roomname: 'ルーム名', th_type: '種別', th_mode: 'モード', th_players: 'プレイヤー', th_status: '状態',
     hint: '自動更新はありません。「更新」またはF5で最新のルームを表示します。ルーム名のパスワード部分は表示されません。',
-    waiting: '待機中', waiting_match: 'マッチ待ち', watch_btn: '観戦する', not_started: 'まだ開始していません', protected_room: 'パスワード付きルームは直接観戦できません', load_fail: '読み込み失敗',
+    waiting: '待機中', waiting_match: 'マッチ待ち', join_btn: '参加する', password_btn: 'パスワードが必要', watch_btn: '観戦する', unavailable: '利用できません', load_fail: '読み込み失敗',
     ladder_match: 'ランクマッチ(MT)', random_single: 'ランダム(1本)', random_match: 'ランダム(MT)', random_tag: 'ランダム(2v2)', ai_battle: 'AI対戦', match_room: 'マッチ部屋', tag_room: '2v2部屋'
   },
   en: {
@@ -59,7 +59,7 @@ var I18N = {
     refresh: 'Refresh',
     th_roomname: 'Room', th_type: 'Type', th_mode: 'Mode', th_players: 'Players', th_status: 'Status',
     hint: 'No auto refresh. Click "Refresh" or press F5 for the latest rooms. Password parts of room names are hidden.',
-    waiting: 'Waiting', waiting_match: 'Waiting for match', watch_btn: 'Watch game', not_started: 'Not started yet', protected_room: 'Password room cannot be watched directly', load_fail: 'Load failed',
+    waiting: 'Waiting', waiting_match: 'Waiting for match', join_btn: 'Join room', password_btn: 'Password needed', watch_btn: 'Watch game', unavailable: 'Unavailable', load_fail: 'Load failed',
     ladder_match: 'Ladder Match', random_single: 'Random Single', random_match: 'Random Match', random_tag: 'Random Tag', ai_battle: 'AI Battle', match_room: 'Match Room', tag_room: 'Tag Room'
   },
   ko: {
@@ -67,13 +67,14 @@ var I18N = {
     refresh: '새로고침',
     th_roomname: '룸 이름', th_type: '종류', th_mode: '모드', th_players: '플레이어', th_status: '상태',
     hint: '자동 새로고침되지 않습니다. 「새로고침」 또는 F5로 최신 룸을 확인하세요. 비밀번호 부분은 표시되지 않습니다.',
-    waiting: '대기 중', waiting_match: '매칭 대기 중', watch_btn: '관전하기', not_started: '아직 시작하지 않음', protected_room: '비밀번호 방은 직접 관전할 수 없습니다', load_fail: '로드 실패',
+    waiting: '대기 중', waiting_match: '매칭 대기 중', join_btn: '참가하기', password_btn: '비밀번호 필요', watch_btn: '관전하기', unavailable: '이용 불가', load_fail: '로드 실패',
     ladder_match: '랭크 매치(MT)', random_single: '랜덤(1판)', random_match: '랜덤(MT)', random_tag: '랜덤(2v2)', ai_battle: 'AI 대전', match_room: '매치 룸', tag_room: '2v2 룸'
   }
 };
 var lang = SrvproWeb.getLanguage();
 function t(key) { return SrvproWeb.t(I18N, key); }
 function friendlyName(name) {
+  if (typeof name !== 'string') return '';
   if (/^M?#?TT,RANDOM#/.test(name)) return t('ladder_match');
   if (/^TT,RANDOM#/.test(name)) return t('ladder_match');
   if (/^S,RANDOM#/.test(name)) return t('random_single');
@@ -116,12 +117,26 @@ async function refresh() {
         '<td>' + modeName(r.roommode) + '</td>' +
         '<td>' + escapeHtml(playersCell) + '</td>' +
         '<td class="' + (isPlaying ? 'playing' : 'waiting') + '">' + escapeHtml(r.istart) + '</td>';
-      const copyButton = document.createElement('button');
-      const canWatch = Boolean(r.roomname) && typeof r.istart === 'string' && r.istart.startsWith('Duel:') && r.needpass === 'false';
-      copyButton.textContent = r.needpass === 'true' ? t('protected_room') : canWatch ? t('watch_btn') : t('not_started');
-      copyButton.disabled = !canWatch;
-      copyButton.onclick = function () { if (canWatch) window.SrvproDesktop.watchRoom(r); };
-      tr.firstElementChild.appendChild(copyButton);
+      const actionButton = document.createElement('button');
+      const hasName = typeof r.roomname === 'string' && r.roomname.length > 0;
+      const waiting = r.istart === 'wait';
+      const started = typeof r.istart === 'string' && r.istart.startsWith('Duel:');
+      const knownPasswordState = r.needpass === 'false' || r.needpass === 'true';
+      const canJoin = hasName && waiting && (isLadder || knownPasswordState);
+      const canWatch = hasName && started && knownPasswordState;
+      const needsPassword = r.needpass === 'true' && (canWatch || (canJoin && !isLadder));
+      actionButton.textContent = needsPassword ? t('password_btn') : canJoin ? t('join_btn') : canWatch ? t('watch_btn') :
+        t('unavailable');
+      actionButton.disabled = !canJoin && !canWatch;
+      actionButton.addEventListener('click', function () {
+        if (canJoin) {
+          if (isLadder) void window.SrvproDesktop.ladder();
+          else void window.SrvproDesktop.joinRoom(r);
+        } else if (canWatch) {
+          void window.SrvproDesktop.watchRoom(r);
+        }
+      });
+      tr.firstElementChild.appendChild(actionButton);
       tbody.appendChild(tr);
     }
     document.getElementById('sRooms').textContent = rooms.length;

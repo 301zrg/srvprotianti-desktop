@@ -20,6 +20,7 @@ type DesktopBridge = {
   setLanguage(language: Language): void;
   regular(): Promise<void>;
   ladder(): Promise<void>;
+  joinRoom(room: Record<string, unknown>): Promise<void>;
   watchRoom(room: Record<string, unknown>): Promise<void>;
   scriptState(): Promise<{ commit: string | null; canRestore: boolean; updatedAt: number | null }>;
   updateScripts(overwriteConflicts: boolean): Promise<ScriptResult>;
@@ -45,7 +46,9 @@ const messages: Record<Language, Record<string, string>> = {
     savedNotOpened: '文件已保存，但游戏未能启动', retryOpen: '重试打开',
     failed: '操作失败', setName: '请先在设置中填写游戏昵称', openDeck: '保存并编辑',
     openReplay: '保存并播放', update: '更新旧裁定脚本', checking: '正在处理……',
-    roomGone: '房间已关闭或状态已变化，请刷新后重试', roomLocked: '该房间暂不能直接观战'
+    roomGone: '房间已关闭或状态已变化，请刷新后重试', roomLocked: '该房间暂不能直接加入或观战',
+    roomPasswordTitle: '输入房间密码', roomPasswordPrompt: '密码仅用于本次进入房间，不会保存。',
+    roomPasswordSubmit: '加入房间', roomPasswordWatch: '观战', cancel: '取消', invalidRoomPassword: '密码不能为空，也不能包含 $ 或换行；房名和密码合计不能超过 160 字节'
   },
   ja: {
     copied: 'コピーしました：',
@@ -53,7 +56,9 @@ const messages: Record<Language, Record<string, string>> = {
     savedNotOpened: 'ファイルは保存されましたが、ゲームを起動できませんでした', retryOpen: 'もう一度開く',
     failed: '失敗', setName: '設定でゲーム名を入力してください', openDeck: '保存して編集',
     openReplay: '保存して再生', update: '旧裁定を更新', checking: '処理中…',
-    roomGone: 'ルームが終了または変更されました。更新してください', roomLocked: 'このルームは直接観戦できません'
+    roomGone: 'ルームが終了または変更されました。更新してください', roomLocked: 'このルームには直接参加・観戦できません',
+    roomPasswordTitle: 'ルームのパスワード', roomPasswordPrompt: 'パスワードは今回のみ使用し、保存しません。',
+    roomPasswordSubmit: '参加する', roomPasswordWatch: '観戦する', cancel: 'キャンセル', invalidRoomPassword: 'パスワードは必須です。$ や改行は使用できません。ルーム名と合わせて 160 バイト以内にしてください'
   },
   en: {
     copied: 'Copied: ',
@@ -61,7 +66,9 @@ const messages: Record<Language, Record<string, string>> = {
     savedNotOpened: 'File saved, but the game could not start', retryOpen: 'Retry opening',
     failed: 'Operation failed', setName: 'Set your game name in Settings first', openDeck: 'Save and edit',
     openReplay: 'Save and play', update: 'Update old ruling scripts', checking: 'Working…',
-    roomGone: 'The room closed or changed. Refresh and try again', roomLocked: 'This room cannot be watched directly'
+    roomGone: 'The room closed or changed. Refresh and try again', roomLocked: 'This room cannot be joined or watched directly',
+    roomPasswordTitle: 'Room password', roomPasswordPrompt: 'Used only for this room action; it will not be saved.',
+    roomPasswordSubmit: 'Join room', roomPasswordWatch: 'Watch game', cancel: 'Cancel', invalidRoomPassword: 'Enter a password without $ or line breaks; room name and password must fit within 160 bytes'
   },
   ko: {
     copied: '복사됨: ',
@@ -69,7 +76,9 @@ const messages: Record<Language, Record<string, string>> = {
     savedNotOpened: '파일은 저장했지만 게임을 실행하지 못했습니다', retryOpen: '다시 열기',
     failed: '작업 실패', setName: '설정에서 게임 이름을 입력하세요', openDeck: '저장 후 편집',
     openReplay: '저장 후 재생', update: '옛 재정 스크립트 업데이트', checking: '처리 중…',
-    roomGone: '방이 종료되었거나 상태가 변경되었습니다. 새로고침하세요', roomLocked: '이 방은 직접 관전할 수 없습니다'
+    roomGone: '방이 종료되었거나 상태가 변경되었습니다. 새로고침하세요', roomLocked: '이 방은 직접 참가하거나 관전할 수 없습니다',
+    roomPasswordTitle: '방 비밀번호 입력', roomPasswordPrompt: '이번 입장에만 사용하며 저장하지 않습니다.',
+    roomPasswordSubmit: '방 참가', roomPasswordWatch: '관전하기', cancel: '취소', invalidRoomPassword: '비밀번호를 입력하세요. $ 또는 줄바꿈은 사용할 수 없으며 방 이름과 합쳐 160바이트 이하여야 합니다'
   }
 };
 
@@ -380,6 +389,105 @@ if (tauriAvailable) {
   });
 }
 
+function askRoomPassword(roomName: string, kind: 'join' | 'watch'): Promise<string | null> {
+  return new Promise(resolve => {
+    const dialog = document.createElement('dialog');
+    dialog.style.cssText = 'max-width:min(420px,90vw);padding:22px;border:1px solid #47627d;border-radius:8px;background:#1d2a38;color:#dce6f0;box-shadow:0 12px 40px #0009';
+    const form = document.createElement('form');
+    const title = document.createElement('h2');
+    title.textContent = msg('roomPasswordTitle') + '：' + roomName;
+    title.style.marginTop = '0';
+    const hint = document.createElement('p');
+    hint.textContent = msg('roomPasswordPrompt');
+    const input = document.createElement('input');
+    input.type = 'password';
+    input.autocomplete = 'off';
+    input.setAttribute('aria-label', msg('roomPasswordTitle'));
+    input.style.cssText = 'box-sizing:border-box;width:100%;padding:9px;background:#243447;color:#dce6f0;border:1px solid #47627d;border-radius:4px';
+    const buttons = document.createElement('div');
+    buttons.style.cssText = 'display:flex;justify-content:flex-end;gap:10px;margin-top:18px';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = msg('cancel');
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.textContent = msg(kind === 'join' ? 'roomPasswordSubmit' : 'roomPasswordWatch');
+    for (const button of [cancel, submit]) {
+      button.style.cssText = 'padding:8px 13px;border:0;border-radius:4px;background:#2f5c86;color:white;cursor:pointer';
+    }
+    let selected: string | null = null;
+    cancel.addEventListener('click', () => dialog.close());
+    input.addEventListener('input', () => input.setCustomValidity(''));
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const password = input.value;
+      if (!password || /[$\r\n\0]/.test(password) || new TextEncoder().encode(roomName + '$' + password).length > 160) {
+        input.setCustomValidity(msg('invalidRoomPassword'));
+        input.reportValidity();
+        return;
+      }
+      selected = password;
+      dialog.close();
+    });
+    dialog.addEventListener('close', () => {
+      dialog.remove();
+      resolve(selected);
+    }, { once: true });
+    buttons.append(cancel, submit);
+    form.append(title, hint, input, buttons);
+    dialog.append(form);
+    document.body.append(dialog);
+    dialog.showModal();
+    input.focus();
+  });
+}
+
+const pendingRoomActions = new Set<string>();
+async function matchingRoom(room: Record<string, unknown>): Promise<Record<string, unknown> | undefined> {
+  const response = await apiFetch('/api/public/rooms?t=' + Date.now());
+  const list = (await response.json()).rooms as Record<string, unknown>[];
+  return list.find(item =>
+    String(item.roomid) === String(room.roomid) && item.roomname === room.roomname
+  );
+}
+
+function checkedRoom(room: Record<string, unknown>, current: Record<string, unknown> | undefined,
+                     kind: 'join' | 'watch'): string {
+  if (!current) throw new Error(msg('roomGone'));
+  if (typeof current.roomname !== 'string' || !current.roomname ||
+      (current.needpass !== 'false' && current.needpass !== 'true') ||
+      current.needpass !== room.needpass) {
+    throw new Error(msg('roomLocked'));
+  }
+  if (kind === 'join' ? current.istart !== 'wait' :
+      typeof current.istart !== 'string' || !current.istart.startsWith('Duel:')) {
+    throw new Error(msg('roomGone'));
+  }
+  return current.roomname;
+}
+
+async function openRoom(room: Record<string, unknown>, kind: 'join' | 'watch'): Promise<void> {
+  const key = kind + ':' + String(room.roomid);
+  if (pendingRoomActions.has(key)) return;
+  pendingRoomActions.add(key);
+  try {
+    if (!(await requireName())) return;
+    const current = await matchingRoom(room);
+    let roomName = checkedRoom(room, current, kind);
+    if (current?.needpass === 'true') {
+      const password = await askRoomPassword(roomName, kind);
+      if (password === null) return;
+      checkedRoom(room, await matchingRoom(room), kind);
+      roomName += '$' + password;
+    }
+    await invoke('launch_game', { kind, roomName });
+  } catch (error) {
+    toast(msg('failed') + ': ' + String(error), true);
+  } finally {
+    pendingRoomActions.delete(key);
+  }
+}
+
 window.SrvproDesktop = {
   settings: async () => cachedSettings || await settingsPromise,
   async saveSettings(settings) {
@@ -403,22 +511,8 @@ window.SrvproDesktop = {
   },
   regular: () => launch('regular'),
   ladder: () => launch('ladder'),
-  async watchRoom(room) {
-    try {
-      if (!(await requireName())) return;
-      const response = await apiFetch('/api/public/rooms?t=' + Date.now());
-      const list = (await response.json()).rooms as Record<string, unknown>[];
-      const current = list.find(item =>
-        String(item.roomid) === String(room.roomid) && item.roomname === room.roomname
-      );
-      if (!current) throw new Error(msg('roomGone'));
-      if (current.needpass !== 'false' || typeof current.istart !== 'string' ||
-          !current.istart.startsWith('Duel:') || !current.roomname) {
-        throw new Error(msg('roomLocked'));
-      }
-      await invoke('launch_game', { kind: 'watch', roomName: current.roomname });
-    } catch (error) { toast(msg('failed') + ': ' + String(error), true); }
-  },
+  joinRoom: room => openRoom(room, 'join'),
+  watchRoom: room => openRoom(room, 'watch'),
   scriptState: () => invoke('script_state'),
   updateScripts: overwriteConflicts => invoke('update_scripts', { overwriteConflicts }),
   restoreScripts: () => invoke('restore_scripts'),
