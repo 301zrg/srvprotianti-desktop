@@ -279,7 +279,7 @@ fn download_bytes(
             thread::sleep(Duration::from_millis(400 * (1 << (attempt - 1))));
         }
         match client.get(address).send() {
-            Ok(mut response) => {
+            Ok(response) => {
                 let status = response.status();
                 if !status.is_success() {
                     last_error = format!("SCRIPT_HTTP:{}: {label}", status.as_u16());
@@ -426,17 +426,17 @@ fn parse_archive(
     let mut found = HashMap::new();
     let prefix = format!("specials-{commit}/706/");
     for index in 0..archive.len() {
-        let mut file = archive.by_index(index).map_err(|error| error.to_string())?;
+        let file = archive.by_index(index).map_err(|error| error.to_string())?;
         if !file.is_file() {
             continue;
         }
-        let Some(name) = file.name().strip_prefix(&prefix) else {
+        let Some(name) = file.name().strip_prefix(&prefix).map(str::to_string) else {
             continue;
         };
-        let Some(entry) = expected.get(name) else {
+        let Some(entry) = expected.get(name.as_str()) else {
             continue;
         };
-        if found.contains_key(name) {
+        if found.contains_key(&name) {
             return Err(format!("Duplicate archive script: {name}"));
         }
         if file.size() > MAX_FILE_BYTES as u64 {
@@ -447,7 +447,7 @@ fn parse_archive(
             .read_to_end(&mut content)
             .map_err(|error| format!("Failed to read archive script {name}: {error}"))?;
         verify_blob(entry, &content)?;
-        found.insert(name.to_string(), content);
+        found.insert(name, content);
     }
     if found.len() != needed.len() {
         return Err("GitHub script archive is missing required files".into());
@@ -488,11 +488,13 @@ fn official_utility(client: &Client) -> Result<Vec<u8>, String> {
 fn merged_utility(base: &[u8], special: &[u8]) -> Result<Vec<u8>, String> {
     let base = std::str::from_utf8(base).map_err(|_| "Official utility.lua is not UTF-8")?;
     let special = std::str::from_utf8(special).map_err(|_| "special.lua is not UTF-8")?;
-    let marker = "aux=Auxiliary\n";
+    let marker = "NULL_VALUE=-10\n";
     let (header, remainder) = base
         .split_once(marker)
         .ok_or("Official utility.lua has no Auxiliary setup")?;
-    if !header.starts_with("Auxiliary={}") || !special.contains("function Auxiliary.PreloadUds()") {
+    if !header.starts_with("Auxiliary={}\naux=Auxiliary\n")
+        || !special.contains("function Auxiliary.PreloadUds()")
+    {
         return Err("Official utility.lua or special.lua has an unexpected structure".into());
     }
     Ok(format!("{header}{marker}\n-- 706 old-ruling compatibility for original YGOPro\n{special}\nAuxiliary.PreloadUds()\n\n{remainder}").into_bytes())
@@ -900,7 +902,7 @@ mod tests {
 
     #[test]
     fn original_client_utility_runs_special_after_defining_it() {
-        let base = b"Auxiliary={}\naux=Auxiliary\nfunction GetID() end\n";
+        let base = b"Auxiliary={}\naux=Auxiliary\nNULL_VALUE=-10\nfunction GetID() end\n";
         let special = b"function Auxiliary.PreloadUds() end\n";
         let merged = String::from_utf8(merged_utility(base, special).unwrap()).unwrap();
         assert!(
@@ -952,7 +954,7 @@ mod tests {
         writer.write_all(b"ignored").unwrap();
         let bytes = writer.finish().unwrap().into_inner();
         let parsed = parse_archive(bytes.clone(), commit, &[entry.clone()]).unwrap();
-        assert_eq!(parsed.get("special.lua").unwrap(), content);
+        assert_eq!(parsed.get("special.lua").unwrap().as_slice(), content);
         let mut bad = entry;
         bad.sha = "0000000000000000000000000000000000000000".into();
         assert!(parse_archive(bytes, commit, &[bad]).is_err());

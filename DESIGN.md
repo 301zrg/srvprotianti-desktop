@@ -259,7 +259,7 @@ Git blob SHA 按 Git 的 blob 头加字节内容算法校验，不能直接把�
 
 调研时固定快照为 commit d6008e9832e5666e665a84dca2e8e59810b3cdfa，706 子树 fe58410ca5a60f879e8c92e94c3fba86539e9006，含 390 个平铺 Lua 文件，合计 1,027,712 字节。此数量仅为调研记录，运行时不得硬编码。[固定目录快照](https://github.com/301zrg/specials/tree/d6008e9832e5666e665a84dca2e8e59810b3cdfa/706)。
 
-更新器检查当前选用的游戏 EXE 是否含 KoishiPro 标识。原版 YGOPro 不会自动加载 706 的 special.lua，因此额外从 [官方 ygopro-scripts](https://github.com/Fluorohydride/ygopro-scripts/blob/14745a5a3908861bba65d79cf9c542605c83d9cb/utility.lua) 下载固定版本且经 Git blob SHA 校验的纯净 utility.lua，在 `aux=Auxiliary` 后加入该次 706 提交中的 special.lua 定义与 `Auxiliary.PreloadUds()` 调用，再写入 `expansions/script/utility.lua`。KoishiPro 不生成此文件；切换客户端时只撤销本程序管理的扩展 utility.lua。已有同名扩展文件进入冲突与备份流程，根目录 `script/utility.lua` 始终不改。此设计参照 `F:\MyCardLibrary\ygopro_old\expansions\script\utility.lua` 的开头结构。
+更新器检查当前选用的游戏 EXE 是否含 KoishiPro 标识。原版 YGOPro 不会自动加载 706 的 special.lua，因此额外从 [官方 ygopro-scripts](https://github.com/Fluorohydride/ygopro-scripts/blob/14745a5a3908861bba65d79cf9c542605c83d9cb/utility.lua) 下载固定版本且经 Git blob SHA 校验的纯净 utility.lua，在开头的 `NULL_VALUE=-10` 后加入该次 706 提交中的 special.lua 定义与 `Auxiliary.PreloadUds()` 调用，再写入 `expansions/script/utility.lua`。KoishiPro 不生成此文件；切换客户端时只撤销本程序管理的扩展 utility.lua。已有同名扩展文件进入冲突与备份流程，根目录 `script/utility.lua` 始终不改。此设计参照 `F:\MyCardLibrary\ygopro_old\expansions\script\utility.lua` 的开头结构。
 
 ### 9.3 应用与文件所有权
 
