@@ -766,9 +766,9 @@ mod tests {
             fs::read(root.join("cards.cdb")).unwrap(),
             asset(&root, "zh-CN/cards.cdb").unwrap()
         );
-        assert!(fs::read_to_string(root.join("expansions/lflist.conf"))
-            .unwrap()
-            .starts_with("#[2011.3.1]"));
+        let installed_banlist = fs::read(root.join("expansions/lflist.conf")).unwrap();
+        assert!(installed_banlist.starts_with(&asset(&root, "lflist.conf").unwrap()));
+        assert!(installed_banlist.ends_with(b"!Other list\n123 0\n"));
         config.ui.language = "ja".into();
         prepare_launch(&root, &config).unwrap();
         assert_eq!(
