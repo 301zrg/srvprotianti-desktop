@@ -342,7 +342,7 @@ fn config_values(original: &[u8], updates: &[(&str, String)]) -> Result<Vec<u8>,
     let mut found = vec![false; updates.len()];
     for line in text.lines() {
         let key = line.split_once('=').map(|(key, _)| key.trim());
-        if let Some((index, _)) = updates
+        if let Some((index, (_, value))) = updates
             .iter()
             .enumerate()
             .find(|(_, (candidate, _))| Some(*candidate) == key)
@@ -377,6 +377,9 @@ fn ensure_banlist(root: &Path, state: &mut InstallState) -> Result<(), String> {
         read_if_exists(&checked_path(root, relative)?)?.unwrap_or_default()
     };
     let mut result = asset(root, "lflist.conf")?;
+    if existing.starts_with(&result) {
+        return put(root, state, relative, &existing);
+    }
     if !result.ends_with(b"\n") {
         result.push(b'\n');
     }
@@ -831,6 +834,24 @@ mod tests {
         assert!(restore(&root).is_err());
         assert_eq!(fs::read(root.join("cards.cdb")).unwrap(), b"player edit");
         assert!(state_path(&root).exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn existing_matching_banlist_is_not_duplicated() {
+        let root = fixture(false);
+        let banlist = asset(&root, "lflist.conf").unwrap();
+        fs::write(root.join("expansions/lflist.conf"), &banlist).unwrap();
+        install(&root).unwrap();
+        assert_eq!(
+            fs::read(root.join("expansions/lflist.conf")).unwrap(),
+            banlist
+        );
+        restore(&root).unwrap();
+        assert_eq!(
+            fs::read(root.join("expansions/lflist.conf")).unwrap(),
+            banlist
+        );
         fs::remove_dir_all(root).unwrap();
     }
 }
