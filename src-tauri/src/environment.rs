@@ -420,11 +420,7 @@ fn restored_config_values(
             lines.extend(originals.iter().copied());
         }
     }
-    let newline = if current.contains("\r\n") {
-        "\r\n"
-    } else {
-        "\n"
-    };
+    let newline = if current.contains("\r\n") { "\r\n" } else { "\n" };
     let mut result = lines.join(newline);
     if current.ends_with('\n') && !lines.is_empty() {
         result.push_str(newline);
