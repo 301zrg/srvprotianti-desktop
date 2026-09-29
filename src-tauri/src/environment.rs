@@ -228,6 +228,14 @@ fn snapshot(root: &Path, state: &mut InstallState, relative: &str) -> Result<(),
 
 fn verify_managed(root: &Path, entry: &Entry) -> Result<(), String> {
     let path = checked_path(root, &entry.path)?;
+    if entry.path == "system_user.conf" {
+        // The game rewrites this file on exit (for example, after changing nickname).
+        // We own only the environment keys, so unrelated edits must not block recovery.
+        if let Some(bytes) = read_if_exists(&path)? {
+            std::str::from_utf8(&bytes).map_err(|_| "Game configuration is not UTF-8")?;
+        }
+        return Ok(());
+    }
     let current = read_if_exists(&path)?.as_ref().map(|bytes| hash(bytes));
     if current != entry.managed_sha256 {
         return Err(format!("Environment file changed outside the assistant: {}. Restore it manually or keep the backup before retrying", entry.path));
@@ -362,6 +370,96 @@ fn config_values(original: &[u8], updates: &[(&str, String)]) -> Result<Vec<u8>,
         }
     }
     Ok(result.into_bytes())
+}
+
+fn config_key(line: &str) -> Option<&str> {
+    line.split_once('=')
+        .map(|(key, _)| key.trim().trim_start_matches('\u{feff}'))
+}
+
+fn restored_config_values(
+    current: &[u8],
+    original: Option<&[u8]>,
+    kind: &str,
+) -> Result<Vec<u8>, String> {
+    let current = std::str::from_utf8(current).map_err(|_| "Game configuration is not UTF-8")?;
+    let original = original
+        .map(|bytes| {
+            std::str::from_utf8(bytes).map_err(|_| "Original game configuration is not UTF-8")
+        })
+        .transpose()?
+        .unwrap_or("");
+    let keys: &[&str] = if kind == "koishipro" {
+        &["use_lflist", "default_lflist", "locale"]
+    } else {
+        &["use_lflist", "default_lflist"]
+    };
+    let original_lines: Vec<Vec<&str>> = keys
+        .iter()
+        .map(|key| {
+            original
+                .lines()
+                .filter(|line| config_key(line) == Some(*key))
+                .collect()
+        })
+        .collect();
+    let mut inserted = vec![false; keys.len()];
+    let mut lines = Vec::new();
+    for line in current.lines() {
+        if let Some(index) = keys.iter().position(|key| config_key(line) == Some(*key)) {
+            if !inserted[index] {
+                lines.extend(original_lines[index].iter().copied());
+                inserted[index] = true;
+            }
+        } else {
+            lines.push(line);
+        }
+    }
+    for (index, originals) in original_lines.iter().enumerate() {
+        if !inserted[index] {
+            lines.extend(originals.iter().copied());
+        }
+    }
+    let newline = if current.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
+    let mut result = lines.join(newline);
+    if current.ends_with('\n') && !lines.is_empty() {
+        result.push_str(newline);
+    }
+    Ok(result.into_bytes())
+}
+
+fn restored_config_file(
+    root: &Path,
+    state: &InstallState,
+    entry: &Entry,
+) -> Result<Option<Vec<u8>>, String> {
+    let original = if let Some(expected) = &entry.original_sha256 {
+        let backup = checked_path(&backup_root(root, state)?, &entry.path)?;
+        let bytes = fs::read(&backup)
+            .map_err(|error| format!("Missing environment backup: {error}"))?;
+        if hash(&bytes) != *expected {
+            return Err(format!("Environment backup checksum mismatch: {}", entry.path));
+        }
+        Some(bytes)
+    } else {
+        None
+    };
+    let current = read_if_exists(&checked_path(root, &entry.path)?)?;
+    match current {
+        None => Ok(original),
+        Some(bytes) => {
+            let merged = restored_config_values(&bytes, original.as_deref(), &state.kind)?;
+            if original.is_none() && merged.iter().all(|byte| byte.is_ascii_whitespace()) {
+                Ok(None)
+            } else {
+                Ok(Some(merged))
+            }
+        }
+    }
 }
 
 fn ensure_banlist(root: &Path, state: &mut InstallState) -> Result<(), String> {
@@ -539,12 +637,32 @@ pub fn install(root: &Path) -> Result<StateView, String> {
 fn restore_inner(root: &Path, state: &mut InstallState) -> Result<(), String> {
     state.phase = "restoring".into();
     save_state(root, state)?;
-    // Check every target before touching any. Edited managed files are never silently lost.
+    let config_restore = state
+        .entries
+        .iter()
+        .find(|entry| entry.path == "system_user.conf")
+        .map(|entry| restored_config_file(root, state, entry))
+        .transpose()?;
+    // Check immutable resources before touching any target. The game's mutable
+    // configuration was merged above so unrelated player settings survive.
     for entry in &state.entries {
-        verify_recoverable(root, entry)?;
+        if entry.path != "system_user.conf" {
+            verify_recoverable(root, entry)?;
+        }
     }
     for entry in state.entries.iter().rev() {
         let path = checked_path(root, &entry.path)?;
+        if entry.path == "system_user.conf" {
+            match config_restore
+                .as_ref()
+                .expect("configuration restore was prepared")
+            {
+                Some(bytes) => settings::atomic_write(&path, bytes)?,
+                None if path.exists() => fs::remove_file(&path).map_err(|error| error.to_string())?,
+                None => {}
+            }
+            continue;
+        }
         if entry.original_sha256.is_some() {
             let backup = checked_path(&backup_root(root, state)?, &entry.path)?;
             let bytes = fs::read(&backup)
@@ -584,7 +702,7 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
         return Ok(());
     };
     if state.phase != "active" {
-        return Err("Recover the 1103 environment before starting the game".into());
+        return Err("The 1103 environment needs recovery. Close the game, then use Settings > Restore original environment before launching".into());
     }
     verified_assets(root)?;
     for entry in &state.entries {
@@ -823,6 +941,61 @@ mod tests {
             b"existing custom database"
         );
         assert!(!root.join("locales/1103_ja-JP/cards.cdb").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn koishi_game_config_changes_do_not_block_launch_sync() {
+        let root = fixture(true);
+        fs::write(
+            root.join("system_user.conf"),
+            b"nickname = before\nsound = 1\nlocale = zh-CN\n",
+        )
+        .unwrap();
+        install(&root).unwrap();
+        fs::write(
+            root.join("system_user.conf"),
+            b"nickname = after\nsound = 1\nlocale = zh-CN\nuse_lflist = 1\ndefault_lflist = 0\n",
+        )
+        .unwrap();
+        let config = settings::load(&root).unwrap();
+        prepare_launch(&root, &config).unwrap();
+        let active = fs::read_to_string(root.join("system_user.conf")).unwrap();
+        assert!(active.contains("nickname = after\n"));
+        assert!(active.contains("locale = 1103_zh-CN\n"));
+        restore(&root).unwrap();
+        let restored = fs::read_to_string(root.join("system_user.conf")).unwrap();
+        assert_eq!(restored, "nickname = after\nsound = 1\nlocale = zh-CN\n");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn interrupted_restore_preserves_nickname_and_restores_environment_keys() {
+        let root = fixture(true);
+        fs::write(
+            root.join("system_user.conf"),
+            b"nickname = before\nsound = 1\nlocale = zh-CN\nuse_lflist = 0\ndefault_lflist = 1\n",
+        )
+        .unwrap();
+        install(&root).unwrap();
+        fs::write(
+            root.join("system_user.conf"),
+            b"nickname = after\nsound = 1\nlocale = zh-CN\nuse_lflist = 1\ndefault_lflist = 0\n",
+        )
+        .unwrap();
+        let mut pending = load_state(&root).unwrap().unwrap();
+        pending.phase = "restoring".into();
+        save_state(&root, &pending).unwrap();
+        restore(&root).unwrap();
+        assert!(!state_path(&root).exists());
+        assert_eq!(
+            fs::read(root.join("system_user.conf")).unwrap(),
+            b"nickname = after\nsound = 1\nlocale = zh-CN\nuse_lflist = 0\ndefault_lflist = 1\n"
+        );
+        assert_eq!(
+            fs::read(root.join("expansions/extra.cdb")).unwrap(),
+            b"extra database"
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
