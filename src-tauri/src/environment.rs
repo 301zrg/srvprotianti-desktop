@@ -49,7 +49,13 @@ fn state_path(root: &Path) -> PathBuf {
 
 fn backup_root(root: &Path, state: &InstallState) -> Result<PathBuf, String> {
     Uuid::parse_str(&state.backup_id).map_err(|_| "Invalid environment backup ID")?;
-    checked_path(root, &format!("srvprotianti-desktop-data/environment-backups/{}", state.backup_id))
+    checked_path(
+        root,
+        &format!(
+            "srvprotianti-desktop-data/environment-backups/{}",
+            state.backup_id
+        ),
+    )
 }
 
 fn asset_root(root: &Path) -> (PathBuf, bool) {
@@ -59,10 +65,13 @@ fn asset_root(root: &Path) -> (PathBuf, bool) {
     } else {
         #[cfg(debug_assertions)]
         {
-            (Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("resources")
-                .join("environment")
-                .join(REVISION), false)
+            (
+                Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("resources")
+                    .join("environment")
+                    .join(REVISION),
+                false,
+            )
         }
         #[cfg(not(debug_assertions))]
         {
@@ -78,7 +87,9 @@ fn hash(bytes: &[u8]) -> String {
 fn validate_relative(relative: &str) -> Result<(), String> {
     let path = Path::new(relative);
     if path.as_os_str().is_empty()
-        || path.components().any(|component| !matches!(component, Component::Normal(_)))
+        || path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
     {
         return Err("Invalid environment file path".into());
     }
@@ -180,7 +191,10 @@ fn verified_assets(root: &Path) -> Result<(), String> {
         return Err("Bundled banlist failed integrity check".into());
     }
     for (_, locale) in LANGUAGES {
-        for (name, key) in [("cards.cdb", "cardsSha256"), ("strings.conf", "stringsSha256")] {
+        for (name, key) in [
+            ("cards.cdb", "cardsSha256"),
+            ("strings.conf", "stringsSha256"),
+        ] {
             let bytes = asset(root, &format!("{locale}/{name}"))?;
             if manifest["locales"][locale][key].as_str() != Some(hash(&bytes).as_str()) {
                 return Err(format!("Bundled {locale}/{name} failed integrity check"));
@@ -224,11 +238,21 @@ fn verify_managed(root: &Path, entry: &Entry) -> Result<(), String> {
 fn verify_recoverable(root: &Path, entry: &Entry) -> Result<(), String> {
     let path = checked_path(root, &entry.path)?;
     let current = read_if_exists(&path)?.as_ref().map(|bytes| hash(bytes));
-    let previous = entry.pending_previous_sha256.as_ref().map(|value| {
-        if value == "__missing__" { None } else { Some(value.clone()) }
-    }).unwrap_or(None);
-    if current == entry.managed_sha256 || current == entry.original_sha256
-        || (entry.pending_previous_sha256.is_some() && current == previous) {
+    let previous = entry
+        .pending_previous_sha256
+        .as_ref()
+        .map(|value| {
+            if value == "__missing__" {
+                None
+            } else {
+                Some(value.clone())
+            }
+        })
+        .unwrap_or(None);
+    if current == entry.managed_sha256
+        || current == entry.original_sha256
+        || (entry.pending_previous_sha256.is_some() && current == previous)
+    {
         Ok(())
     } else {
         Err(format!("Environment file changed outside the assistant: {}. Keep its backup and review before restoring", entry.path))
@@ -237,30 +261,56 @@ fn verify_recoverable(root: &Path, entry: &Entry) -> Result<(), String> {
 
 fn put(root: &Path, state: &mut InstallState, relative: &str, bytes: &[u8]) -> Result<(), String> {
     snapshot(root, state, relative)?;
-    let entry = state.entries.iter_mut().find(|entry| entry.path == relative).unwrap();
+    let entry = state
+        .entries
+        .iter_mut()
+        .find(|entry| entry.path == relative)
+        .unwrap();
     verify_managed(root, entry)?;
-    entry.pending_previous_sha256 = Some(entry.managed_sha256.clone().unwrap_or_else(|| "__missing__".into()));
+    entry.pending_previous_sha256 = Some(
+        entry
+            .managed_sha256
+            .clone()
+            .unwrap_or_else(|| "__missing__".into()),
+    );
     entry.managed_sha256 = Some(hash(bytes));
     save_state(root, state)?; // Journal the intended bytes before replacing the target.
     let path = checked_path(root, relative)?;
     settings::atomic_write(&path, bytes)?;
-    let entry = state.entries.iter_mut().find(|entry| entry.path == relative).unwrap();
+    let entry = state
+        .entries
+        .iter_mut()
+        .find(|entry| entry.path == relative)
+        .unwrap();
     entry.pending_previous_sha256 = None;
     save_state(root, state)
 }
 
 fn stage_cdb(root: &Path, state: &mut InstallState, relative: &str) -> Result<(), String> {
     snapshot(root, state, relative)?;
-    let entry = state.entries.iter_mut().find(|entry| entry.path == relative).unwrap();
+    let entry = state
+        .entries
+        .iter_mut()
+        .find(|entry| entry.path == relative)
+        .unwrap();
     verify_managed(root, entry)?;
-    entry.pending_previous_sha256 = Some(entry.managed_sha256.clone().unwrap_or_else(|| "__missing__".into()));
+    entry.pending_previous_sha256 = Some(
+        entry
+            .managed_sha256
+            .clone()
+            .unwrap_or_else(|| "__missing__".into()),
+    );
     entry.managed_sha256 = None;
     save_state(root, state)?;
     let path = checked_path(root, relative)?;
     if path.exists() {
         fs::remove_file(&path).map_err(|error| format!("Cannot stage {relative}: {error}"))?;
     }
-    let entry = state.entries.iter_mut().find(|entry| entry.path == relative).unwrap();
+    let entry = state
+        .entries
+        .iter_mut()
+        .find(|entry| entry.path == relative)
+        .unwrap();
     entry.pending_previous_sha256 = None;
     save_state(root, state)
 }
@@ -320,7 +370,9 @@ fn ensure_banlist(root: &Path, state: &mut InstallState) -> Result<(), String> {
         if entry.original_sha256.is_some() {
             fs::read(checked_path(&backup_root(root, state)?, relative)?)
                 .map_err(|error| format!("Missing original banlist backup: {error}"))?
-        } else { Vec::new() }
+        } else {
+            Vec::new()
+        }
     } else {
         read_if_exists(&checked_path(root, relative)?)?.unwrap_or_default()
     };
@@ -332,43 +384,84 @@ fn ensure_banlist(root: &Path, state: &mut InstallState) -> Result<(), String> {
     put(root, state, relative, &result)
 }
 
-fn install_koishi(root: &Path, state: &mut InstallState, config: &settings::Settings) -> Result<(), String> {
+fn install_koishi(
+    root: &Path,
+    state: &mut InstallState,
+    config: &settings::Settings,
+) -> Result<(), String> {
     for (_, locale) in LANGUAGES {
         let source = format!("locales/{locale}");
         let target = format!("locales/1103_{locale}");
         let mut files = Vec::new();
         collect_files(root, &source, &mut files)?;
-        if !files.iter().any(|file| file == &format!("{source}/cards.cdb")) {
+        if !files
+            .iter()
+            .any(|file| file == &format!("{source}/cards.cdb"))
+        {
             return Err(format!("Missing base locale card database: {source}"));
         }
         for file in files {
             let suffix = file.strip_prefix(&source).unwrap();
-            let content = fs::read(checked_path(root, &file)?).map_err(|error| error.to_string())?;
+            let content =
+                fs::read(checked_path(root, &file)?).map_err(|error| error.to_string())?;
             put(root, state, &format!("{target}{suffix}"), &content)?;
         }
-        put(root, state, &format!("{target}/cards.cdb"), &asset(root, &format!("{locale}/cards.cdb"))?)?;
-        put(root, state, &format!("{target}/strings.conf"), &asset(root, &format!("{locale}/strings.conf"))?)?;
+        put(
+            root,
+            state,
+            &format!("{target}/cards.cdb"),
+            &asset(root, &format!("{locale}/cards.cdb"))?,
+        )?;
+        put(
+            root,
+            state,
+            &format!("{target}/strings.conf"),
+            &asset(root, &format!("{locale}/strings.conf"))?,
+        )?;
         let server_file = format!("{target}/servers.conf");
         let original = read_if_exists(&checked_path(root, &server_file)?)?.unwrap_or_default();
         let text = std::str::from_utf8(&original).map_err(|_| "servers.conf is not UTF-8")?;
-        let mut updated = text.lines().filter(|line| !line.starts_with("706 Ladder|"))
-            .collect::<Vec<_>>().join("\n");
-        if !updated.is_empty() { updated.push('\n'); }
-        updated.push_str(&format!("706 Ladder|{}:{}\n", config.server.game_host, config.server.game_port));
+        let mut updated = text
+            .lines()
+            .filter(|line| !line.starts_with("706 Ladder|"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        if !updated.is_empty() {
+            updated.push('\n');
+        }
+        updated.push_str(&format!(
+            "706 Ladder|{}:{}\n",
+            config.server.game_host, config.server.game_port
+        ));
         put(root, state, &server_file, updated.as_bytes())?;
     }
     Ok(())
 }
 
-fn apply_locale_and_config(root: &Path, state: &mut InstallState, config: &settings::Settings) -> Result<(), String> {
-    let locale = LANGUAGES.iter().find(|(language, _)| *language == config.ui.language.as_str())
-        .map(|(_, locale)| *locale).ok_or("Unsupported resource language")?;
+fn apply_locale_and_config(
+    root: &Path,
+    state: &mut InstallState,
+    config: &settings::Settings,
+) -> Result<(), String> {
+    let locale = LANGUAGES
+        .iter()
+        .find(|(language, _)| *language == config.ui.language.as_str())
+        .map(|(_, locale)| *locale)
+        .ok_or("Unsupported resource language")?;
     if state.kind == "ygopro" {
-        put(root, state, "cards.cdb", &asset(root, &format!("{locale}/cards.cdb"))?)?;
+        put(
+            root,
+            state,
+            "cards.cdb",
+            &asset(root, &format!("{locale}/cards.cdb"))?,
+        )?;
     }
     let relative = "system_user.conf";
     let old = read_if_exists(&checked_path(root, relative)?)?.unwrap_or_default();
-    let mut updates = vec![("use_lflist", "1".to_string()), ("default_lflist", "0".to_string())];
+    let mut updates = vec![
+        ("use_lflist", "1".to_string()),
+        ("default_lflist", "0".to_string()),
+    ];
     if state.kind == "koishipro" {
         updates.push(("locale", format!("1103_{locale}")));
     }
@@ -393,22 +486,36 @@ fn stage_expansion_databases(root: &Path, state: &mut InstallState) -> Result<()
 pub fn install(root: &Path) -> Result<StateView, String> {
     let config = ensure_stopped(root)?;
     verified_assets(root)?;
-    let kind = if scripts::is_koishipro(root)? { "koishipro" } else { "ygopro" };
+    let kind = if scripts::is_koishipro(root)? {
+        "koishipro"
+    } else {
+        "ygopro"
+    };
     let mut state = if let Some(state) = load_state(root)? {
         if state.phase != "active" || state.kind != kind {
             return Err("Environment needs recovery or the game executable changed".into());
         }
-        for entry in &state.entries { verify_managed(root, entry)?; }
+        for entry in &state.entries {
+            verify_managed(root, entry)?;
+        }
         state
     } else {
-        InstallState { schema_version: 1, revision: REVISION.into(), kind: kind.into(),
-            backup_id: Uuid::new_v4().to_string(), phase: "installing".into(), entries: Vec::new() }
+        InstallState {
+            schema_version: 1,
+            revision: REVISION.into(),
+            kind: kind.into(),
+            backup_id: Uuid::new_v4().to_string(),
+            phase: "installing".into(),
+            entries: Vec::new(),
+        }
     };
     state.phase = "installing".into();
     save_state(root, &state)?;
     let result = (|| {
         stage_expansion_databases(root, &mut state)?;
-        if kind == "koishipro" { install_koishi(root, &mut state, &config)?; }
+        if kind == "koishipro" {
+            install_koishi(root, &mut state, &config)?;
+        }
         ensure_banlist(root, &mut state)?;
         apply_locale_and_config(root, &mut state, &config)?;
         state.phase = "active".into();
@@ -418,7 +525,9 @@ pub fn install(root: &Path) -> Result<StateView, String> {
         let rollback = restore_inner(root, &mut state);
         return Err(match rollback {
             Ok(()) => format!("Environment installation rolled back: {error}"),
-            Err(recovery) => format!("Environment installation stopped: {error}; recovery needed: {recovery}"),
+            Err(recovery) => {
+                format!("Environment installation stopped: {error}; recovery needed: {recovery}")
+            }
         });
     }
     self::state(root)
@@ -428,14 +537,20 @@ fn restore_inner(root: &Path, state: &mut InstallState) -> Result<(), String> {
     state.phase = "restoring".into();
     save_state(root, state)?;
     // Check every target before touching any. Edited managed files are never silently lost.
-    for entry in &state.entries { verify_recoverable(root, entry)?; }
+    for entry in &state.entries {
+        verify_recoverable(root, entry)?;
+    }
     for entry in state.entries.iter().rev() {
         let path = checked_path(root, &entry.path)?;
         if entry.original_sha256.is_some() {
             let backup = checked_path(&backup_root(root, state)?, &entry.path)?;
-            let bytes = fs::read(&backup).map_err(|error| format!("Missing environment backup: {error}"))?;
+            let bytes = fs::read(&backup)
+                .map_err(|error| format!("Missing environment backup: {error}"))?;
             if Some(hash(&bytes)) != entry.original_sha256 {
-                return Err(format!("Environment backup checksum mismatch: {}", entry.path));
+                return Err(format!(
+                    "Environment backup checksum mismatch: {}",
+                    entry.path
+                ));
             }
             settings::atomic_write(&path, &bytes)?;
         } else if path.exists() {
@@ -454,23 +569,39 @@ fn restore_inner(root: &Path, state: &mut InstallState) -> Result<(), String> {
 
 pub fn restore(root: &Path) -> Result<StateView, String> {
     ensure_stopped(root)?;
-    let Some(mut state) = load_state(root)? else { return self::state(root); };
+    let Some(mut state) = load_state(root)? else {
+        return self::state(root);
+    };
     restore_inner(root, &mut state)?;
     self::state(root)
 }
 
 pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), String> {
-    let Some(mut state) = load_state(root)? else { return Ok(()); };
-    if state.phase != "active" { return Err("Recover the 1103 environment before starting the game".into()); }
+    let Some(mut state) = load_state(root)? else {
+        return Ok(());
+    };
+    if state.phase != "active" {
+        return Err("Recover the 1103 environment before starting the game".into());
+    }
     verified_assets(root)?;
-    for entry in &state.entries { verify_managed(root, entry)?; }
+    for entry in &state.entries {
+        verify_managed(root, entry)?;
+    }
     // A live game may read the same files; launch without rewriting only when the
     // selected language and server are already synchronized.
-    let locale = LANGUAGES.iter().find(|(language, _)| *language == config.ui.language.as_str())
-        .map(|(_, locale)| *locale).ok_or("Unsupported resource language")?;
+    let locale = LANGUAGES
+        .iter()
+        .find(|(language, _)| *language == config.ui.language.as_str())
+        .map(|(_, locale)| *locale)
+        .ok_or("Unsupported resource language")?;
     let old_config = read_if_exists(&checked_path(root, "system_user.conf")?)?.unwrap_or_default();
-    let mut updates = vec![("use_lflist", "1".to_string()), ("default_lflist", "0".to_string())];
-    if state.kind == "koishipro" { updates.push(("locale", format!("1103_{locale}"))); }
+    let mut updates = vec![
+        ("use_lflist", "1".to_string()),
+        ("default_lflist", "0".to_string()),
+    ];
+    if state.kind == "koishipro" {
+        updates.push(("locale", format!("1103_{locale}")));
+    }
     let mut needs_sync = config_values(&old_config, &updates)? != old_config;
     if state.kind == "ygopro" {
         needs_sync |= read_if_exists(&checked_path(root, "cards.cdb")?)?
@@ -479,8 +610,14 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
     let expansion_dir = checked_path(root, "expansions")?;
     if expansion_dir.exists() {
         for item in fs::read_dir(expansion_dir).map_err(|error| error.to_string())? {
-            let name = item.map_err(|error| error.to_string())?.file_name().to_string_lossy().into_owned();
-            if name.to_ascii_lowercase().ends_with(".cdb") { needs_sync = true; }
+            let name = item
+                .map_err(|error| error.to_string())?
+                .file_name()
+                .to_string_lossy()
+                .into_owned();
+            if name.to_ascii_lowercase().ends_with(".cdb") {
+                needs_sync = true;
+            }
         }
     }
     if state.kind == "koishipro" {
@@ -488,16 +625,30 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
             let relative = format!("locales/1103_{locale}/servers.conf");
             let old = read_if_exists(&checked_path(root, &relative)?)?.unwrap_or_default();
             let text = std::str::from_utf8(&old).map_err(|_| "servers.conf is not UTF-8")?;
-            let mut expected = text.lines().filter(|line| !line.starts_with("706 Ladder|"))
-                .collect::<Vec<_>>().join("\n");
-            if !expected.is_empty() { expected.push('\n'); }
-            expected.push_str(&format!("706 Ladder|{}:{}\n", config.server.game_host, config.server.game_port));
-            if expected.as_bytes() != old.as_slice() { needs_sync = true; }
+            let mut expected = text
+                .lines()
+                .filter(|line| !line.starts_with("706 Ladder|"))
+                .collect::<Vec<_>>()
+                .join("\n");
+            if !expected.is_empty() {
+                expected.push('\n');
+            }
+            expected.push_str(&format!(
+                "706 Ladder|{}:{}\n",
+                config.server.game_host, config.server.game_port
+            ));
+            if expected.as_bytes() != old.as_slice() {
+                needs_sync = true;
+            }
         }
     }
-    if !needs_sync { return Ok(()); }
+    if !needs_sync {
+        return Ok(());
+    }
     if scripts::game_running(root, &config.game.executable) {
-        return Err("Close the running game before changing 1103 language or server resources".into());
+        return Err(
+            "Close the running game before changing 1103 language or server resources".into(),
+        );
     }
     state.phase = "installing".into();
     save_state(root, &state)?;
@@ -509,10 +660,18 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
                 let relative = format!("locales/1103_{locale}/servers.conf");
                 let old = read_if_exists(&checked_path(root, &relative)?)?.unwrap_or_default();
                 let text = std::str::from_utf8(&old).map_err(|_| "servers.conf is not UTF-8")?;
-                let mut result = text.lines().filter(|line| !line.starts_with("706 Ladder|"))
-                    .collect::<Vec<_>>().join("\n");
-                if !result.is_empty() { result.push('\n'); }
-                result.push_str(&format!("706 Ladder|{}:{}\n", config.server.game_host, config.server.game_port));
+                let mut result = text
+                    .lines()
+                    .filter(|line| !line.starts_with("706 Ladder|"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                if !result.is_empty() {
+                    result.push('\n');
+                }
+                result.push_str(&format!(
+                    "706 Ladder|{}:{}\n",
+                    config.server.game_host, config.server.game_port
+                ));
                 put(root, &mut state, &relative, result.as_bytes())?;
             }
         }
@@ -524,7 +683,9 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
         let recovery = restore_inner(root, &mut state);
         return Err(match recovery {
             Ok(()) => format!("Environment update rolled back: {error}"),
-            Err(failure) => format!("Environment update failed: {error}; recovery needed: {failure}"),
+            Err(failure) => {
+                format!("Environment update failed: {error}; recovery needed: {failure}")
+            }
         });
     }
     Ok(())
@@ -537,7 +698,14 @@ mod tests {
     #[test]
     fn config_keys_are_replaced_without_erasing_other_settings() {
         let original = b"sound = 1\nlocale = old\nuse_lflist = 0\n";
-        let output = config_values(original, &[("locale", "1103_zh-CN".into()), ("default_lflist", "0".into())]).unwrap();
+        let output = config_values(
+            original,
+            &[
+                ("locale", "1103_zh-CN".into()),
+                ("default_lflist", "0".into()),
+            ],
+        )
+        .unwrap();
         let text = String::from_utf8(output).unwrap();
         assert!(text.contains("sound = 1\n"));
         assert!(text.contains("locale = 1103_zh-CN\n"));
@@ -555,9 +723,21 @@ mod tests {
     fn fixture(koishi: bool) -> PathBuf {
         let root = std::env::temp_dir().join(format!("srvpro-environment-test-{}", Uuid::new_v4()));
         fs::create_dir_all(root.join("expansions")).unwrap();
-        fs::write(root.join("ygopro.exe"), if koishi { &b"MZ KoishiPro"[..] } else { &b"MZ"[..] }).unwrap();
+        fs::write(
+            root.join("ygopro.exe"),
+            if koishi {
+                &b"MZ KoishiPro"[..]
+            } else {
+                &b"MZ"[..]
+            },
+        )
+        .unwrap();
         fs::write(root.join("cards.cdb"), b"original root database").unwrap();
-        fs::write(root.join("system_user.conf"), b"sound = 1\nlocale = zh-CN\n").unwrap();
+        fs::write(
+            root.join("system_user.conf"),
+            b"sound = 1\nlocale = zh-CN\n",
+        )
+        .unwrap();
         fs::write(root.join("expansions/extra.cdb"), b"extra database").unwrap();
         fs::write(root.join("expansions/lflist.conf"), b"!Other list\n123 0\n").unwrap();
         if koishi {
@@ -579,17 +759,37 @@ mod tests {
         let mut config = settings::load(&root).unwrap();
         assert!(install(&root).unwrap().installed);
         assert!(!root.join("expansions/extra.cdb").exists());
-        assert_eq!(fs::read(root.join("cards.cdb")).unwrap(), asset(&root, "zh-CN/cards.cdb").unwrap());
-        assert!(fs::read_to_string(root.join("expansions/lflist.conf")).unwrap().starts_with("#[2011.3.1]"));
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            asset(&root, "zh-CN/cards.cdb").unwrap()
+        );
+        assert!(fs::read_to_string(root.join("expansions/lflist.conf"))
+            .unwrap()
+            .starts_with("#[2011.3.1]"));
         config.ui.language = "ja".into();
         prepare_launch(&root, &config).unwrap();
-        assert_eq!(fs::read(root.join("cards.cdb")).unwrap(), asset(&root, "ja-JP/cards.cdb").unwrap());
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            asset(&root, "ja-JP/cards.cdb").unwrap()
+        );
         assert!(!prepare_launch(&root, &config).is_err());
         restore(&root).unwrap();
-        assert_eq!(fs::read(root.join("cards.cdb")).unwrap(), b"original root database");
-        assert_eq!(fs::read(root.join("expansions/extra.cdb")).unwrap(), b"extra database");
-        assert_eq!(fs::read(root.join("expansions/lflist.conf")).unwrap(), b"!Other list\n123 0\n");
-        assert_eq!(fs::read(root.join("system_user.conf")).unwrap(), b"sound = 1\nlocale = zh-CN\n");
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            b"original root database"
+        );
+        assert_eq!(
+            fs::read(root.join("expansions/extra.cdb")).unwrap(),
+            b"extra database"
+        );
+        assert_eq!(
+            fs::read(root.join("expansions/lflist.conf")).unwrap(),
+            b"!Other list\n123 0\n"
+        );
+        assert_eq!(
+            fs::read(root.join("system_user.conf")).unwrap(),
+            b"sound = 1\nlocale = zh-CN\n"
+        );
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -602,13 +802,23 @@ mod tests {
         install(&root).unwrap();
         for (_, locale) in LANGUAGES {
             let path = root.join("locales").join(format!("1103_{locale}"));
-            assert_eq!(fs::read(path.join("cards.cdb")).unwrap(), asset(&root, &format!("{locale}/cards.cdb")).unwrap());
-            assert!(fs::read_to_string(path.join("servers.conf")).unwrap().contains("706 Ladder|121.4.34.71:7911"));
+            assert_eq!(
+                fs::read(path.join("cards.cdb")).unwrap(),
+                asset(&root, &format!("{locale}/cards.cdb")).unwrap()
+            );
+            assert!(fs::read_to_string(path.join("servers.conf"))
+                .unwrap()
+                .contains("706 Ladder|121.4.34.71:7911"));
             assert_eq!(fs::read(path.join("bot.conf")).unwrap(), b"bot config");
         }
-        assert!(fs::read_to_string(root.join("system_user.conf")).unwrap().contains("locale = 1103_zh-CN"));
+        assert!(fs::read_to_string(root.join("system_user.conf"))
+            .unwrap()
+            .contains("locale = 1103_zh-CN"));
         restore(&root).unwrap();
-        assert_eq!(fs::read(custom.join("cards.cdb")).unwrap(), b"existing custom database");
+        assert_eq!(
+            fs::read(custom.join("cards.cdb")).unwrap(),
+            b"existing custom database"
+        );
         assert!(!root.join("locales/1103_ja-JP/cards.cdb").exists());
         fs::remove_dir_all(root).unwrap();
     }

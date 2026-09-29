@@ -182,13 +182,19 @@ fn environment_state(state: State<'_, AppState>) -> Result<environment::StateVie
 
 #[tauri::command]
 fn install_environment(state: State<'_, AppState>) -> Result<environment::StateView, String> {
-    let _guard = state.file_lock.lock().map_err(|_| "Game action lock is unavailable")?;
+    let _guard = state
+        .file_lock
+        .lock()
+        .map_err(|_| "Game action lock is unavailable")?;
     environment::install(&state.root)
 }
 
 #[tauri::command]
 fn restore_environment(state: State<'_, AppState>) -> Result<environment::StateView, String> {
-    let _guard = state.file_lock.lock().map_err(|_| "Game action lock is unavailable")?;
+    let _guard = state
+        .file_lock
+        .lock()
+        .map_err(|_| "Game action lock is unavailable")?;
     environment::restore(&state.root)
 }
 
