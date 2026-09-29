@@ -938,18 +938,14 @@ mod tests {
                 fs::read(path.join("cards.cdb")).unwrap(),
                 asset(&root, &format!("{locale}/cards.cdb")).unwrap()
             );
-            assert!(
-                fs::read_to_string(path.join("servers.conf"))
-                    .unwrap()
-                    .contains("706 Ladder|121.4.34.71:7911")
-            );
+            assert!(fs::read_to_string(path.join("servers.conf"))
+                .unwrap()
+                .contains("706 Ladder|121.4.34.71:7911"));
             assert_eq!(fs::read(path.join("bot.conf")).unwrap(), b"bot config");
         }
-        assert!(
-            fs::read_to_string(root.join("system_user.conf"))
-                .unwrap()
-                .contains("locale = 1103_zh-CN")
-        );
+        assert!(fs::read_to_string(root.join("system_user.conf"))
+            .unwrap()
+            .contains("locale = 1103_zh-CN"));
         restore(&root).unwrap();
         assert_eq!(
             fs::read(custom.join("cards.cdb")).unwrap(),
