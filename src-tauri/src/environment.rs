@@ -238,7 +238,10 @@ fn verify_managed(root: &Path, entry: &Entry) -> Result<(), String> {
     }
     let current = read_if_exists(&path)?.as_ref().map(|bytes| hash(bytes));
     if current != entry.managed_sha256 {
-        return Err(format!("Environment file changed outside the assistant: {}. Restore it manually or keep the backup before retrying", entry.path));
+        return Err(format!(
+            "Environment file changed outside the assistant: {}. Restore it manually or keep the backup before retrying",
+            entry.path
+        ));
     }
     Ok(())
 }
@@ -263,7 +266,10 @@ fn verify_recoverable(root: &Path, entry: &Entry) -> Result<(), String> {
     {
         Ok(())
     } else {
-        Err(format!("Environment file changed outside the assistant: {}. Keep its backup and review before restoring", entry.path))
+        Err(format!(
+            "Environment file changed outside the assistant: {}. Keep its backup and review before restoring",
+            entry.path
+        ))
     }
 }
 
@@ -420,7 +426,11 @@ fn restored_config_values(
             lines.extend(originals.iter().copied());
         }
     }
-    let newline = if current.contains("\r\n") { "\r\n" } else { "\n" };
+    let newline = if current.contains("\r\n") {
+        "\r\n"
+    } else {
+        "\n"
+    };
     let mut result = lines.join(newline);
     if current.ends_with('\n') && !lines.is_empty() {
         result.push_str(newline);
@@ -435,10 +445,13 @@ fn restored_config_file(
 ) -> Result<Option<Vec<u8>>, String> {
     let original = if let Some(expected) = &entry.original_sha256 {
         let backup = checked_path(&backup_root(root, state)?, &entry.path)?;
-        let bytes = fs::read(&backup)
-            .map_err(|error| format!("Missing environment backup: {error}"))?;
+        let bytes =
+            fs::read(&backup).map_err(|error| format!("Missing environment backup: {error}"))?;
         if hash(&bytes) != *expected {
-            return Err(format!("Environment backup checksum mismatch: {}", entry.path));
+            return Err(format!(
+                "Environment backup checksum mismatch: {}",
+                entry.path
+            ));
         }
         Some(bytes)
     } else {
@@ -654,7 +667,9 @@ fn restore_inner(root: &Path, state: &mut InstallState) -> Result<(), String> {
                 .expect("configuration restore was prepared")
             {
                 Some(bytes) => settings::atomic_write(&path, bytes)?,
-                None if path.exists() => fs::remove_file(&path).map_err(|error| error.to_string())?,
+                None if path.exists() => {
+                    fs::remove_file(&path).map_err(|error| error.to_string())?
+                }
                 None => {}
             }
             continue;
@@ -923,14 +938,18 @@ mod tests {
                 fs::read(path.join("cards.cdb")).unwrap(),
                 asset(&root, &format!("{locale}/cards.cdb")).unwrap()
             );
-            assert!(fs::read_to_string(path.join("servers.conf"))
-                .unwrap()
-                .contains("706 Ladder|121.4.34.71:7911"));
+            assert!(
+                fs::read_to_string(path.join("servers.conf"))
+                    .unwrap()
+                    .contains("706 Ladder|121.4.34.71:7911")
+            );
             assert_eq!(fs::read(path.join("bot.conf")).unwrap(), b"bot config");
         }
-        assert!(fs::read_to_string(root.join("system_user.conf"))
-            .unwrap()
-            .contains("locale = 1103_zh-CN"));
+        assert!(
+            fs::read_to_string(root.join("system_user.conf"))
+                .unwrap()
+                .contains("locale = 1103_zh-CN")
+        );
         restore(&root).unwrap();
         assert_eq!(
             fs::read(custom.join("cards.cdb")).unwrap(),
