@@ -11,6 +11,7 @@ type Settings = {
 };
 type ScriptResult = { status: string; files: string[] };
 type ScriptProgress = { done: number; total: number; message: string };
+type EnvironmentState = { installed: boolean; revision: string | null; kind: string | null; needsRecovery: boolean };
 type ApiResponse = { status: number; contentType: string; bodyBase64: string };
 type SaveOutcome = { filename: string; savedPath: string; launchError: string | null };
 type DesktopBridge = {
@@ -25,6 +26,9 @@ type DesktopBridge = {
   scriptState(): Promise<{ commit: string | null; canRestore: boolean; updatedAt: number | null }>;
   updateScripts(overwriteConflicts: boolean): Promise<ScriptResult>;
   restoreScripts(): Promise<ScriptResult>;
+  environmentState(): Promise<EnvironmentState>;
+  installEnvironment(): Promise<EnvironmentState>;
+  restoreEnvironment(): Promise<EnvironmentState>;
   onScriptProgress(callback: (progress: ScriptProgress) => void): void;
 };
 
@@ -128,6 +132,7 @@ const defaultSettings: Settings = {
   ui: { language: 'zh' }
 };
 let cachedSettings: Settings | null = null;
+let pendingLanguageWrite: Promise<unknown> = Promise.resolve();
 const settingsPromise = tauriAvailable
   ? invoke<Settings>('get_settings').then(value => {
       cachedSettings = value;
@@ -239,6 +244,7 @@ async function handleDownload(anchor: HTMLAnchorElement): Promise<void> {
       route = url.pathname + url.search;
     }
     anchor.textContent = msg('checking');
+    await pendingLanguageWrite;
     const outcome = await invoke<SaveOutcome>('save_and_open', {
       kind,
       filename: downloadName(anchor),
@@ -249,7 +255,7 @@ async function handleDownload(anchor: HTMLAnchorElement): Promise<void> {
       toast(msg('savedNotOpened') + ': ' + outcome.savedPath + '\n' + outcome.launchError, true, {
         label: msg('retryOpen'),
         onClick: () => {
-          void invoke('open_saved', { kind, filename: outcome.filename })
+          void pendingLanguageWrite.then(() => invoke('open_saved', { kind, filename: outcome.filename }))
             .then(() => toast(msg(kind === 'deck' ? 'savedDeck' : 'savedReplay')))
             .catch(error => toast(msg('savedNotOpened') + ': ' + outcome.savedPath + '\n' + String(error), true));
         }
@@ -336,6 +342,7 @@ async function requireName(): Promise<Settings | null> {
 async function launch(kind: 'regular' | 'ladder') {
   try {
     if (!(await requireName())) return;
+    await pendingLanguageWrite;
     await invoke('launch_game', { kind, roomName: null });
   } catch (error) { toast(msg('failed') + ': ' + String(error), true); }
 }
@@ -480,6 +487,7 @@ async function openRoom(room: Record<string, unknown>, kind: 'join' | 'watch'): 
       checkedRoom(room, await matchingRoom(room), kind);
       roomName += '$' + password;
     }
+    await pendingLanguageWrite;
     await invoke('launch_game', { kind, roomName });
   } catch (error) {
     toast(msg('failed') + ': ' + String(error), true);
@@ -507,7 +515,10 @@ window.SrvproDesktop = {
   setLanguage(language) {
     localStorage.setItem('srvprotianti.language', language);
     if (cachedSettings) cachedSettings.ui.language = language;
-    if (tauriAvailable) void invoke('set_language', { language }).catch(error => toast(String(error), true));
+    if (tauriAvailable) {
+      pendingLanguageWrite = invoke('set_language', { language });
+      void pendingLanguageWrite.catch(error => toast(String(error), true));
+    }
   },
   regular: () => launch('regular'),
   ladder: () => launch('ladder'),
@@ -516,6 +527,9 @@ window.SrvproDesktop = {
   scriptState: () => invoke('script_state'),
   updateScripts: overwriteConflicts => invoke('update_scripts', { overwriteConflicts }),
   restoreScripts: () => invoke('restore_scripts'),
+  environmentState: () => invoke('environment_state'),
+  installEnvironment: () => invoke('install_environment'),
+  restoreEnvironment: () => invoke('restore_environment'),
   onScriptProgress(callback) { progressCallbacks.add(callback); }
 };
 window.desktopRegular = () => { void window.SrvproDesktop.regular(); };

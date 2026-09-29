@@ -1,3 +1,5 @@
 * text=auto eol=lf
 *.png binary
 *.ico binary
+# Upstream resource bytes are verified against manifest SHA-256 values.
+src-tauri/resources/environment/** whitespace=-trailing-space

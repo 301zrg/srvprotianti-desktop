@@ -1,0 +1,57 @@
+{
+  "environment": "1103-706",
+  "revision": "1103-201103-v1",
+  "poolCutoff": "2011-08-31",
+  "banlist": "2011.3.1",
+  "banlistProtocolHash": "0x73ec4051",
+  "cardCount": 5267,
+  "source": {
+    "zh-CN": "fd5931455abab8cdf38febc00f2ef4296de4bb69f0b9bb702f5ff37412fddc83",
+    "en-US": "da653c64b3eb344db42ae5a72127da4ae390ace20bdb256271576cf164c54ea8",
+    "ja-JP": "64b7c595d3ab765d89d85bfd1c6a3d55c7ecfda568ebcf647689a56728e7f90c",
+    "ko-KR": "c68e4052a79fcd539aec6eb7eda9824e019f6818242bf8b163a85072d2331074"
+  },
+  "locales": {
+    "zh-CN": {
+      "cards": "./zh-CN/cards.cdb",
+      "cardsSha256": "74d86a08815739ae2f5be0a0cd0a208f748129409e462fbdfc93a9f7704b749f",
+      "cardsBytes": 1425408,
+      "strings": "./zh-CN/strings.conf",
+      "stringsSha256": "f387fb5904f9e2c6977470f1240bf2ef68bf1d453b9cffa4b4f7711767a08191",
+      "recoveredAlternativeArtTextCount": 0,
+      "removedSearchSuffixCount": 5267,
+      "correctedBulletCount": 0
+    },
+    "en-US": {
+      "cards": "./en-US/cards.cdb",
+      "cardsSha256": "d2467aab14bce45b43849540bc56574a2d9a4858ab5ea7942d7f7312b419242d",
+      "cardsBytes": 1429504,
+      "strings": "./en-US/strings.conf",
+      "stringsSha256": "726f9467495e8ed271035d712f2584b6e981539690cbf4237f50229d9b0bc823",
+      "recoveredAlternativeArtTextCount": 27,
+      "removedSearchSuffixCount": 5267,
+      "correctedBulletCount": 13
+    },
+    "ja-JP": {
+      "cards": "./ja-JP/cards.cdb",
+      "cardsSha256": "944b10f9594dbf6effba2cd3c739d61853f4688ba2ca0fe41bdc2b329ac740dd",
+      "cardsBytes": 2048000,
+      "strings": "./ja-JP/strings.conf",
+      "stringsSha256": "54718ad6eb701f2bbe1ec07fb0a52c09c4378a050a877857af555a1a1c77ef67",
+      "recoveredAlternativeArtTextCount": 0,
+      "removedSearchSuffixCount": 0,
+      "correctedBulletCount": 0
+    },
+    "ko-KR": {
+      "cards": "./ko-KR/cards.cdb",
+      "cardsSha256": "6863eadb4b646c78d70e614cdd1464b9e24671833d6d16214dee90780788627e",
+      "cardsBytes": 1843200,
+      "strings": "./ko-KR/strings.conf",
+      "stringsSha256": "2e7f725d7a6ba9db978a70cb738559a47de6a6f8e7bad11cc33fc9e1bfa2cf44",
+      "recoveredAlternativeArtTextCount": 0,
+      "removedSearchSuffixCount": 0,
+      "correctedBulletCount": 0
+    }
+  },
+  "banlistSha256": "ea375c0874c8674aac515e6020aa7db85b372608eebeb15e6896fc108143a1cc"
+}

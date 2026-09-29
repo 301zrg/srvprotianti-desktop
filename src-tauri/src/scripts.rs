@@ -468,7 +468,7 @@ fn has_koishi_marker(bytes: &[u8]) -> bool {
             .any(|window| window.eq_ignore_ascii_case(b"KoishiPro"))
 }
 
-fn is_koishipro(root: &Path) -> Result<bool, String> {
+pub(crate) fn is_koishipro(root: &Path) -> Result<bool, String> {
     let config = settings::load(root)?;
     let executable = game::executable(root, &config)?;
     let bytes = fs::read(&executable)
@@ -509,7 +509,7 @@ fn read_original(root: &Path, relative: &str) -> Result<Vec<u8>, String> {
     fs::read(settings::data_dir(root).join(relative))
         .map_err(|error| format!("Missing original script backup: {error}"))
 }
-fn game_running(root: &Path, game_executable: &str) -> bool {
+pub(crate) fn game_running(root: &Path, game_executable: &str) -> bool {
     let target = root.join(game_executable);
     let target = target.canonicalize().unwrap_or(target);
     let mut system = System::new_all();

@@ -36,6 +36,14 @@
     <button id="reset" type="button" data-i18n="reset">恢复默认设置</button>
     <p id="configStatus" class="status" role="status"></p>
   </section>
+  <section class="settings-card" id="environment">
+    <h2 id="environmentTitle">1103 环境资源</h2>
+    <p id="environmentHelp">将随程序提供的四语卡池和 2011.3.1 禁卡表安装到当前游戏。请先退出游戏；原文件会备份，可一键恢复。</p>
+    <p id="environmentVersion" class="status"></p>
+    <button id="installEnvironment" type="button">安装／更新 1103 环境</button>
+    <button id="restoreEnvironment" type="button">恢复原环境</button>
+    <p id="environmentStatus" class="status" role="status"></p>
+  </section>
   <section class="settings-card" id="scripts">
     <h2 data-i18n="scripts">旧裁定脚本</h2>
     <p data-i18n="scriptHelp">从 301zrg/specials 的 706 目录更新脚本到 expansions/script。游戏运行时先退出游戏，再应用更新。此操作不会改游戏设置或根目录 script。</p>
@@ -106,6 +114,12 @@ const I18N = {
     failed: '작업 실패: '
   }
 };
+const environmentText = {
+  zh: { title: '1103 环境资源', help: '将随程序提供的四语卡池和 2011.3.1 禁卡表安装到当前游戏。请先退出游戏；原文件会备份，可一键恢复。语言切换和服务器地址将在下次启动游戏时同步。', install: '安装／更新 1103 环境', restore: '恢复原环境', absent: '尚未安装 1103 环境', installed: '已安装', recovery: '操作未完成，请先点击恢复原环境', installing: '正在安装环境…', restoring: '正在恢复环境…', installedDone: '1103 环境已安装。', restoredDone: '原环境已恢复。', failed: '操作失败：' },
+  ja: { title: '1103 環境リソース', help: '同梱の4言語カードデータと2011.3.1禁止・制限リストをゲームに適用します。先にゲームを終了してください。元のファイルはバックアップされ、復元できます。言語とサーバー設定は次回のゲーム起動時に同期されます。', install: '1103環境を導入／更新', restore: '元の環境に戻す', absent: '1103環境は未導入です', installed: '導入済み', recovery: '操作が未完了です。元の環境に戻してください', installing: '環境を導入中…', restoring: '環境を復元中…', installedDone: '1103環境を導入しました。', restoredDone: '元の環境に戻しました。', failed: '操作に失敗しました：' },
+  en: { title: '1103 environment resources', help: 'Install the bundled four-language card pool and March 2011 banlist into this game. Close the game first. Original files are backed up and can be restored. Language and server changes sync at the next game launch.', install: 'Install/update 1103 environment', restore: 'Restore original environment', absent: '1103 environment is not installed', installed: 'Installed', recovery: 'An operation was interrupted. Restore the original environment first.', installing: 'Installing environment…', restoring: 'Restoring environment…', installedDone: '1103 environment installed.', restoredDone: 'Original environment restored.', failed: 'Operation failed: ' },
+  ko: { title: '1103 환경 리소스', help: '포함된 4개 언어 카드 풀과 2011.3.1 금제 목록을 게임에 설치합니다. 먼저 게임을 종료하세요. 원본 파일은 백업되며 복원할 수 있습니다. 언어 및 서버 변경은 다음 게임 실행 때 동기화됩니다.', install: '1103 환경 설치/업데이트', restore: '원래 환경 복원', absent: '1103 환경이 설치되지 않았습니다', installed: '설치됨', recovery: '작업이 중단되었습니다. 먼저 원래 환경을 복원하세요', installing: '환경 설치 중…', restoring: '환경 복원 중…', installedDone: '1103 환경을 설치했습니다.', restoredDone: '원래 환경을 복원했습니다.', failed: '작업 실패: ' }
+};
 const conflictMessages = {
   zh: { kept: '未更新：已保留本地脚本。', changed: '下载期间脚本文件发生变化，未覆盖。请检查后重新更新。' },
   ja: { kept: '更新を中止し、ローカルのスクリプトを保持しました。', changed: 'ダウンロード中にスクリプトが変更されました。上書きせずに中止しました。確認して再試行してください。' },
@@ -129,6 +143,13 @@ function scriptError(error) {
 function t(key) { return SrvproWeb.t(I18N, key); }
 function conflictMessage(key) { return conflictMessages[SrvproWeb.getLanguage()][key]; }
 const desktop = window.SrvproDesktop;
+function e(key) { return (environmentText[SrvproWeb.getLanguage()] || environmentText.en)[key]; }
+function translateEnvironment() {
+  document.getElementById('environmentTitle').textContent = e('title');
+  document.getElementById('environmentHelp').textContent = e('help');
+  document.getElementById('installEnvironment').textContent = e('install');
+  document.getElementById('restoreEnvironment').textContent = e('restore');
+}
 const configStatus = document.getElementById('configStatus');
 const scriptStatus = document.getElementById('scriptStatus');
 let busy = false;
@@ -150,10 +171,18 @@ async function refreshState() {
     : t('none');
   document.getElementById('restoreScripts').disabled = !state.canRestore || busy;
 }
+async function refreshEnvironment() {
+  const state = await desktop.environmentState();
+  document.getElementById('environmentVersion').textContent = state.needsRecovery ? e('recovery')
+    : state.installed ? e('installed') + ': ' + state.revision + ' (' + state.kind + ')' : e('absent');
+  document.getElementById('restoreEnvironment').disabled = busy || (!state.installed && !state.needsRecovery);
+  document.getElementById('installEnvironment').disabled = busy || state.needsRecovery;
+}
 async function load() {
   try {
     fill(await desktop.settings());
     await refreshState();
+    await refreshEnvironment();
   } catch (error) { setStatus(configStatus, t('failed') + error, true); }
 }
 async function runScriptOperation(operation) {
@@ -184,6 +213,7 @@ async function runScriptOperation(operation) {
     busy = false;
     document.getElementById('updateScripts').disabled = false;
     await refreshState().catch(() => {});
+    await refreshEnvironment().catch(() => {});
   }
 }
 document.getElementById('save').onclick = async function () {
@@ -212,10 +242,29 @@ document.getElementById('showName').onclick = function () {
 };
 document.getElementById('updateScripts').onclick = () => runScriptOperation('update');
 document.getElementById('restoreScripts').onclick = () => runScriptOperation('restore');
+async function runEnvironmentOperation(operation) {
+  if (busy) return;
+  busy = true;
+  document.getElementById('installEnvironment').disabled = true;
+  document.getElementById('restoreEnvironment').disabled = true;
+  const status = document.getElementById('environmentStatus');
+  setStatus(status, e(operation === 'install' ? 'installing' : 'restoring'));
+  try {
+    if (operation === 'install') await desktop.installEnvironment();
+    else await desktop.restoreEnvironment();
+    setStatus(status, e(operation === 'install' ? 'installedDone' : 'restoredDone'));
+  } catch (error) { setStatus(status, e('failed') + error, true); }
+  finally { busy = false; await refreshEnvironment().catch(() => {}); }
+}
+document.getElementById('installEnvironment').onclick = () => runEnvironmentOperation('install');
+document.getElementById('restoreEnvironment').onclick = () => runEnvironmentOperation('restore');
 SrvproWeb.init({ translations: I18N, onLanguageChange: function () {
   document.getElementById('showName').textContent = t(document.getElementById('launchName').type === 'password' ? 'show' : 'hide');
   refreshState().catch(() => {});
+  translateEnvironment();
+  refreshEnvironment().catch(() => {});
 } });
+translateEnvironment();
 desktop.onScriptProgress(progress => {
   if (busy) setStatus(scriptStatus, progress.message || (progress.done + '/' + progress.total));
 });

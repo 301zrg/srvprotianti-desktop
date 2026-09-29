@@ -1,3 +1,4 @@
+use crate::environment;
 use crate::settings::{self, Settings};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -62,6 +63,7 @@ pub fn launch(
 
 pub fn spawn(root: &Path, settings: &Settings, arguments: &[String]) -> Result<(), String> {
     let program = executable(root, settings)?;
+    environment::prepare_launch(root, settings)?;
     Command::new(program)
         .current_dir(root)
         .args(arguments)

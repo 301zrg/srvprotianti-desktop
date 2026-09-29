@@ -1,5 +1,6 @@
 mod api;
 mod downloads;
+mod environment;
 mod game;
 #[cfg(windows)]
 mod instance;
@@ -175,6 +176,23 @@ fn restore_scripts(state: State<'_, AppState>) -> Result<scripts::UpdateResult, 
 }
 
 #[tauri::command]
+fn environment_state(state: State<'_, AppState>) -> Result<environment::StateView, String> {
+    environment::state(&state.root)
+}
+
+#[tauri::command]
+fn install_environment(state: State<'_, AppState>) -> Result<environment::StateView, String> {
+    let _guard = state.file_lock.lock().map_err(|_| "Game action lock is unavailable")?;
+    environment::install(&state.root)
+}
+
+#[tauri::command]
+fn restore_environment(state: State<'_, AppState>) -> Result<environment::StateView, String> {
+    let _guard = state.file_lock.lock().map_err(|_| "Game action lock is unavailable")?;
+    environment::restore(&state.root)
+}
+
+#[tauri::command]
 fn open_external(url: String) -> Result<(), String> {
     let parsed = reqwest::Url::parse(&url).map_err(|_| "Invalid external link")?;
     if !matches!(parsed.scheme(), "http" | "https")
@@ -234,6 +252,9 @@ pub fn run() {
             script_state,
             update_scripts,
             restore_scripts,
+            environment_state,
+            install_environment,
+            restore_environment,
             open_external
         ])
         .run(tauri::generate_context!())
