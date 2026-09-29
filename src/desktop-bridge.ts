@@ -516,7 +516,7 @@ window.SrvproDesktop = {
     localStorage.setItem('srvprotianti.language', language);
     if (cachedSettings) cachedSettings.ui.language = language;
     if (tauriAvailable) {
-      pendingLanguageWrite = invoke('set_language', { language });
+      pendingLanguageWrite = pendingLanguageWrite.catch(() => {}).then(() => invoke('set_language', { language }));
       void pendingLanguageWrite.catch(error => toast(String(error), true));
     }
   },
@@ -528,7 +528,10 @@ window.SrvproDesktop = {
   updateScripts: overwriteConflicts => invoke('update_scripts', { overwriteConflicts }),
   restoreScripts: () => invoke('restore_scripts'),
   environmentState: () => invoke('environment_state'),
-  installEnvironment: () => invoke('install_environment'),
+  installEnvironment: async () => {
+    await pendingLanguageWrite;
+    return invoke('install_environment');
+  },
   restoreEnvironment: () => invoke('restore_environment'),
   onScriptProgress(callback) { progressCallbacks.add(callback); }
 };
