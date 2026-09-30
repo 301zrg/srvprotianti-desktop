@@ -132,23 +132,36 @@ mod tests {
 
     #[test]
     fn reports_http_failure_without_treating_it_as_current() {
-        use std::io::Write;
+        use std::io::{Read, Write};
         use std::net::TcpListener;
         use std::thread;
+        use std::time::Duration;
 
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let server = thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap();
             stream
-                .write_all(b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n")
+                .set_read_timeout(Some(Duration::from_secs(5)))
                 .unwrap();
+            let mut request = Vec::new();
+            let mut buffer = [0; 1024];
+            while !request.windows(4).any(|part| part == b"\r\n\r\n") {
+                let count = stream.read(&mut buffer).unwrap();
+                assert!(count > 0, "client closed before sending HTTP headers");
+                request.extend_from_slice(&buffer[..count]);
+                assert!(request.len() < 16 * 1024, "request headers were too large");
+            }
+            stream
+                .write_all(b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                .unwrap();
+            stream.flush().unwrap();
         });
         let client = Client::builder().no_proxy().build().unwrap();
         let error = fetch_latest(&client, &format!("http://{address}/"), "0.1.0")
             .err()
             .unwrap();
         server.join().unwrap();
-        assert!(error.contains("503"));
+        assert!(error.contains("503"), "unexpected error: {error}");
     }
 }
