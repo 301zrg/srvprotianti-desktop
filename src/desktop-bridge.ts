@@ -14,6 +14,7 @@ type ScriptProgress = { done: number; total: number; message: string };
 type EnvironmentState = { installed: boolean; revision: string | null; kind: string | null; needsRecovery: boolean };
 type ApiResponse = { status: number; contentType: string; bodyBase64: string };
 type SaveOutcome = { filename: string; savedPath: string; launchError: string | null };
+type DesktopUpdate = { currentVersion: string; latestVersion: string; updateAvailable: boolean; downloadUrl: string | null };
 type DesktopBridge = {
   settings(): Promise<Settings>;
   saveSettings(settings: Settings): Promise<Settings>;
@@ -21,6 +22,8 @@ type DesktopBridge = {
   setLanguage(language: Language): void;
   regular(): Promise<void>;
   ladder(): Promise<void>;
+  deckEditor(): Promise<void>;
+  replayList(): Promise<void>;
   joinRoom(room: Record<string, unknown>): Promise<void>;
   watchRoom(room: Record<string, unknown>): Promise<void>;
   scriptState(): Promise<{ commit: string | null; canRestore: boolean; updatedAt: number | null }>;
@@ -29,6 +32,8 @@ type DesktopBridge = {
   environmentState(): Promise<EnvironmentState>;
   installEnvironment(): Promise<EnvironmentState>;
   restoreEnvironment(): Promise<EnvironmentState>;
+  checkDesktopUpdate(): Promise<DesktopUpdate>;
+  openUpdateDownload(): Promise<void>;
   onScriptProgress(callback: (progress: ScriptProgress) => void): void;
 };
 
@@ -339,9 +344,9 @@ async function requireName(): Promise<Settings | null> {
   window.setTimeout(() => { location.href = '/settings.html#launchName'; }, 700);
   return null;
 }
-async function launch(kind: 'regular' | 'ladder') {
+async function launch(kind: 'regular' | 'ladder' | 'deck-editor' | 'replay-list') {
   try {
-    if (!(await requireName())) return;
+    if ((kind === 'regular' || kind === 'ladder') && !(await requireName())) return;
     await pendingLanguageWrite;
     await invoke('launch_game', { kind, roomName: null });
   } catch (error) { toast(msg('failed') + ': ' + String(error), true); }
@@ -522,6 +527,8 @@ window.SrvproDesktop = {
   },
   regular: () => launch('regular'),
   ladder: () => launch('ladder'),
+  deckEditor: () => launch('deck-editor'),
+  replayList: () => launch('replay-list'),
   joinRoom: room => openRoom(room, 'join'),
   watchRoom: room => openRoom(room, 'watch'),
   scriptState: () => invoke('script_state'),
@@ -533,6 +540,10 @@ window.SrvproDesktop = {
     return invoke('install_environment');
   },
   restoreEnvironment: () => invoke('restore_environment'),
+  checkDesktopUpdate: () => invoke('check_desktop_update'),
+  openUpdateDownload: () => invoke('open_external', {
+    url: 'https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip'
+  }),
   onScriptProgress(callback) { progressCallbacks.add(callback); }
 };
 window.desktopRegular = () => { void window.SrvproDesktop.regular(); };

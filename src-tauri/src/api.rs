@@ -25,7 +25,7 @@ pub fn client() -> Result<Client, String> {
     Client::builder()
         .timeout(Duration::from_secs(25))
         .redirect(reqwest::redirect::Policy::none())
-        .user_agent("srvprotianti-desktop/0.1")
+        .user_agent(concat!("srvprotianti-desktop/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|error| error.to_string())
 }

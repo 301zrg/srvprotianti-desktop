@@ -357,7 +357,7 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 5. 实现 706 更新清单、暂存、备份、冲突处理及恢复，验证实际旧裁定。
 6. 完成验收、便携包与使用说明，再交付可运行版本。
 
-首版不包含桌面程序自身自动升级、整套游戏下载/升级、多账号管理、云录像或服务端统计改造。1103 环境资源随桌面 ZIP 更新，不单独在线获取；软件仍由用户手动替换，保留用户覆盖配置和下载内容。维护者确认版本并推送对应 `v<版本>` 标签后，Windows CI 才发布 GitHub Release 的固定名称 ZIP。
+首版不包含桌面程序自身自动安装升级、整套游戏下载/升级、多账号管理、云录像或服务端统计改造。设置页可手动检查 GitHub 最新正式版及 Windows ZIP 是否存在，发现新版后交给系统浏览器下载；软件仍由用户手动替换，保留用户覆盖配置和下载内容。1103 环境资源随桌面 ZIP 更新，不单独在线获取。维护者确认版本并推送对应 `v<版本>` 标签后，Windows CI 才发布 GitHub Release 的固定名称 ZIP。
 
 ## 13. 调研依据与尚未执行的验证
 
@@ -389,4 +389,6 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 
 原有文件保存到 `srvprotianti-desktop-data/environment-backups/<安装 ID>/`，状态和每个托管文件的散列保存到 `environment-state.json`。写入前记录事务意图，中途失败回滚；异常中断后要求恢复，禁止带不完整资源启动。恢复前核对资源文件的托管散列；玩家手动修改资源文件时保留现状与备份并报告冲突。`system_user.conf` 是游戏会在退出时改写的配置，不按整文件散列阻断启动或恢复：安装及启动时只设置环境所需的键，恢复时从原备份还原 `use_lflist`、`default_lflist` 和 KoishiPro 的 `locale`，保留当前文件中昵称等其他字段。其余文件逐项恢复原状，删除本程序创建的文件及已空的 `1103_` 目录。旧裁定脚本更新依旧只处理 `expansions/script`，不参与资源恢复。
 
-服务器网页和桌面介绍页同样提供四行下载：原版 YGOPro 的 [网盘](https://ygopro.ysepan.com/) 或 [MyCard](https://mycard.moe/)（推荐）、[KoishiPro 官方](https://koishi.pro/download/)、暂沿用的 [整合包](https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp)、以及 [桌面最新 Windows ZIP](https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip)。最后一条在首次 Release 创建之前不可用。Release 仅由维护者确认后推送版本标签触发；普通 CI artifact 用于测试，不作为稳定下载入口。
+服务器网页和桌面介绍页同样提供四行下载：原版 YGOPro 的 [网盘](https://ygopro.ysepan.com/) 或 [MyCard](https://mycard.moe/)（推荐）、[KoishiPro 官方](https://koishi.pro/download/)、暂沿用的 [整合包](https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp)、以及 [桌面最新 Windows ZIP](https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip)。整合包标注“整合好的KoishiPro，下载即玩”；桌面一行说明匹配、录像／卡组打开、卡池恢复和旧裁定脚本。Release 仅由维护者确认后推送版本标签触发；普通 CI artifact 用于测试，不作为稳定下载入口。
+
+桌面端所有页面标题栏显示一键匹配、启动游戏、卡组编辑、查看录像四个入口；前两项复用介绍页联机行为，后两项分别传无文件名的 `-d`、`-r`。胜率与胜负配色沿用网页语义；桌面构建生成静态色阶样式并使用类名显示，避免运行时内联颜色在 WebView 中失效，50% 保持中性色。

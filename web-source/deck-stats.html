@@ -178,10 +178,9 @@ function value(item){
   }
   var rate = (w/n)*100;
   var rateStr = rate.toFixed(2) + '%';
-  var color = SrvproWeb.rateColor(rate);
   // 用 data-* 存储胜场和总场，方便 tooltip 读取
   var winRateStr = w + '/' + n;
-  return '<span class="val-colored" style="color:'+color+';" data-tip="'+winRateStr+'">'+rateStr+'</span>';
+  return '<span class="val-colored '+SrvproWeb.rateClass(rate)+'" data-tip="'+winRateStr+'">'+rateStr+'</span>';
 }
 
 function render(){

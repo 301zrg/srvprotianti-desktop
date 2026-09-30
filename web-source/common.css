@@ -36,6 +36,32 @@ h1 {
   padding-right: 130px;
 }
 
+.desktop-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  min-height: 42px;
+  padding-right: 132px;
+  margin-bottom: 12px;
+}
+.desktop-title-row h1 { margin: 0; padding: 0; }
+.desktop-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.desktop-quick-action {
+  padding: 9px 12px;
+  background: #2f5c86;
+  color: #fff;
+  font-weight: 600;
+  border: 1px solid #6685a6;
+}
+.desktop-quick-action.primary { background: #207c75; border-color: #62c6ab; }
+.desktop-quick-action:hover:not(:disabled) { filter: brightness(1.14); }
+.desktop-quick-action:focus-visible { outline: 2px solid #ffd875; outline-offset: 2px; }
+
 a { color: #7ec4ff; }
 
 button, input, select { font: inherit; }
@@ -153,6 +179,8 @@ th {
 @media (max-width: 640px) {
   body { padding: 12px; }
   h1 { padding-right: 84px; font-size: 16px; }
+  .desktop-title-row { padding: 42px 0 0; }
+  .desktop-quick-actions { width: 100%; }
   .lbtn-main { padding: 7px 12px; font-size: 13px; }
   th, td { padding: 6px 8px; }
 }

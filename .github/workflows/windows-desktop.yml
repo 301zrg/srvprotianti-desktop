@@ -54,7 +54,8 @@ jobs:
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          if ($env:GITHUB_REF_NAME -ne "v$version" -or $version -ne $tauriVersion) { throw "Tag and application versions differ" }
+          $cargoVersion = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches.Groups[1].Value
+          if ($env:GITHUB_REF_NAME -ne "v$version" -or $version -ne $tauriVersion -or $version -ne $cargoVersion) { throw "Tag and application versions differ" }
       - uses: actions/download-artifact@v4
         with:
           name: srvprotianti-desktop-windows-x64

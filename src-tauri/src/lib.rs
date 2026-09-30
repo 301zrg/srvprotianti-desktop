@@ -6,6 +6,7 @@ mod game;
 mod instance;
 mod scripts;
 mod settings;
+mod updater;
 #[cfg(windows)]
 mod webview;
 
@@ -211,6 +212,11 @@ fn open_external(url: String) -> Result<(), String> {
     open::that(url).map_err(|error| format!("Could not open browser: {error}"))
 }
 
+#[tauri::command]
+fn check_desktop_update(state: State<'_, AppState>) -> Result<updater::UpdateView, String> {
+    updater::check(&state.client)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(windows)]
@@ -261,6 +267,7 @@ pub fn run() {
             environment_state,
             install_environment,
             restore_environment,
+            check_desktop_update,
             open_external
         ])
         .run(tauri::generate_context!())

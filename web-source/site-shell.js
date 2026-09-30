@@ -23,10 +23,23 @@
     en: {intro: 'Usage Guide', rooms: 'Rooms', replays: 'Replays', ladder: 'Ladder', deckStats: 'Deck Rates', playerStats: 'Player Stats', usageStats: 'Usage', settings: 'Settings', language: 'Language', navigation: 'Primary navigation'},
     ko: {intro: '사용 가이드', rooms: '룸 목록', replays: '리플레이', ladder: '랭킹', deckStats: '덱 승률', playerStats: '플레이어 전적', usageStats: '사용률', settings: '설정', language: '언어', navigation: '주 탐색'}
   };
+  var QUICK_ACTIONS = [
+    {id: 'match', method: 'ladder'},
+    {id: 'game', method: 'regular'},
+    {id: 'deck', method: 'deckEditor'},
+    {id: 'replay', method: 'replayList'}
+  ];
+  var QUICK_TEXT = {
+    zh: {match: '一键匹配', game: '启动游戏', deck: '卡组编辑', replay: '查看录像', label: '游戏快捷操作'},
+    ja: {match: 'ワンクリック対戦', game: 'ゲーム起動', deck: 'デッキ編集', replay: 'リプレイを見る', label: 'ゲームのクイック操作'},
+    en: {match: 'Quick match', game: 'Launch game', deck: 'Edit deck', replay: 'View replays', label: 'Quick game actions'},
+    ko: {match: '빠른 매칭', game: '게임 실행', deck: '덱 편집', replay: '리플레이 보기', label: '게임 빠른 실행'}
+  };
 
   var query = new URLSearchParams(global.location.search);
   var language = detectLanguage(query);
   var options = null;
+  var quickActionBusy = false;
 
   function detectLanguage(params) {
     var configured = params.get('L');
@@ -67,6 +80,15 @@
       ? mixColor(neutral, [115, 214, 163], (value - 50) / 50)
       : mixColor(neutral, [239, 131, 127], (50 - value) / 50);
   }
+  function rateClass(rate) {
+    var value = Number(rate);
+    if (!Number.isFinite(value)) return 'desktop-rate-50';
+    return 'desktop-rate-' + Math.round(Math.max(0, Math.min(100, value)));
+  }
+  function semanticClass(value) {
+    var number = Number(value);
+    return number > 0 ? 'desktop-positive' : number < 0 ? 'desktop-negative' : 'desktop-rate-50';
+  }
 
   function canonicalUrl(pathname) {
     var url = new URL(pathname, global.location.origin);
@@ -83,9 +105,35 @@
     if (!root) return;
     root.innerHTML = '';
 
+    var titleRow = document.createElement('div');
+    titleRow.className = 'desktop-title-row';
     var title = document.createElement('h1');
     title.textContent = text(options.translations, options.titleKey || 'title');
-    root.appendChild(title);
+    titleRow.appendChild(title);
+    var quickActions = document.createElement('div');
+    quickActions.className = 'desktop-quick-actions';
+    quickActions.setAttribute('aria-label', QUICK_TEXT[language].label);
+    QUICK_ACTIONS.forEach(function (item) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'desktop-quick-action' + (item.id === 'match' ? ' primary' : '');
+      button.textContent = QUICK_TEXT[language][item.id];
+      button.disabled = quickActionBusy;
+      button.addEventListener('click', async function () {
+        if (quickActionBusy || !global.SrvproDesktop) return;
+        quickActionBusy = true;
+        document.querySelectorAll('.desktop-quick-action').forEach(function (control) { control.disabled = true; });
+        try {
+          await global.SrvproDesktop[item.method]();
+        } finally {
+          quickActionBusy = false;
+          document.querySelectorAll('.desktop-quick-action').forEach(function (control) { control.disabled = false; });
+        }
+      });
+      quickActions.appendChild(button);
+    });
+    titleRow.appendChild(quickActions);
+    root.appendChild(titleRow);
 
     var languageRoot = document.createElement('div');
     languageRoot.className = 'langbtns';
@@ -182,6 +230,8 @@
       applyLanguage(false);
     },
     rateColor: rateColor,
+    rateClass: rateClass,
+    semanticClass: semanticClass,
     semanticColor: function (value) {
       var number = Number(value);
       return number > 0 ? '#73d6a3' : number < 0 ? '#ef837f' : '#dce6f0';

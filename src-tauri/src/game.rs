@@ -24,6 +24,8 @@ pub fn args(
     room_name: Option<&str>,
 ) -> Result<Vec<String>, String> {
     match kind {
+        "deck-editor" => Ok(vec!["-d".into()]),
+        "replay-list" => Ok(vec!["-r".into()]),
         "regular" | "ladder" | "join" | "watch" => {
             if settings.player.launch_name.trim().is_empty() {
                 return Err("Set a game login name in Settings first".into());
@@ -147,5 +149,9 @@ mod tests {
         assert_eq!(join, watch);
         let protected = args(&config, "watch", Some("M#Room$secret with space")).unwrap();
         assert_eq!(&protected[6..], &["-w", "M#Room$secret with space", "-j"]);
+        config.player.launch_name.clear();
+        assert_eq!(args(&config, "deck-editor", None).unwrap(), vec!["-d"]);
+        assert_eq!(args(&config, "replay-list", None).unwrap(), vec!["-r"]);
+        assert!(args(&config, "ladder", None).is_err());
     }
 }

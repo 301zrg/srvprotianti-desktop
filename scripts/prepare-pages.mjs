@@ -13,7 +13,23 @@ const pages = [
 
 await mkdir(pageScriptRoot, { recursive: true });
 await copyFile(path.join(source, 'site-shell.js'), path.join(assetRoot, 'site-shell.js'));
-await copyFile(path.join(source, 'common.css'), path.join(assetRoot, 'common.css'));
+const neutral = [220, 230, 240];
+function mixColor(start, end, amount) {
+  return 'rgb(' + start.map((part, index) => Math.round(part + (end[index] - part) * amount)).join(',') + ')';
+}
+function rateColor(rate) {
+  return rate > 50
+    ? mixColor(neutral, [115, 214, 163], (rate - 50) / 50)
+    : rate < 50
+      ? mixColor(neutral, [239, 131, 127], (50 - rate) / 50)
+      : '#dce6f0';
+}
+const rateRules = Array.from({length: 101}, (_, rate) =>
+  '.desktop-rate-' + rate + ' { color: ' + rateColor(rate) + '; }'
+).join('\n');
+const commonCss = await readFile(path.join(source, 'common.css'), 'utf8');
+await writeFile(path.join(assetRoot, 'common.css'),
+  commonCss + '\n.desktop-positive { color: #73d6a3; }\n.desktop-negative { color: #ef837f; }\n' + rateRules + '\n');
 
 const connectionText = {
   zh: [

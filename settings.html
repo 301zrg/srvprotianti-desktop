@@ -53,6 +53,14 @@
     <button id="restoreScripts" type="button" data-i18n="restore">恢复上次更新</button>
     <p id="scriptStatus" class="status" role="status"></p>
   </section>
+  <section class="settings-card" id="desktop-update">
+    <h2 id="desktopUpdateTitle">助手更新</h2>
+    <p id="desktopUpdateHelp">检查 GitHub 上的最新正式版。下载后关闭游戏和助手，将 ZIP 解压覆盖到游戏根目录，并保留 srvprotianti-desktop-data 文件夹。</p>
+    <p id="desktopUpdateVersion" class="status"></p>
+    <button id="checkDesktopUpdate" type="button">检查助手更新</button>
+    <button id="downloadDesktopUpdate" type="button" hidden>下载新版本</button>
+    <p id="desktopUpdateStatus" class="status" role="status"></p>
+  </section>
 </div>
 <script src="/assets/site-shell.js"></script>
 <script>
@@ -120,6 +128,12 @@ const environmentText = {
   en: { title: '1103 environment resources', help: 'Install the bundled four-language card pool and March 2011 banlist into this game. Close the game first. Original files are backed up and can be restored. Language and server changes sync at the next game launch.', install: 'Install/update 1103 environment', restore: 'Restore original environment', absent: '1103 environment is not installed', installed: 'Installed', recovery: 'An operation was interrupted. Restore the original environment first.', installing: 'Installing environment…', restoring: 'Restoring environment…', installedDone: '1103 environment installed.', restoredDone: 'Original environment restored.', failed: 'Operation failed: ' },
   ko: { title: '1103 환경 리소스', help: '포함된 4개 언어 카드 풀과 2011.3.1 금제 목록을 게임에 설치합니다. 먼저 게임을 종료하세요. 원본 파일은 백업되며 복원할 수 있습니다. 언어 및 서버 변경은 다음 게임 실행 때 동기화됩니다.', install: '1103 환경 설치/업데이트', restore: '원래 환경 복원', absent: '1103 환경이 설치되지 않았습니다', installed: '설치됨', recovery: '작업이 중단되었습니다. 먼저 원래 환경을 복원하세요', installing: '환경 설치 중…', restoring: '환경 복원 중…', installedDone: '1103 환경을 설치했습니다.', restoredDone: '원래 환경을 복원했습니다.', failed: '작업 실패: ' }
 };
+const desktopUpdateText = {
+  zh: {title:'助手更新',help:'检查 GitHub 上的最新正式版。下载后关闭游戏和助手，将 ZIP 解压覆盖到游戏根目录，并保留 srvprotianti-desktop-data 文件夹。',check:'检查助手更新',download:'下载新版本',checking:'正在检查更新……',versions:'当前版本：%current% · 最新版本：%latest%',current:'当前版本不低于最新已发布版本。',available:'发现新版本，可在浏览器中下载。',missing:'发现新版本，但该 Release 缺少 Windows ZIP，请稍后重试。',failed:'检查失败：',opening:'已在浏览器中打开下载地址。'},
+  ja: {title:'アシスタントの更新',help:'GitHub の最新正式版を確認します。ダウンロード後にゲームとアシスタントを終了し、ZIP をゲームのルートに展開して上書きしてください。srvprotianti-desktop-data は残してください。',check:'更新を確認',download:'新版をダウンロード',checking:'更新を確認中…',versions:'現在：%current% · 最新：%latest%',current:'現在のバージョンは公開済みの最新版以降です。',available:'新版が見つかりました。ブラウザーでダウンロードできます。',missing:'新版はありますが Windows ZIP がまだありません。後で再試行してください。',failed:'確認に失敗：',opening:'ブラウザーでダウンロード先を開きました。'},
+  en: {title:'Assistant updates',help:'Check the latest stable GitHub release. After downloading, close the game and assistant, extract the ZIP over the game root, and keep the srvprotianti-desktop-data folder.',check:'Check for updates',download:'Download new version',checking:'Checking for updates…',versions:'Current: %current% · Latest: %latest%',current:'Your version is at least as new as the latest published release.',available:'A new version is available to download in your browser.',missing:'A new release exists but its Windows ZIP is missing. Try again later.',failed:'Update check failed: ',opening:'Opened the download in your browser.'},
+  ko: {title:'도우미 업데이트',help:'GitHub의 최신 정식 버전을 확인합니다. 다운로드 후 게임과 도우미를 종료하고 ZIP을 게임 루트에 덮어쓰되 srvprotianti-desktop-data 폴더는 보존하세요.',check:'업데이트 확인',download:'새 버전 다운로드',checking:'업데이트 확인 중…',versions:'현재: %current% · 최신: %latest%',current:'현재 버전은 최신 공개 버전 이상입니다.',available:'새 버전이 있습니다. 브라우저에서 다운로드할 수 있습니다.',missing:'새 릴리스에 Windows ZIP이 없습니다. 나중에 다시 시도하세요.',failed:'확인 실패: ',opening:'브라우저에서 다운로드 주소를 열었습니다.'}
+};
 const conflictMessages = {
   zh: { kept: '未更新：已保留本地脚本。', changed: '下载期间脚本文件发生变化，未覆盖。请检查后重新更新。' },
   ja: { kept: '更新を中止し、ローカルのスクリプトを保持しました。', changed: 'ダウンロード中にスクリプトが変更されました。上書きせずに中止しました。確認して再試行してください。' },
@@ -144,6 +158,13 @@ function t(key) { return SrvproWeb.t(I18N, key); }
 function conflictMessage(key) { return conflictMessages[SrvproWeb.getLanguage()][key]; }
 const desktop = window.SrvproDesktop;
 function e(key) { return (environmentText[SrvproWeb.getLanguage()] || environmentText.en)[key]; }
+function u(key) { return (desktopUpdateText[SrvproWeb.getLanguage()] || desktopUpdateText.en)[key]; }
+function translateDesktopUpdate() {
+  document.getElementById('desktopUpdateTitle').textContent = u('title');
+  document.getElementById('desktopUpdateHelp').textContent = u('help');
+  document.getElementById('checkDesktopUpdate').textContent = u('check');
+  document.getElementById('downloadDesktopUpdate').textContent = u('download');
+}
 function translateEnvironment() {
   document.getElementById('environmentTitle').textContent = e('title');
   document.getElementById('environmentHelp').textContent = e('help');
@@ -258,13 +279,47 @@ async function runEnvironmentOperation(operation) {
 }
 document.getElementById('installEnvironment').onclick = () => runEnvironmentOperation('install');
 document.getElementById('restoreEnvironment').onclick = () => runEnvironmentOperation('restore');
+let updateCheckBusy = false;
+document.getElementById('checkDesktopUpdate').onclick = async () => {
+  if (updateCheckBusy) return;
+  updateCheckBusy = true;
+  const checkButton = document.getElementById('checkDesktopUpdate');
+  const downloadButton = document.getElementById('downloadDesktopUpdate');
+  const status = document.getElementById('desktopUpdateStatus');
+  checkButton.disabled = true;
+  downloadButton.hidden = true;
+  setStatus(status, u('checking'));
+  try {
+    const result = await desktop.checkDesktopUpdate();
+    document.getElementById('desktopUpdateVersion').textContent =
+      u('versions').replace('%current%', result.currentVersion).replace('%latest%', result.latestVersion);
+    downloadButton.hidden = !result.updateAvailable || !result.downloadUrl;
+    setStatus(status, u(!result.updateAvailable ? 'current' : result.downloadUrl ? 'available' : 'missing'),
+      result.updateAvailable && !result.downloadUrl);
+  } catch (error) {
+    setStatus(status, u('failed') + String(error), true);
+  } finally {
+    updateCheckBusy = false;
+    checkButton.disabled = false;
+  }
+};
+document.getElementById('downloadDesktopUpdate').onclick = async () => {
+  try {
+    await desktop.openUpdateDownload();
+    setStatus(document.getElementById('desktopUpdateStatus'), u('opening'));
+  } catch (error) {
+    setStatus(document.getElementById('desktopUpdateStatus'), u('failed') + String(error), true);
+  }
+};
 SrvproWeb.init({ translations: I18N, onLanguageChange: function () {
   document.getElementById('showName').textContent = t(document.getElementById('launchName').type === 'password' ? 'show' : 'hide');
   refreshState().catch(() => {});
   translateEnvironment();
+  translateDesktopUpdate();
   refreshEnvironment().catch(() => {});
 } });
 translateEnvironment();
+translateDesktopUpdate();
 desktop.onScriptProgress(progress => {
   if (busy) setStatus(scriptStatus, progress.message || (progress.done + '/' + progress.total));
 });

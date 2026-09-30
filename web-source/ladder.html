@@ -142,7 +142,7 @@ var pageQuery = new URLSearchParams(location.search);
 var lang = SrvproWeb.getLanguage();
 function t(key) { return SrvproWeb.t(I18N, key); }
 function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-function colored(value, color) { return '<span style="color:' + color + '">' + escapeHtml(value) + '</span>'; }
+function colored(value, className) { return '<span class="' + className + '">' + escapeHtml(value) + '</span>'; }
 function applyPageLanguage() {
   document.getElementById('tabTotal').className = currentType === 'total' ? 'active' : '';
   document.getElementById('tabMonth').className = currentType === 'month' ? 'active' : '';
@@ -272,7 +272,7 @@ async function refresh() {
       const winRate = wins + losses ? wins / (wins + losses) * 100 : 0;
       const rankingColumn = getRankingBasisColumn();
       var playerCell = showName === '******' ? showName : '<a href="/player-stats.html?player=' + encodeURIComponent(showName) + '&month=' + encodeURIComponent(selectedMonth) + (lang === 'zh' ? '' : '&L=' + lang) + '">' + escapeHtml(showName) + '</a>';
-      tr.innerHTML = '<td>' + u.rank + '</td><td>' + playerCell + '</td><td class="' + (rankingColumn === 'points' ? 'ranking-basis' : '') + '">' + points + '</td><td class="' + (rankingColumn === 'wins' ? 'ranking-basis' : '') + '">' + colored(wins, '#73d6a3') + '</td><td>' + colored(losses, '#ef837f') + '</td><td class="' + (rankingColumn === 'diff' ? 'ranking-basis' : '') + '">' + colored(diff, SrvproWeb.semanticColor(diff)) + '</td><td class="' + (rankingColumn === 'winRate' ? 'ranking-basis' : '') + '">' + colored(winRate.toFixed(2) + '%', SrvproWeb.rateColor(winRate)) + '</td>';
+      tr.innerHTML = '<td>' + u.rank + '</td><td>' + playerCell + '</td><td class="' + (rankingColumn === 'points' ? 'ranking-basis' : '') + '">' + points + '</td><td class="' + (rankingColumn === 'wins' ? 'ranking-basis' : '') + '">' + colored(wins, 'desktop-positive') + '</td><td>' + colored(losses, 'desktop-negative') + '</td><td class="' + (rankingColumn === 'diff' ? 'ranking-basis' : '') + '">' + colored(diff, SrvproWeb.semanticClass(diff)) + '</td><td class="' + (rankingColumn === 'winRate' ? 'ranking-basis' : '') + '">' + colored(winRate.toFixed(2) + '%', SrvproWeb.rateClass(winRate)) + '</td>';
       tbody.appendChild(tr);
     }
     const totalPages = Math.max(1, Math.ceil(total / pageSize));
