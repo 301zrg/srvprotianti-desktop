@@ -25,8 +25,9 @@
   <section class="settings-card">
     <h2 data-i18n="connection">连接与游戏</h2>
     <label><span data-i18n="nickname">游戏登录串（昵称或昵称$密码）</span>
-      <input id="launchName" type="password" autocomplete="off" spellcheck="false">
+      <input id="launchName" type="password" autocomplete="off" spellcheck="false" maxlength="80" aria-describedby="launchNameHelp">
     </label>
+    <p id="launchNameHelp" data-i18n="launchNameHelp">本地登录串最多保存 80 个 UTF-16 单位；原版 YGOPro 的联机昵称仍受游戏自身的长度限制。</p>
     <button id="showName" type="button" data-i18n="show">显示登录串</button>
     <label><span data-i18n="gameHost">游戏服务器 IPv4 或域名</span><input id="gameHost" autocomplete="off" spellcheck="false"></label>
     <label><span data-i18n="gamePort">游戏服务器端口</span><input id="gamePort" type="number" min="1" max="65535" step="1"></label>
@@ -67,6 +68,7 @@
 const I18N = {
   zh: {
     title: '706 天梯助手 设置', connection: '连接与游戏', nickname: '游戏登录串（昵称或昵称$密码）',
+    launchNameHelp: '本地登录串最多保存 80 个 UTF-16 单位；原版 YGOPro 的联机昵称仍受游戏自身的长度限制。',
     show: '显示登录串', hide: '隐藏登录串', gameHost: '游戏服务器 IPv4 或域名',
     gamePort: '游戏服务器端口', apiBaseUrl: '网页/API 地址',
     executable: '游戏程序文件名（位于同目录）', save: '保存设置', reset: '恢复默认设置',
@@ -81,6 +83,7 @@ const I18N = {
   },
   ja: {
     title: '706 ランキング補助 設定', connection: '接続とゲーム', nickname: 'ログイン名（名前または名前$パスワード）',
+    launchNameHelp: 'ログイン文字列はローカルに最大80 UTF-16単位まで保存できます。元のYGOProでは対戦時の名前にゲーム側の長さ制限があります。',
     show: 'ログイン名を表示', hide: 'ログイン名を隠す', gameHost: 'ゲームサーバー IPv4 またはドメイン',
     gamePort: 'ゲームサーバーポート', apiBaseUrl: 'ウェブ/API アドレス',
     executable: '同じフォルダーのゲーム実行ファイル', save: '保存', reset: '既定値に戻す',
@@ -95,6 +98,7 @@ const I18N = {
   },
   en: {
     title: '706 Ladder Assistant Settings', connection: 'Connection and Game', nickname: 'Game login string (name or name$password)',
+    launchNameHelp: 'You can save up to 80 UTF-16 units locally. The original YGOPro still limits the in-game nickname length.',
     show: 'Show login string', hide: 'Hide login string', gameHost: 'Game server IPv4 or hostname',
     gamePort: 'Game server port', apiBaseUrl: 'Web/API address',
     executable: 'Game executable in this folder', save: 'Save settings', reset: 'Restore defaults',
@@ -109,6 +113,7 @@ const I18N = {
   },
   ko: {
     title: '706 랭킹 도우미 설정', connection: '연결 및 게임', nickname: '게임 로그인 문자열 (이름 또는 이름$비밀번호)',
+    launchNameHelp: '로그인 문자열은 로컬에 최대 80 UTF-16 단위까지 저장할 수 있습니다. 원본 YGOPro의 게임 내 닉네임 길이는 게임 자체에서 제한합니다.',
     show: '로그인 문자열 표시', hide: '로그인 문자열 숨기기', gameHost: '게임 서버 IPv4 또는 도메인',
     gamePort: '게임 서버 포트', apiBaseUrl: '웹/API 주소',
     executable: '같은 폴더의 게임 실행 파일', save: '설정 저장', reset: '기본값 복원',

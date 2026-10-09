@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 pub const DEFAULT_CONFIG: &str = include_str!("../resources/config.default.json");
 const DATA_DIRECTORY: &str = "srvprotianti-desktop-data";
+const MAX_LOGIN_NAME_UTF16_UNITS: usize = 80;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -189,7 +190,7 @@ pub fn validate(settings: &Settings) -> Result<(), String> {
     if settings.player.launch_name.contains('\0')
         || settings.player.launch_name.contains('\n')
         || settings.player.launch_name.contains('\r')
-        || settings.player.launch_name.encode_utf16().count() > 40
+        || settings.player.launch_name.encode_utf16().count() > MAX_LOGIN_NAME_UTF16_UNITS
     {
         return Err("Game login string contains unsupported characters or is too long".into());
     }
@@ -239,6 +240,20 @@ pub fn validate(settings: &Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn login_string_allows_eighty_utf16_units() {
+        let mut settings: Settings = serde_json::from_str(DEFAULT_CONFIG).unwrap();
+        settings.player.launch_name = "a".repeat(80);
+        assert!(validate(&settings).is_ok());
+        settings.player.launch_name.push('a');
+        assert!(validate(&settings).is_err());
+
+        settings.player.launch_name = "😀".repeat(40);
+        assert!(validate(&settings).is_ok());
+        settings.player.launch_name.push('😀');
+        assert!(validate(&settings).is_err());
+    }
 
     #[test]
     fn explicit_empty_string_overrides_existing_value() {
