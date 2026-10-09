@@ -15,6 +15,7 @@
   .notice-box { color: #f0c27a; background: #1e2a3a; padding: 10px 14px 10px 34px; border-radius: 4px; border-left: 3px solid #f0c27a; }
   .notice-box li { margin: 7px 0; }
   .notice-box a { color: #ffd875; }
+  .copyright-notice { margin: 18px 0 24px; padding: 13px 16px; color: #ffe5b4; background: #352719; border: 1px solid #b88a42; border-left: 5px solid #f0c27a; border-radius: 4px; font-weight: 600; line-height: 1.65; }
   .connection-field { display: inline-block; margin: 9px 12px 2px 0; white-space: nowrap; }
   [data-copy-connection], [data-copy-value] { background: #273f55; color: #d5edff; padding: 4px 8px; }
   .desktop-launch-button { background: #2f76ae; color: #fff; font-weight: 600; padding: 7px 12px; margin-top: 9px; }
@@ -23,6 +24,7 @@
 <body>
 <div data-site-shell></div>
 <div>
+    <p class="copyright-notice" role="note" data-i18n="copyright_notice">版权声明：本网页及其桌面助手均为开源、非盈利项目。若相关版权方提出要求，相关内容可能随时下架，敬请理解。</p>
     <h2 data-i18n="server_intro_title">服务器介绍：</h2>
     <p data-i18n="server_intro_pool">本服务器适用于游戏王OCG 201103 Nexus环境，禁限卡表使用2011年3月禁卡表，卡池使用2011年8月31日及之前OCG发行的所有卡片，不额外规制“<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血之代偿(80604091)</a>”</p>
     <p data-i18n="server_intro_srvpro">本服务器基于<a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>代码搭建，在此特别感谢srvpro的开发者</p>
@@ -60,6 +62,7 @@
 var I18N = {
   zh: {
     title: '游戏王OCG201103天梯服务器 使用介绍',
+    copyright_notice: '版权声明：本网页及其桌面助手均为开源、非盈利项目。若相关版权方提出要求，相关内容可能随时下架，敬请理解。',
     server_intro_title: '服务器介绍：', notice_title: '注意事项：',
     title0: '下载地址：', title1: '连接方式：', title3: '常规联机模式：', title4: '天梯模式：', deck_title: '示例卡组', deck_load_fail: '示例卡组配置加载失败',
     server_intro_pool: '本服务器适用于游戏王OCG 201103 Nexus环境，禁限卡表使用2011年3月禁卡表，卡池使用2011年8月31日及之前OCG发行的所有卡片，不额外规制“<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血之代偿(80604091)</a>”',
@@ -84,6 +87,7 @@ var I18N = {
   },
   ja: {
     title: '遊戯王OCG 201103 ランキングサーバー 使用紹介',
+    copyright_notice: '著作権に関するお知らせ：本ウェブサイトとデスクトップアシスタントは、オープンソースの非営利プロジェクトです。権利者から要請があった場合、関連コンテンツの公開をいつでも終了する可能性があります。ご理解ください。',
     server_intro_title: 'サーバー紹介：', notice_title: '注意事項：',
     title0: 'ダウンロードリンク：', title1: '接続方法：', title3: '通常接続モード：', title4: 'ランキングモード：', deck_title: 'サンプルデッキ', deck_load_fail: 'サンプルデッキ設定を読み込めません',
     server_intro_pool: '本サーバーは遊戯王OCG 201103 Nexus環境向けです。2011年3月制限改訂を使用し、カードプールは2011年8月31日までにOCGで発売された全カードです。「<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血の代償(80604091)</a>」に独自の追加規制は設けません。',
@@ -108,6 +112,7 @@ var I18N = {
   },
   en: {
     title: 'Yu-Gi-Oh! OCG 201103 Ladder Server User Guide',
+    copyright_notice: 'Copyright notice: This website and its desktop assistant are open-source, non-profit projects. If a rights holder requests it, related content may be taken down at any time. Thank you for your understanding.',
     server_intro_title: 'Server Introduction:', notice_title: 'Important Notes:',
     title0: 'Download Link:', title1: 'Connection Method:', title3: 'Regular Connection Mode:', title4: 'Ladder Mode:', deck_title: 'Example Decks', deck_load_fail: 'Failed to load example deck configuration',
     server_intro_pool: 'This server is intended for the Yu-Gi-Oh! OCG 201103 Nexus environment. It uses the March 2011 Forbidden & Limited List and all OCG cards released on or before August 31, 2011. No additional restriction is applied to “<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">Ultimate Offering (80604091)</a>”.',
@@ -132,6 +137,7 @@ var I18N = {
   },
   ko: {
     title: '유희왕 OCG 201103 랭킹 서버 사용 가이드',
+    copyright_notice: '저작권 안내: 이 웹사이트와 데스크톱 도우미는 오픈 소스 비영리 프로젝트입니다. 관련 권리자의 요청이 있을 경우 관련 콘텐츠가 언제든지 내려갈 수 있습니다. 양해 부탁드립니다.',
     server_intro_title: '서버 소개：', notice_title: '주의 사항：',
     title0: '다운로드 링크：', title1: '연결 방법：', title3: '일반 연결 모드：', title4: '랭킹 모드：', deck_title: '예시 덱', deck_load_fail: '예시 덱 설정을 불러오지 못했습니다',
     server_intro_pool: '본 서버는 유희왕 OCG 201103 Nexus 환경용입니다. 2011년 3월 금지·제한 목록을 사용하며, 카드 풀은 2011년 8월 31일까지 OCG로 발매된 모든 카드입니다. “<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">희생의 제물(80604091)</a>”에는 별도의 추가 규제를 적용하지 않습니다.',
