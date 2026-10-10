@@ -44,7 +44,7 @@ var I18N = {
     th_roomname: '房名', th_type: '类型', th_mode: '模式', th_players: '玩家', th_status: '状态',
     hint: '页面不会自动刷新,请点击「手动刷新」或按 F5 查看最新房间。房名中的密码部分不会显示。',
     waiting: '等待中', waiting_match: '等待匹配中', join_btn: '点击加入', password_btn: '需要密码', watch_btn: '点击观战', unavailable: '暂不可用', load_fail: '加载失败',
-    ladder_match: '天梯随机(比赛)', random_single: '随机·单局', random_match: '随机·比赛', random_tag: '随机·双打', ai_battle: 'AI 对战', match_room: '比赛房', tag_room: '双打房'
+    ladder_match: '天梯随机(比赛)', random_single: '随机·单局', random_match: '随机·比赛', random_tag: '随机·双打', random_other: '其他随机模式', ai_battle: 'AI 对战', arena_room: '竞技场房', tournament_room: '赛事房', single_room: '单局房', match_room: '比赛房', tag_room: '双打房', unknown_room: '未知类型'
   },
   ja: {
     title: '遊戯王OCG 201103 ランキングサーバー ルーム一覧', rooms_total: '全ルーム', playing_now: '対戦中', players_online: 'オンライン', update_time: '更新時刻',
@@ -52,7 +52,7 @@ var I18N = {
     th_roomname: 'ルーム名', th_type: '種別', th_mode: 'モード', th_players: 'プレイヤー', th_status: '状態',
     hint: '自動更新はありません。「更新」またはF5で最新のルームを表示します。ルーム名のパスワード部分は表示されません。',
     waiting: '待機中', waiting_match: 'マッチ待ち', join_btn: '参加する', password_btn: 'パスワードが必要', watch_btn: '観戦する', unavailable: '利用できません', load_fail: '読み込み失敗',
-    ladder_match: 'ランクマッチ(MT)', random_single: 'ランダム(1本)', random_match: 'ランダム(MT)', random_tag: 'ランダム(2v2)', ai_battle: 'AI対戦', match_room: 'マッチ部屋', tag_room: '2v2部屋'
+    ladder_match: 'ランクマッチ(MT)', random_single: 'ランダム(1本)', random_match: 'ランダム(MT)', random_tag: 'ランダム(2v2)', random_other: 'その他のランダム', ai_battle: 'AI対戦', arena_room: 'アリーナ部屋', tournament_room: '大会部屋', single_room: 'シングル部屋', match_room: 'マッチ部屋', tag_room: '2v2部屋', unknown_room: '不明な種別'
   },
   en: {
     title: 'Yu-Gi-Oh! OCG 201103 Ladder Server Live Rooms', rooms_total: 'Rooms', playing_now: 'In Duel', players_online: 'Online Players', update_time: 'Updated',
@@ -60,7 +60,7 @@ var I18N = {
     th_roomname: 'Room', th_type: 'Type', th_mode: 'Mode', th_players: 'Players', th_status: 'Status',
     hint: 'No auto refresh. Click "Refresh" or press F5 for the latest rooms. Password parts of room names are hidden.',
     waiting: 'Waiting', waiting_match: 'Waiting for match', join_btn: 'Join room', password_btn: 'Password needed', watch_btn: 'Watch game', unavailable: 'Unavailable', load_fail: 'Load failed',
-    ladder_match: 'Ladder Match', random_single: 'Random Single', random_match: 'Random Match', random_tag: 'Random Tag', ai_battle: 'AI Battle', match_room: 'Match Room', tag_room: 'Tag Room'
+    ladder_match: 'Ladder Match', random_single: 'Random Single', random_match: 'Random Match', random_tag: 'Random Tag', random_other: 'Other Random Mode', ai_battle: 'AI Battle', arena_room: 'Arena Room', tournament_room: 'Tournament Room', single_room: 'Single Room', match_room: 'Match Room', tag_room: 'Tag Room', unknown_room: 'Unknown Type'
   },
   ko: {
     title: '유희왕 OCG 201103 랭킹 서버 라이브 룸', rooms_total: '전체 룸', playing_now: '듀얼 중', players_online: '온라인 플레이어', update_time: '업데이트',
@@ -68,26 +68,32 @@ var I18N = {
     th_roomname: '룸 이름', th_type: '종류', th_mode: '모드', th_players: '플레이어', th_status: '상태',
     hint: '자동 새로고침되지 않습니다. 「새로고침」 또는 F5로 최신 룸을 확인하세요. 비밀번호 부분은 표시되지 않습니다.',
     waiting: '대기 중', waiting_match: '매칭 대기 중', join_btn: '참가하기', password_btn: '비밀번호 필요', watch_btn: '관전하기', unavailable: '이용 불가', load_fail: '로드 실패',
-    ladder_match: '랭크 매치(MT)', random_single: '랜덤(1판)', random_match: '랜덤(MT)', random_tag: '랜덤(2v2)', ai_battle: 'AI 대전', match_room: '매치 룸', tag_room: '2v2 룸'
+    ladder_match: '랭크 매치(MT)', random_single: '랜덤(1판)', random_match: '랜덤(MT)', random_tag: '랜덤(2v2)', random_other: '기타 랜덤 모드', ai_battle: 'AI 대전', arena_room: '아레나 룸', tournament_room: '대회 룸', single_room: '싱글 룸', match_room: '매치 룸', tag_room: '2v2 룸', unknown_room: '알 수 없는 종류'
   }
 };
 var lang = SrvproWeb.getLanguage();
 function t(key) { return SrvproWeb.t(I18N, key); }
-function friendlyName(name) {
-  if (typeof name !== 'string') return '';
-  if (/^M?#?TT,RANDOM#/.test(name)) return t('ladder_match');
-  if (/^TT,RANDOM#/.test(name)) return t('ladder_match');
-  if (/^S,RANDOM#/.test(name)) return t('random_single');
-  if (/^M,RANDOM#/.test(name)) return t('random_match');
-  if (/^T,RANDOM#/.test(name)) return t('random_tag');
-  if (/^AI#/.test(name)) return t('ai_battle');
-  if (/^M#/.test(name)) return t('match_room');
-  if (/^T#/.test(name)) return t('tag_room');
-  if (name.indexOf('$') !== -1) return name.split('$')[0];
-  return name;
+const ROOM_TYPES = new Set(['ladder_match', 'random_single', 'random_match', 'random_tag', 'random_other',
+  'ai_battle', 'arena_room', 'tournament_room', 'single_room', 'match_room', 'tag_room', 'unknown_room']);
+function roomTypeKey(room) {
+  if (ROOM_TYPES.has(room.roomtype)) return room.roomtype;
+  // Older room APIs lack roomtype; keep their known random labels, then trust the duel mode.
+  const name = typeof room.roomname === 'string' ? room.roomname : '';
+  if (/^(?:M#)?TT,RANDOM#\d+$/.test(name)) return 'ladder_match';
+  if (/^S,RANDOM#\d+$/.test(name)) return 'random_single';
+  if (/^M,RANDOM#\d+$/.test(name)) return 'random_match';
+  if (/^T,RANDOM#\d+$/.test(name)) return 'random_tag';
+  if (/^AI[^#$]*#N?\d+$/i.test(name)) return 'ai_battle';
+  return room.roommode === 0 ? 'single_room' : room.roommode === 1 ? 'match_room' :
+    room.roommode === 2 ? 'tag_room' : 'unknown_room';
+}
+function friendlyName(room, type) {
+  const label = t(type);
+  const mode = typeof room.randommode === 'string' ? room.randommode.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 32) : '';
+  return type === 'random_other' && mode ? label + ' (' + mode + ')' : label;
 }
 function modeName(mode) {
-  return mode === 1 ? 'MATCH' : mode === 2 ? 'TAG' : 'SINGLE';
+  return mode === 0 ? 'SINGLE' : mode === 1 ? 'MATCH' : mode === 2 ? 'TAG' : 'UNKNOWN';
 }
 function escapeHtml(value) {
   return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
@@ -109,8 +115,9 @@ async function refresh() {
       players += (r.users || []).length;
       const tr = document.createElement('tr');
       const roomName = r.roomname ? r.roomname.split('$')[0] : ('#' + r.roomid);
-      const dispType = friendlyName(r.roomname);
-      const isLadder = /^M?#?TT,RANDOM#/.test(r.roomname);
+      const type = roomTypeKey(r);
+      const dispType = friendlyName(r, type);
+      const isLadder = type === 'ladder_match';
       const playersCell = (r.istart !== 'wait' || !isLadder) ? names : t('waiting_match');
       tr.innerHTML = '<td class="room-name">' + escapeHtml(roomName) + '</td>' +
         '<td>' + escapeHtml(dispType) + '</td>' +

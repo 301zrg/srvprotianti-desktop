@@ -1,7 +1,7 @@
 {
   "name": "srvprotianti-desktop",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
@@ -12,7 +12,7 @@
     "build": "tauri build --no-bundle",
     "build:installer": "tauri build",
     "package:portable": "node scripts/package-portable.mjs",
-    "check": "tsc --noEmit && npm run build:web && node --test scripts/color.test.mjs",
+    "check": "tsc --noEmit && npm run build:web && node --test scripts/color.test.mjs scripts/rooms.test.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
