@@ -2,6 +2,10 @@
 
 放在 YGOPro 或 KoishiPro 根目录的 Windows 桌面客户端。当前为开发中的首版，需求与验收范围见 [DESIGN.md](DESIGN.md)。
 
+维护者从 [当前实现架构](docs/ARCHITECTURE.md) 查看模块、调用流程、文件归属和构建发布关系；该文档区分已实现行为、设计目标与尚待游戏实测的项目。
+
+服务端 Linux 部署、数据库/录像恢复与桌面连接地址迁移见 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/b6ebeb19a2436ca5df442d41d1f8c749345be88c/ops/README.md)。
+
 程序保留服务器网页的八个页面及中、日、英、韩四种语言。介绍页的 QQ 群号、IP、端口、合并地址和 TT 房间密码按钮可点击复制；常规联机行末的启动按钮只预填连接信息，天梯行末的启动按钮直接加入 TT。房间列表按公开 API 的 `roomtype` 显示实际类型；等待中的普通房间可点击加入，等待中的天梯房可直接进入 TT 匹配，已开局的房间可点击观战；密码房会要求当次输入密码。旧版 API 没有类型字段时，按严格房名格式识别已知随机房，其余按 `roommode` 显示。卡组与录像保存到游戏的 deck/replay 目录后直接打开。设置、1103 环境资源及旧裁定脚本更新位于设置页。
 
 每页标题栏提供一键匹配、启动游戏、卡组编辑、查看录像四个快捷按钮。后两项分别以无文件名的 `-d`、`-r` 启动游戏，不要求填写昵称。设置页可手动检查 GitHub 最新正式版；找到新版 Windows ZIP 后用系统浏览器下载，由玩家关闭游戏和助手再解压覆盖。
@@ -39,7 +43,7 @@ Windows CI 每次构建提供用于检查的 ZIP artifact。维护者确认版�
 
 ## 页面来源与许可
 
-web-source 中的八个 HTML 页面、site-shell.js、common.css 来自相邻的 srvprotianti 项目（本次调研时 HEAD 为 d23c284adf308747623d5d833f311cf2ff58a272）。桌面版对多个页面的按钮绑定作了修改；scripts/prepare-pages.mjs 在构建时提取页面脚本并改写介绍页按钮。同步上游页面时需核对这些改动与 [页面契约](../srvprotianti/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)。所有静态和动态按钮、表单操作都必须由外部脚本用 addEventListener 或元素事件属性绑定，不能在 HTML 或 innerHTML 字符串中使用 onclick、onchange 等内联事件属性；页面生成步骤会拒绝这种写法。同步后要在桌面构建中逐页检查搜索、筛选、翻页、刷新、下载、启动和语言切换。
+web-source 中的八个 HTML 页面、site-shell.js、common.css 来自相邻的 srvprotianti 项目（本次调研时 HEAD 为 d23c284adf308747623d5d833f311cf2ff58a272）。桌面版对多个页面的按钮绑定作了修改；scripts/prepare-pages.mjs 在构建时提取页面脚本并改写介绍页按钮。同步上游页面时需核对这些改动与 [页面契约](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)。所有静态和动态按钮、表单操作都必须由外部脚本用 addEventListener 或元素事件属性绑定，不能在 HTML 或 innerHTML 字符串中使用 onclick、onchange 等内联事件属性；页面生成步骤会拒绝这种写法。同步后要在桌面构建中逐页检查搜索、筛选、翻页、刷新、下载、启动和语言切换。
 
 桌面构建还会按网页端胜率色阶生成静态 CSS；统计页用类名呈现红／中性／绿渐变，避免运行时内联颜色受 WebView 样式策略影响。
 
