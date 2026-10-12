@@ -12,7 +12,7 @@
     "build": "tauri build --no-bundle",
     "build:installer": "tauri build",
     "package:portable": "node scripts/package-portable.mjs",
-    "check": "tsc --noEmit && npm run build:web && node --test scripts/color.test.mjs scripts/rooms.test.mjs",
+    "check": "tsc --noEmit && npm run build:web && node --test scripts/color.test.mjs scripts/rooms.test.mjs scripts/release-contract.test.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

@@ -1,0 +1,20 @@
+{
+  "format": 1,
+  "snapshotObservedAtDesktopCommit": "d6b2730d917f9a3ec1c762afd379785d3292dad0",
+  "upstreamRepository": "https://github.com/301zrg/srvprotianti",
+  "historicalDeclaredBase": "d23c284adf308747623d5d833f311cf2ff58a272",
+  "adaptedForDesktop": true,
+  "currentUpstreamEquivalenceVerified": false,
+  "files": {
+    "common.css": "e01d7438afdecaa80877b17a45bc6500d18f2f405b18cb2377c90d4a1e0dd388",
+    "deck-detail.html": "53a7ba4ed2c7429dca828aa60133118ffcce711912285a190ccaa1f240453cc9",
+    "deck-stats.html": "7b9bb576d0d70d000e8c73dc897eee6916196f94ec9689a39758adfea5890027",
+    "intro.html": "5b7943edbe898b91fdc17d2f4840b565882f359d65ae2a3b87a85c6a6c8261b7",
+    "ladder.html": "f10db6cb4edc8216b2ff8de0c192f77faa4a4ef46534fa45b841edac1e208851",
+    "player-stats.html": "718c6ea5edc848d9a4f6d8c1cbd30d06b8ad5d16d627f622de25365e17ca2c69",
+    "replays.html": "e544a940a7551197dc7f8e71cb125384f6bf442cd5ae1c187dea2b67a006c8f1",
+    "rooms.html": "9c6f415892a2f939b7fa20407c893f2cd5e2ca52aff6c2963dd74881c3816f95",
+    "site-shell.js": "45735bc05e9732fb35dc0df113651a8ec3630d68d8c26c070a831b0f5cbca37b",
+    "usage-stats.html": "3dc36166a66038e4d1fddb48d174f33786de3f6fd56347d57d6bbf3fe5031a4b"
+  }
+}

@@ -4,11 +4,12 @@
 
 维护者从 [当前实现架构](docs/ARCHITECTURE.md) 查看模块、调用流程、文件归属和构建发布关系；该文档区分已实现行为、设计目标与尚待游戏实测的项目。
 
-服务端 Linux 部署、数据库/录像恢复与桌面连接地址迁移见 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/b6ebeb19a2436ca5df442d41d1f8c749345be88c/ops/README.md)。
+服务端 Linux 部署、数据库/录像恢复与桌面连接地址迁移见 [本轮候选统一运维指南](https://github.com/301zrg/srvprotianti/blob/codex/deployment-readiness-20261012/ops/README.md)，
+实际来源使用审核的完整提交与制品锁；候选指南不表示已经上线或完成整服验收。
 
 程序保留服务器网页的八个页面及中、日、英、韩四种语言。介绍页的 QQ 群号、IP、端口、合并地址和 TT 房间密码按钮可点击复制；常规联机行末的启动按钮只预填连接信息，天梯行末的启动按钮直接加入 TT。房间列表按公开 API 的 `roomtype` 显示实际类型；等待中的普通房间可点击加入，等待中的天梯房可直接进入 TT 匹配，已开局的房间可点击观战；密码房会要求当次输入密码。旧版 API 没有类型字段时，按严格房名格式识别已知随机房，其余按 `roommode` 显示。卡组与录像保存到游戏的 deck/replay 目录后直接打开。设置、1103 环境资源及旧裁定脚本更新位于设置页。
 
-每页标题栏提供一键匹配、启动游戏、卡组编辑、查看录像四个快捷按钮。后两项分别以无文件名的 `-d`、`-r` 启动游戏，不要求填写昵称。设置页可手动检查 GitHub 最新正式版；找到新版 Windows ZIP 后用系统浏览器下载，由玩家关闭游戏和助手再解压覆盖。
+每页标题栏提供一键匹配、启动游戏、卡组编辑、查看录像四个快捷按钮。后两项分别以无文件名的 `-d`、`-r` 启动游戏，不要求填写昵称。设置页可手动检查 GitHub 最新正式版；找到新版 Windows ZIP 后用系统浏览器下载，由玩家关闭游戏和助手，按下方保留数据的步骤更新。
 
 ## 开发
 
@@ -31,7 +32,25 @@ npm run package:portable
 
 上述命令构建无安装器的 exe，再把 exe、config.default.json 与四语资源放入 release-portable。将其内容复制到游戏根目录使用。可选 npm run build:installer 生成 NSIS 安装器；安装位置必须选择目标游戏根目录，且使用环境资源时还须复制 release-portable 中的 resources 目录。
 
-Windows CI 每次构建提供用于检查的 ZIP artifact。维护者确认版本后推送与 package.json、tauri.conf.json、Cargo.toml 一致的 `v<版本>` 标签，CI 才会创建 GitHub Release，并上传固定名称 `srvprotianti-desktop-windows-x64.zip`。介绍页的“最新 Windows ZIP”链接指向该 Release 资源。解压 ZIP 时将内容直接放进 YGOPro／KoishiPro 根目录，保留 `srvprotianti-desktop-data` 文件夹。
+为新 HTTPS 服务器发行时，使用服务端 `ops/templates/deployment.example.json` 的同一份已审核公共参数表：
+
+~~~powershell
+npm run check
+npm run build
+npm run package:portable -- --deployment C:\private-staging\deployment.json --output C:\private-staging\desktop-new
+~~~
+
+该命令只使用公共 `gameHost/gamePort/apiBaseUrl`，要求 API 为 HTTPS 根地址，生成受控默认值和逐文件
+`deployment-info.json`，校验四语资源与 `web-source/provenance.json`。输出必须是新目录，已有目录直接失败，
+不会从旧发行目录带入玩家设置。未传 `--deployment` 的开发/旧 CI 包仍保留原默认，并标记
+`productionDefaults=false`；不能用于新服发布 gate。本机前端检查不能代替 Windows Rust/MSVC 构建。
+
+已有玩家更新：先备份整个 `srvprotianti-desktop-data`，将 ZIP 解压到新的临时目录；只替换 EXE 和经审核的
+只读发行资源，保留原 `config.default.json`、`config.user.json`、脚本/环境状态及所有备份目录。
+尤其不要覆盖旧默认文件后误改用户未显式覆盖的设置。需要迁址时在设置页修改三个服务器字段并保存，
+然后分别验证昵称、语言、游戏路径、卡组/录像和恢复操作。新安装才使用新发行默认文件。
+
+Windows CI 每次构建提供用于检查的 ZIP artifact。维护者确认版本后推送与 package.json、tauri.conf.json、Cargo.toml 一致的 `v<版本>` 标签，CI 才会创建 GitHub Release，并上传固定名称 `srvprotianti-desktop-windows-x64.zip`。介绍页的“最新 Windows ZIP”链接指向该 Release 资源。新安装将 ZIP 内容放进 YGOPro／KoishiPro 根目录，保留 `srvprotianti-desktop-data` 文件夹；已有玩家按上方保留数据的更新步骤处理。
 
 项目仅保存首次运行后的用户配置在 srvprotianti-desktop-data/config.user.json；覆盖默认值后不修改 config.default.json。默认游戏地址 121.4.34.71:7911，网页/API 地址独立为 http://121.4.34.71:7922。完整的“昵称$密码”登录串按用户输入保存在本地 JSON 中，请自行保管该文件。
 
@@ -44,6 +63,10 @@ Windows CI 每次构建提供用于检查的 ZIP artifact。维护者确认版�
 ## 页面来源与许可
 
 web-source 中的八个 HTML 页面、site-shell.js、common.css 来自相邻的 srvprotianti 项目（本次调研时 HEAD 为 d23c284adf308747623d5d833f311cf2ff58a272）。桌面版对多个页面的按钮绑定作了修改；scripts/prepare-pages.mjs 在构建时提取页面脚本并改写介绍页按钮。同步上游页面时需核对这些改动与 [页面契约](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)。所有静态和动态按钮、表单操作都必须由外部脚本用 addEventListener 或元素事件属性绑定，不能在 HTML 或 innerHTML 字符串中使用 onclick、onchange 等内联事件属性；页面生成步骤会拒绝这种写法。同步后要在桌面构建中逐页检查搜索、筛选、翻页、刷新、下载、启动和语言切换。
+
+当前适配快照以 [provenance.json](web-source/provenance.json) 的逐文件 LF 规范化 SHA 为准，页面构建前会检查
+变更、漏件和新增文件。最初上游 commit 只说明历史来源；当前快照并未证明与最新上游等价。
+同步时先审查桌面适配再更新清单，发行包同时保存该来源记录，不能单改摘要后略过页面验收。
 
 桌面构建还会按网页端胜率色阶生成静态 CSS；统计页用类名呈现红／中性／绿渐变，避免运行时内联颜色受 WebView 样式策略影响。
 
