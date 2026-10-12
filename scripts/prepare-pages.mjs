@@ -1,7 +1,9 @@
 import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises';
 import path from 'node:path';
+import {checkPageSnapshot} from './release-contract.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
+checkPageSnapshot(root);
 const source = path.join(root, 'web-source');
 const publicRoot = path.join(root, 'public');
 const assetRoot = path.join(publicRoot, 'assets');

@@ -266,6 +266,8 @@ stateDiagram-v2
 ```mermaid
 flowchart TB
     WebSource["web-source 八页、site-shell.js、common.css"] --> Prepare[scripts/prepare-pages.mjs]
+    Provenance["web-source/provenance.json<br/>适配快照逐文件 SHA"] --> Contract[scripts/release-contract.mjs]
+    Contract -->|校验快照再生成| Prepare
     Settings[根目录 settings.html] --> Prepare
     Prepare --> Public["public 页面与 assets/pages 脚本<br/>生成静态色阶 CSS，拒绝内联事件"]
     Bridge[src/desktop-bridge.ts] --> Esbuild[esbuild IIFE 打包]
@@ -278,6 +280,9 @@ flowchart TB
     Exe --> Portable[scripts/package-portable.mjs]
     Default[发布默认配置] --> Portable
     Resources[离线四语资源] --> Portable
+    Profile["审核的公共部署参数<br/>HTTPS API、TCP 地址"] --> Contract
+    Contract -->|默认配置与资源校验| Portable
+    Portable --> Manifest["deployment-info.json<br/>源码/默认/资源/快照指纹"]
     Portable --> Zip[便携 ZIP]
     Zip --> Artifact[Windows CI artifact]
     Artifact --> Tag{v 标签与三处版本一致}
@@ -297,7 +302,7 @@ flowchart TB
 | 设计中的目录示意 | 当前以本节之前列出的实际清单为准；未实现常驻 `staging/`、`logs/` 目录 |
 | 设置恢复 | 已实现整体恢复默认并归档原用户配置；未提供独立的单字段恢复按钮 |
 | 设置 schema 迁移 | 当前只接受 `schemaVersion = 1`，其他版本报错；DESIGN 中未来版本迁移流程不是已实现能力 |
-| 页面来源记录 | README 保留最初上游 commit；当前 `web-source` 已有桌面适配，不能把最初 commit 当成持续同步状态或逐文件摘要清单 |
+| 页面来源记录 | `web-source/provenance.json` 记录当前适配快照与逐文件摘要；构建拒绝未审核变化。历史上游 commit 不代表与最新上游等价 |
 | 脚本、环境恢复 | 源码有散列、事务及冲突处理和单元测试；这些不能替代真实游戏下的恢复验收 |
 | Windows 与游戏行为 | README/DESIGN 记录 CI 曾通过，同时仍要求两种游戏联机、卡组、录像、旧裁定脚本，以及缺失 WebView2 场景实测 |
 
@@ -313,6 +318,6 @@ flowchart TB
 | 游戏启动方式 | `game.rs` | 参数次序、单个登录串参数、真实游戏兼容、环境同步 |
 | 706 脚本行为 | `scripts.rs` | 固定来源与一致 commit、两种客户端、冲突、事务恢复 |
 | 四语环境资源 | `environment.rs` 与资源 manifest | 文件散列、卡池一致性、原文件备份、配置按键恢复 |
-| 构建与发行 | `package.json`、Tauri 配置、打包脚本和 CI | 三处版本一致、ZIP 相对目录、用户数据保留 |
+| 构建与发行 | `package.json`、Tauri 配置、打包脚本、`release-contract.mjs` 和 CI | 三处版本一致、公共参数/快照/资源指纹、新输出目录、既有用户数据保留 |
 
 涉及本地文件的功能用受控游戏副本验证，并按 DESIGN 的验收表记录游戏构建和结果。纯文档更新检查链接和 Markdown 即可。当前架构说明覆盖本项目运行和维护关系；全新服务器迁移、数据库和服务端录像恢复属于独立的运维评估，本文不作已验证承诺。
