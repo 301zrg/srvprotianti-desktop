@@ -1,6 +1,6 @@
 # 桌面助手当前实现架构
 
-核查日期：2026-10-10。源码基线：本地 HEAD `74e099f30f75e07e456c293ebeb6369714c98335`，应用版本 `0.1.2`。已复核初次审查 `fc7aca7` 之后的登录串长度提示、版权说明、房间类型标识和测试更新；本次仅增加文档，不改运行代码。本文描述该版本源码中的实现，不代表已经完成 Windows、YGOPro、KoishiPro 的实际游戏验收。
+核查日期：2026-10-12。源码基线：本地 HEAD `74e099f30f75e07e456c293ebeb6369714c98335`，应用版本 `0.1.2`。已复核初次审查 `fc7aca7` 之后的登录串长度提示、版权说明、房间类型标识和测试更新；本次对照文档交付提交 `793c0b4`，未发现运行源码差异，保留现有八张图并补充维护规范。本文描述该版本源码中的实现，不代表已经完成 Windows、YGOPro、KoishiPro 的实际游戏验收。
 
 ## 1. 文档分工与架构结论
 
@@ -59,6 +59,7 @@ flowchart TB
         Settings[settings.rs]
         Api[api.rs]
         Download[downloads.rs]
+        Reports[reports.rs]
         Game[game.rs]
         Script[scripts.rs]
         Env[environment.rs]
@@ -66,6 +67,7 @@ flowchart TB
         Entry --> Settings
         Entry --> Api
         Entry --> Download
+        Entry --> Reports
         Entry --> Game
         Entry --> Script
         Entry --> Env
@@ -81,16 +83,18 @@ flowchart TB
     Script --> Git[GitHub 706 脚本与固定 utility.lua]
     Update --> Release[GitHub 最新正式版元数据]
     Game --> Process[本地游戏进程]
+    Reports -->|用户原生对话框选取 CSV 路径| Csv[统计表文件]
     Entry -->|open_external| Browser[系统浏览器]
 ```
 
 | 源码入口 | 当前职责 |
 | --- | --- |
 | [src/desktop-bridge.ts](../src/desktop-bridge.ts) | 把原页面 `fetch` 转为 Rust API 调用，接管下载链接和 Blob，绑定桌面动作，保存语言，预检房间 |
-| [src-tauri/src/lib.rs](../src-tauri/src/lib.rs) | 确定游戏根目录、初始化设置和共享状态，注册 16 个命令，启动时尝试脚本事务恢复 |
+| [src-tauri/src/lib.rs](../src-tauri/src/lib.rs) | 确定游戏根目录、初始化设置和共享状态，注册 17 个命令，启动时尝试脚本事务恢复 |
 | [settings.rs](../src-tauri/src/settings.rs) | 默认值与用户覆盖值递归合并、字段校验、临时文件替换、整体恢复默认 |
 | [api.rs](../src-tauri/src/api.rs) | 方法和路由白名单、请求与响应限额、禁止跟随重定向，返回状态码、内容类型和 Base64 响应 |
 | [downloads.rs](../src-tauri/src/downloads.rs) | 来源与内容校验、Windows 文件名处理、同名内容去重、保存并尝试打开 |
+| [reports.rs](../src-tauri/src/reports.rs) | CSV 另存为对话框，校验建议文件名与 8 MiB 内容上限，仅向用户选择的普通 CSV 文件原子写入 |
 | [game.rs](../src-tauri/src/game.rs) | 限定同目录 EXE、组合参数数组、调用环境检查，以游戏根目录为工作目录启动进程 |
 | [scripts.rs](../src-tauri/src/scripts.rs) | 固定来源 Lua 检查下载、客户端识别、进程检查、冲突检查、清单与事务恢复 |
 | [environment.rs](../src-tauri/src/environment.rs) | 离线 1103 资源校验、备份安装、启动时同步语言与服务器、恢复原环境 |
@@ -101,6 +105,8 @@ flowchart TB
 `get_settings`、`save_settings`、`reset_settings`、`set_language` 管理配置；`api_request` 管理数据请求；`launch_game`、`save_and_open`、`open_saved` 管理启动和下载；`script_state`、`update_scripts`、`restore_scripts` 管理脚本；`environment_state`、`install_environment`、`restore_environment` 管理资源；`check_desktop_update`、`open_external` 管理版本检查和外部链接。
 
 本地页面只通过这些命令使用本地能力。Rust 不提供任意 shell 命令、任意文件路径写入或任意 API 路由入口。外部 HTTP/HTTPS 链接交给系统浏览器。权限配置见 [capabilities/default.json](../src-tauri/capabilities/default.json)，实际 CSP 见 [tauri.conf.json](../src-tauri/tauri.conf.json)。当前 CSP 的 `script-src` 和 `style-src` 含 `unsafe-inline`；构建器另行拒绝 HTML 和 HTML 字符串中的内联事件属性，因此不能把“构建时禁止内联事件”描述成“运行时 CSP 禁止全部内联脚本”。
+
+新增 `save_csv` 只接收建议文件名和前端生成的 CSV；目标路径由 Windows 原生保存对话框确定，取消返回空，不自动启动表格软件。`stats-export.js` 复用网页导出逻辑；`self-query.js` 从桥接设置读取已保存昵称，排行只传昵称，战绩把密码分离后通过 POST 发送，跳转只带 `self=1`。
 
 ## 4. 关键调用与数据流
 
@@ -265,7 +271,7 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TB
-    WebSource["web-source 八页、site-shell.js、common.css"] --> Prepare[scripts/prepare-pages.mjs]
+    WebSource["web-source 八页、公共外壳、CSV/私有统计/计分说明/自身查询脚本"] --> Prepare[scripts/prepare-pages.mjs]
     Settings[根目录 settings.html] --> Prepare
     Prepare --> Public["public 页面与 assets/pages 脚本<br/>生成静态色阶 CSS，拒绝内联事件"]
     Bridge[src/desktop-bridge.ts] --> Esbuild[esbuild IIFE 打包]
@@ -316,3 +322,14 @@ flowchart TB
 | 构建与发行 | `package.json`、Tauri 配置、打包脚本和 CI | 三处版本一致、ZIP 相对目录、用户数据保留 |
 
 涉及本地文件的功能用受控游戏副本验证，并按 DESIGN 的验收表记录游戏构建和结果。纯文档更新检查链接和 Markdown 即可。当前架构说明覆盖本项目运行和维护关系；全新服务器迁移、数据库和服务端录像恢复属于独立的运维评估，本文不作已验证承诺。
+
+## 9. 架构影响与图文同步
+
+每次改动判断是否改变模块职责/依赖、WebView/Rust/游戏进程或信任边界、命令与调用顺序、
+文件/配置所有权、安装事务与恢复、资源来源或构建/发布链路。任一关系变化时，
+在同一交付中更新本文对应 Mermaid 图、源码入口和说明，以及实际变化的 DESIGN 行为契约。
+涉及服务端 API 或页面/资源快照时一起核对来源和消费者，区分已实现与尚待游戏实测。
+
+文案、样式、示例内容及保持上述关系的局部修复，图仍准确时保留；README、DESIGN 或本文
+已合理覆盖行为时无需重复修改。交付说明影响判断和更新/保留的图；文档检查链接、图语法与 diff，
+功能验证按 DESIGN 的受影响验收项选择，不以文档更新代替 Windows 或真实游戏验收。

@@ -114,7 +114,9 @@ mod tests {
         assert!(write(&directory.join("report.exe"), "a,b\r\n").is_err());
         let file = directory.join("report.csv");
         write(&file, "\u{feff}名称,胜率\r\n测试,50%\r\n").unwrap();
-        assert!(std::fs::read_to_string(file).unwrap().starts_with('\u{feff}'));
+        assert!(std::fs::read_to_string(file)
+            .unwrap()
+            .starts_with('\u{feff}'));
         std::fs::remove_dir_all(directory).unwrap();
     }
 }

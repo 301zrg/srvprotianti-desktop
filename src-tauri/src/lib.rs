@@ -2,9 +2,9 @@ mod api;
 mod downloads;
 mod environment;
 mod game;
-mod reports;
 #[cfg(windows)]
 mod instance;
+mod reports;
 mod scripts;
 mod settings;
 mod updater;
