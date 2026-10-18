@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>游戏王OCG201103天梯服务器 录像下载</title>
-<link rel="stylesheet" href="/assets/common.css">
+<link rel="stylesheet" href="/assets/common.css?v=20261019">
 <style>
   @media (max-width: 640px) {
     #searchInput { width: 100% !important; margin-left: 0 !important; }
@@ -34,7 +34,7 @@
   <button id="refreshButton" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; margin-left:16px; cursor:pointer;" data-i18n="refresh_page">刷新本页</button>
 </div>
 <div class="hint" data-i18n="hint">页面不会自动刷新,请点击「刷新本页」获取最新录像。每页 20 条。当前只保存天梯(TT)模式的对局录像。文件名为"时间 玩家1 VS 玩家2.yrp"。</div>
-<script src="/assets/site-shell.js"></script>
+<script src="/assets/site-shell.js?v=20261019"></script>
 <script>
 var I18N = {
   zh: {
@@ -76,10 +76,12 @@ var I18N = {
 };
 var lang = SrvproWeb.getLanguage();
 function t(key) { return SrvproWeb.t(I18N, key); }
-let currentPage = 1;
+var replayQuery=new URLSearchParams(location.search);
+let currentPage = Math.max(1,Number(replayQuery.get('page'))||1);
 const pageSize = 20;
-let searchKeyword = '';
-let deckTypeId = '';
+let searchKeyword = replayQuery.get('search') || '';
+document.getElementById('searchInput').value=searchKeyword;
+let deckTypeId = replayQuery.get('deckTypeId') || '';
 let deckTypes = [];
 function localName(names) { return names && (names[lang] || names.zh) || '-'; }
 function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -150,6 +152,10 @@ function downloadDeck(replayName, duelCount, player) {
   }
 }
 async function refresh() {
+  var share=new URL(location.href);
+  if(searchKeyword)share.searchParams.set('search',searchKeyword);else share.searchParams.delete('search');
+  if(deckTypeId)share.searchParams.set('deckTypeId',deckTypeId);else share.searchParams.delete('deckTypeId');
+  share.searchParams.set('page',currentPage);history.replaceState(null,'',share);
   try {
     const res = await fetch('/api/public/replays?page=' + currentPage + '&pageSize=' + pageSize + '&search=' + encodeURIComponent(searchKeyword) + '&deckTypeId=' + encodeURIComponent(deckTypeId) + '&t=' + Date.now());
     const data = await res.json();

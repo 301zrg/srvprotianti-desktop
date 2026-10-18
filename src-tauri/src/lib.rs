@@ -2,6 +2,7 @@ mod api;
 mod downloads;
 mod environment;
 mod game;
+mod reports;
 #[cfg(windows)]
 mod instance;
 mod scripts;
@@ -80,6 +81,28 @@ fn set_language(state: State<'_, AppState>, language: String) -> Result<(), Stri
     let mut settings = settings::load(&state.root)?;
     settings.ui.language = language;
     settings::save(&state.root, &settings).map(|_| ())
+}
+
+#[tauri::command]
+fn save_csv(
+    window: tauri::WebviewWindow,
+    state: State<'_, AppState>,
+    filename: String,
+    contents: String,
+) -> Result<Option<String>, String> {
+    let _guard = state
+        .file_lock
+        .lock()
+        .map_err(|_| "File action lock is unavailable")?;
+    let language = settings::load(&state.root)?.ui.language;
+    #[cfg(windows)]
+    let owner = window.hwnd().map_err(|error| error.to_string())?.0 as isize;
+    #[cfg(not(windows))]
+    let owner = {
+        let _ = window;
+        0
+    };
+    reports::save(owner, &filename, &contents, &language)
 }
 
 #[tauri::command]
@@ -258,6 +281,7 @@ pub fn run() {
             reset_settings,
             set_language,
             api_request,
+            save_csv,
             launch_game,
             save_and_open,
             open_saved,

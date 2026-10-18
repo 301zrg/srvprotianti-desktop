@@ -16,6 +16,7 @@ type ApiResponse = { status: number; contentType: string; bodyBase64: string };
 type SaveOutcome = { filename: string; savedPath: string; launchError: string | null };
 type DesktopUpdate = { currentVersion: string; latestVersion: string; updateAvailable: boolean; downloadUrl: string | null };
 type DesktopBridge = {
+  saveCsv(filename: string, contents: string): Promise<string | null>;
   settings(): Promise<Settings>;
   saveSettings(settings: Settings): Promise<Settings>;
   resetSettings(): Promise<Settings>;
@@ -502,6 +503,7 @@ async function openRoom(room: Record<string, unknown>, kind: 'join' | 'watch'): 
 }
 
 window.SrvproDesktop = {
+  saveCsv: (filename, contents) => invoke<string | null>('save_csv', { filename, contents }),
   settings: async () => cachedSettings || await settingsPromise,
   async saveSettings(settings) {
     const saved = await invoke<Settings>('save_settings', { settings });

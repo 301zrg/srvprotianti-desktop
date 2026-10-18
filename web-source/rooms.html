@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>游戏王OCG201103天梯服务器 房间列表</title>
-<link rel="stylesheet" href="/assets/common.css">
+<link rel="stylesheet" href="/assets/common.css?v=20261019">
 <style>
   .stats { display: flex; gap: 24px; margin: 10px 0 16px; font-size: 14px; flex-wrap: wrap; }
   .stats b { color: #7ec4ff; font-size: 20px; }
@@ -35,7 +35,7 @@
 </table>
 </div>
 <div class="hint" data-i18n="hint">页面不会自动刷新,请点击「手动刷新」或按 F5 查看最新房间。房名中的密码部分不会显示。</div>
-<script src="/assets/site-shell.js"></script>
+<script src="/assets/site-shell.js?v=20261019"></script>
 <script>
 var I18N = {
   zh: {
@@ -111,18 +111,23 @@ async function refresh() {
     for (const r of rooms) {
       const isPlaying = r.istart !== 'wait';
       if (isPlaying) playing++;
-      const names = (r.users || []).map(u => u.name).join('、') || '(' + t('waiting') + ')';
+      const names = (r.users || []).map(function (u) {
+        const name = String(u.name || '').split('$')[0];
+        if (!name || /\*{3,}/.test(name)) return escapeHtml(name);
+        return '<a class="inline-link" href="/player-stats.html?player=' + encodeURIComponent(name) +
+          (lang === 'zh' ? '' : '&L=' + encodeURIComponent(lang)) + '">' + escapeHtml(name) + '</a>';
+      }).join('、') || '(' + escapeHtml(t('waiting')) + ')';
       players += (r.users || []).length;
       const tr = document.createElement('tr');
       const roomName = r.roomname ? r.roomname.split('$')[0] : ('#' + r.roomid);
       const type = roomTypeKey(r);
       const dispType = friendlyName(r, type);
       const isLadder = type === 'ladder_match';
-      const playersCell = (r.istart !== 'wait' || !isLadder) ? names : t('waiting_match');
+      const playersCell = (r.istart !== 'wait' || !isLadder) ? names : escapeHtml(t('waiting_match'));
       tr.innerHTML = '<td class="room-name">' + escapeHtml(roomName) + '</td>' +
         '<td>' + escapeHtml(dispType) + '</td>' +
         '<td>' + modeName(r.roommode) + '</td>' +
-        '<td>' + escapeHtml(playersCell) + '</td>' +
+        '<td>' + playersCell + '</td>' +
         '<td class="' + (isPlaying ? 'playing' : 'waiting') + '">' + escapeHtml(r.istart) + '</td>';
       const actionButton = document.createElement('button');
       const hasName = typeof r.roomname === 'string' && r.roomname.length > 0;

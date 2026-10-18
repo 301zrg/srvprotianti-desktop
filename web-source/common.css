@@ -184,3 +184,11 @@ th {
   .lbtn-main { padding: 7px 12px; font-size: 13px; }
   th, td { padding: 6px 8px; }
 }
+
+.rating-rules { color:#ffd875; background:#302a20; border-left:3px solid #f0c27a; padding:10px 12px; line-height:1.7; font-size:13px; }
+.rating-rules[hidden] { display:none; }
+.csv-status { overflow-wrap:anywhere; flex-basis:100%; }
+.private-stat-heading { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.private-stat-heading h2 { margin:0; }
+.private-duel-stats .web-controls { margin-top:14px; }
+.feature-placeholder { font-size:12px; }

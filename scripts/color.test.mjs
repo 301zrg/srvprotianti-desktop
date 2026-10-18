@@ -23,12 +23,17 @@ test('desktop rate classes retain the website gradient and readable values', () 
   assert.equal(web.SrvproWeb.semanticClass(1), 'desktop-positive');
   assert.equal(web.SrvproWeb.semanticClass(-1), 'desktop-negative');
   assert.equal(web.SrvproWeb.semanticClass(0), 'desktop-rate-50');
+  assert.equal(web.SrvproWeb.deckRateClass(25), web.SrvproWeb.rateClass(0));
+  assert.equal(web.SrvproWeb.deckRateClass(75), web.SrvproWeb.rateClass(100));
+  assert.equal(web.SrvproWeb.deckRateColor(25), web.SrvproWeb.rateColor(0));
+  assert.equal(web.SrvproWeb.deckRateColor(75), web.SrvproWeb.rateColor(100));
 });
 
 test('all four statistics pages use stylesheet classes for variable colors', () => {
   for (const page of ['deck-stats', 'deck-detail', 'ladder', 'player-stats']) {
     const script = readFileSync('dist/assets/pages/' + page + '-1.js', 'utf8');
-    assert.ok(script.includes('SrvproWeb.rateClass('), page + ' omits rate classes');
+    const method = ['deck-stats', 'deck-detail'].includes(page) ? 'deckRateClass' : 'rateClass';
+    assert.ok(script.includes('SrvproWeb.' + method + '('), page + ' omits rate classes');
     assert.ok(!script.includes('style="color:'), page + ' still uses inline text colors');
   }
 });
