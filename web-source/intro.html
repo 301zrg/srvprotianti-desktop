@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>游戏王OCG201103天梯服务器 使用介绍</title>
-<link rel="stylesheet" href="/assets/common.css">
+<link rel="stylesheet" href="/assets/common.css?v=20261019-review2">
 <style>
   .deck-section { margin-top: 28px; }
   .deck-group { margin: 18px 0; }
@@ -28,7 +28,7 @@
     <h2 data-i18n="server_intro_title">服务器介绍：</h2>
     <p data-i18n="server_intro_pool">本服务器适用于游戏王OCG 201103 Nexus环境，禁限卡表使用2011年3月禁卡表，卡池使用2011年8月31日及之前OCG发行的所有卡片，不额外规制“<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血之代偿(80604091)</a>”</p>
     <p data-i18n="server_intro_srvpro">本服务器基于<a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>代码搭建，在此特别感谢srvpro的开发者</p>
-    <p data-i18n="server_intro_ladder">天梯模式由<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>在srvpro的基础上开发，源码位于<a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a></p>
+    <p data-i18n="server_intro_ladder">天梯模式由<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>在srvpro的基础上开发，源码位于<a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a></p>
     <p data-i18n="server_intro_ai">本服务器代码开发过程中大量使用AI，非中文内容均由AI翻译</p>
     <p data-i18n="server_intro_reconnect">本服务器现在支持掉线重连但不支持云录像</p>
     <p data-i18n="server_intro_qq">服务器QQ群：<button type="button" onclick="copyContent('749717894')">749717894</button>（点击群号复制）。点击<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>加入。</p>
@@ -37,7 +37,7 @@
     <p data-i18n="download_ygopro">原版 YGOPro：<a href="https://ygopro.ysepan.com/" target="_blank" rel="noopener">网盘下载</a>，或者<a href="https://mycard.moe/" target="_blank" rel="noopener">使用 MyCard 下载（推荐）</a>。</p>
     <p data-i18n="download_koishi">KoishiPro：<a href="https://koishi.pro/download/" target="_blank" rel="noopener">官网下载</a>。</p>
     <p data-i18n="download_bundle">整合压缩包：<a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">网盘下载</a>（整合好的KoishiPro，下载即玩）。</p>
-    <p data-i18n="download_desktop">706 天梯桌面助手：<a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">下载最新 Windows ZIP</a>，解压到游戏根目录。支持一键匹配、一键下载录像或卡组并打开、一键下载卡池并还原、一键下载旧裁定脚本。</p>
+    <p data-i18n="download_desktop">706 天梯桌面助手：<a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">下载最新 Windows ZIP</a>，解压到游戏根目录。支持一键匹配、一键下载录像或卡组并打开、一键下载卡池并还原、一键下载旧裁定脚本。 本项目为开源项目，源码：<a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>。</p>
     <h2 data-i18n="notice_title">注意事项：</h2>
     <ul class="notice-box">
       <li data-i18n="ads_notice">ads gateball server使用的ads客户端版本过于老旧，本服务器已经不再支持，请下载一个最新版本的ads客户端或者使用上面的下载链接</li>
@@ -51,13 +51,14 @@
     <h3 data-i18n="title4">天梯模式：</h3>
     <p data-i18n="content2">点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent('121.4.34.71')">121.4.34.71</button>，第二个填<button onclick="copyContent('7911')">7911</button>，一个输入框填<button onclick="copyContent('121.4.34.71:7911')">121.4.34.71:7911</button>->昵称输入用户名$密码，若该用户名未注册则自动注册且密码自动设置为本次输入的密码，若已注册则密码正确可连接，否则不能连接->房间密码只输入<button onclick="copyContent('TT')">TT</button>，可参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">点击这里</a> ->点加入游戏，不要点建立主机</p>
     <p data-i18n="content_ladder_tip">在聊天框内输入/tip获得提示，输入/zh切换为中文，此方法也可判断你是否疑似掉线</p>
+    <p class="rating-rules" data-rating-rules hidden></p>
     <p data-i18n="content3">天梯模式目前按总等级分排序</p>
 </div>
 <section class="deck-section" aria-labelledby="deckTitle">
   <h2 id="deckTitle" data-i18n="deck_title">示例卡组</h2>
   <div id="deckGroups"></div>
 </section>
-<script src="/assets/site-shell.js"></script>
+<script src="/assets/site-shell.js?v=20261019"></script><script src="/assets/rating-rules.js?v=20261019"></script>
 <script>
 var I18N = {
   zh: {
@@ -67,7 +68,7 @@ var I18N = {
     title0: '下载地址：', title1: '连接方式：', title3: '常规联机模式：', title4: '天梯模式：', deck_title: '示例卡组', deck_load_fail: '示例卡组配置加载失败',
     server_intro_pool: '本服务器适用于游戏王OCG 201103 Nexus环境，禁限卡表使用2011年3月禁卡表，卡池使用2011年8月31日及之前OCG发行的所有卡片，不额外规制“<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血之代偿(80604091)</a>”',
     server_intro_srvpro: '本服务器基于<a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>代码搭建，在此特别感谢srvpro的开发者',
-    server_intro_ladder: '天梯模式由<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>在srvpro的基础上开发，源码位于<a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>',
+    server_intro_ladder: '天梯模式由<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>在srvpro的基础上开发，源码位于<a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>',
     server_intro_ai: '本服务器代码开发过程中大量使用AI，非中文内容均由AI翻译',
     server_intro_reconnect: '本服务器现在支持掉线重连但不支持云录像',
     server_intro_qq: '服务器QQ群：<button type="button" onclick="copyContent(\'749717894\')">749717894</button>（点击群号复制）。点击<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>加入。',
@@ -79,7 +80,7 @@ var I18N = {
     download_ygopro: '原版 YGOPro：<a href="https://ygopro.ysepan.com/" target="_blank" rel="noopener">网盘下载</a>，或者<a href="https://mycard.moe/" target="_blank" rel="noopener">使用 MyCard 下载（推荐）</a>。',
     download_koishi: 'KoishiPro：<a href="https://koishi.pro/download/" target="_blank" rel="noopener">官网下载</a>。',
     download_bundle: '整合压缩包：<a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">网盘下载</a>（整合好的KoishiPro，下载即玩）。',
-    download_desktop: '706 天梯桌面助手：<a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">下载最新 Windows ZIP</a>，解压到游戏根目录。支持一键匹配、一键下载录像或卡组并打开、一键下载卡池并还原、一键下载旧裁定脚本。',
+    download_desktop: '706 天梯桌面助手：<a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">下载最新 Windows ZIP</a>，解压到游戏根目录。支持一键匹配、一键下载录像或卡组并打开、一键下载卡池并还原、一键下载旧裁定脚本。 本项目为开源项目，源码：<a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>.',
     content1: '点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>，第二个填<button onclick="copyContent(\'7911\')">7911</button>，一个输入框填<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>->昵称输入用户名->房间密码含义参考：<a href="https://ygo233.com/usage" target="_blank">点击这里</a>->点加入游戏，不要点建立主机',
     content2: '点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>，第二个填<button onclick="copyContent(\'7911\')">7911</button>，一个输入框填<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>->昵称输入用户名$密码，若该用户名未注册则自动注册且密码自动设置为本次输入的密码，若已注册则密码正确可连接，否则不能连接->房间密码只输入<button onclick="copyContent(\'TT\')">TT</button>，可参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">点击这里</a> ->点加入游戏，不要点建立主机',
     content_ladder_tip: '在聊天框内输入/tip获得提示，输入/zh切换为中文，此方法也可判断你是否疑似掉线',
@@ -92,7 +93,7 @@ var I18N = {
     title0: 'ダウンロードリンク：', title1: '接続方法：', title3: '通常接続モード：', title4: 'ランキングモード：', deck_title: 'サンプルデッキ', deck_load_fail: 'サンプルデッキ設定を読み込めません',
     server_intro_pool: '本サーバーは遊戯王OCG 201103 Nexus環境向けです。2011年3月制限改訂を使用し、カードプールは2011年8月31日までにOCGで発売された全カードです。「<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">血の代償(80604091)</a>」に独自の追加規制は設けません。',
     server_intro_srvpro: '本サーバーは<a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>をもとに構築されています。srvproの開発者の皆様に深く感謝いたします。',
-    server_intro_ladder: 'ランキングモードは<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>がsrvproをもとに開発しました。ソースコードは<a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>にあります。',
+    server_intro_ladder: 'ランキングモードは<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>がsrvproをもとに開発しました。ソースコードは<a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>にあります。',
     server_intro_ai: '本サーバーのコード開発ではAIを多用しており、中国語以外の内容はすべてAIによる翻訳です。',
     server_intro_reconnect: '本サーバーは現在、切断後の再接続に対応していますが、クラウドリプレイには対応していません。',
     server_intro_qq: 'サーバーのQQグループ：<button type="button" onclick="copyContent(\'749717894\')">749717894</button>（番号をクリックするとコピーできます）。<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>から参加できます。',
@@ -104,7 +105,7 @@ var I18N = {
     download_ygopro: 'オリジナル版 YGOPro：<a href="https://ygopro.ysepan.com/" target="_blank" rel="noopener">配布サイト</a>、または<a href="https://mycard.moe/" target="_blank" rel="noopener">MyCard からダウンロード（推奨）</a>。',
     download_koishi: 'KoishiPro：<a href="https://koishi.pro/download/" target="_blank" rel="noopener">公式サイトからダウンロード</a>。',
     download_bundle: '統合 ZIP：<a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">配布リンク</a>（設定済みの KoishiPro。ダウンロード後すぐにプレイできます）。',
-    download_desktop: '706 ラダー デスクトップアシスタント：<a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">最新の Windows ZIP をダウンロード</a>し、ゲームのルートに展開してください。ワンクリックでマッチング、リプレイやデッキのダウンロードと起動、カードプールの導入と復元、旧裁定スクリプトのダウンロードができます。',
+    download_desktop: '706 ラダー デスクトップアシスタント：<a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">最新の Windows ZIP をダウンロード</a>し、ゲームのルートに展開してください。ワンクリックでマッチング、リプレイやデッキのダウンロードと起動、カードプールの導入と復元、旧裁定スクリプトのダウンロードができます。 本プロジェクトはオープンソースです。ソース：<a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>.',
     content1: 'オンラインモードボタンをクリック->ホスト情報：2つの入力ボックスがある場合、1つ目に<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>、2つ目に<button onclick="copyContent(\'7911\')">7911</button>を入力。1つの入力ボックスの場合は<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>を入力->ニックネームにユーザー名を入力->ルームパスワードの意味は<a href="https://ygo233.com/usage" target="_blank">こちら</a>を参照->「ゲームに参加」をクリック。「ホストを作成」はクリックしないでください',
     content2: 'オンラインモードボタンをクリック->ホスト情報：2つの入力ボックスがある場合、1つ目に<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>、2つ目に<button onclick="copyContent(\'7911\')">7911</button>を入力。1つの入力ボックスの場合は<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>を入力->ニックネームに「ユーザー名$パスワード」を入力。ユーザー名が未登録の場合は自動登録され、今回入力したパスワードが設定されます。既に登録されている場合はパスワードが正しい場合のみ接続可能->ルームパスワードは<button onclick="copyContent(\'TT\')">TT</button>のみを入力。参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">こちら</a> ->「ゲームに参加」をクリック。「ホストを作成」はクリックしないでください',
     content_ladder_tip: 'チャット欄に/tipと入力するとヒントを表示し、/jaと入力すると日本語に切り替わります。これらのコマンドへの応答は、切断している可能性がないか判断する目安にもなります。',
@@ -117,7 +118,7 @@ var I18N = {
     title0: 'Download Link:', title1: 'Connection Method:', title3: 'Regular Connection Mode:', title4: 'Ladder Mode:', deck_title: 'Example Decks', deck_load_fail: 'Failed to load example deck configuration',
     server_intro_pool: 'This server is intended for the Yu-Gi-Oh! OCG 201103 Nexus environment. It uses the March 2011 Forbidden & Limited List and all OCG cards released on or before August 31, 2011. No additional restriction is applied to “<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">Ultimate Offering (80604091)</a>”.',
     server_intro_srvpro: 'This server is built on <a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a>. Special thanks to the srvpro developers.',
-    server_intro_ladder: 'The ladder mode was developed by <a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a> on top of srvpro. Its source code is available at <a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>.',
+    server_intro_ladder: 'The ladder mode was developed by <a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a> on top of srvpro. Its source code is available at <a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>.',
     server_intro_ai: 'AI was used extensively while developing this server. All non-Chinese content was translated by AI.',
     server_intro_reconnect: 'This server now supports reconnection after a disconnect, but does not support cloud replays.',
     server_intro_qq: 'Server QQ group: <button type="button" onclick="copyContent(\'749717894\')">749717894</button> (click the number to copy it). Join <a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>.',
@@ -129,7 +130,7 @@ var I18N = {
     download_ygopro: 'Original YGOPro: <a href="https://ygopro.ysepan.com/" target="_blank" rel="noopener">download site</a>, or <a href="https://mycard.moe/" target="_blank" rel="noopener">download via MyCard (recommended)</a>.',
     download_koishi: 'KoishiPro: <a href="https://koishi.pro/download/" target="_blank" rel="noopener">official download</a>.',
     download_bundle: 'Integrated ZIP: <a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">download</a> (ready-to-play KoishiPro).',
-    download_desktop: '706 Ladder Desktop Assistant: <a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">download the latest Windows ZIP</a> and extract it into the game root. Supports one-click matchmaking, downloading and opening replays or decks, installing and restoring the card pool, and downloading old-ruling scripts.',
+    download_desktop: '706 Ladder Desktop Assistant: <a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">download the latest Windows ZIP</a> and extract it into the game root. Supports one-click matchmaking, downloading and opening replays or decks, installing and restoring the card pool, and downloading old-ruling scripts. This project is open source. Source: <a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>.',
     content1: 'Click the online mode button -> Host Information: If there are two input boxes, enter <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button> in the first and <button onclick="copyContent(\'7911\')">7911</button> in the second. If there is one input box, enter <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button> -> Enter your username as nickname -> For room password meaning, refer to: <a href="https://ygo233.com/usage" target="_blank">Click here</a> -> Click "Join Game", do not click "Create Host"',
     content2: 'Click the online mode button -> Host Information: If there are two input boxes, enter <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button> in the first and <button onclick="copyContent(\'7911\')">7911</button> in the second. If there is one input box, enter <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button> -> Enter "username$password" as nickname. If the username is not registered, it will be automatically registered with the password you entered. If already registered, you can only connect if the password is correct -> Enter only <button onclick="copyContent(\'TT\')">TT</button> as the room password. Reference: <a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">Click here</a> -> Click "Join Game", do not click "Create Host"',
     content_ladder_tip: 'Enter /tip in the chat box to get a tip, or enter /en to switch to English. A response to either command can also help you tell whether you may have disconnected.',
@@ -142,7 +143,7 @@ var I18N = {
     title0: '다운로드 링크：', title1: '연결 방법：', title3: '일반 연결 모드：', title4: '랭킹 모드：', deck_title: '예시 덱', deck_load_fail: '예시 덱 설정을 불러오지 못했습니다',
     server_intro_pool: '본 서버는 유희왕 OCG 201103 Nexus 환경용입니다. 2011년 3월 금지·제한 목록을 사용하며, 카드 풀은 2011년 8월 31일까지 OCG로 발매된 모든 카드입니다. “<a href="https://ygocdb.com/card/80604091" target="_blank" rel="noopener">희생의 제물(80604091)</a>”에는 별도의 추가 규제를 적용하지 않습니다.',
     server_intro_srvpro: '본 서버는 <a href="https://github.com/mycard/srvpro" target="_blank" rel="noopener">srvpro</a> 코드를 기반으로 구축되었습니다. srvpro 개발자 여러분께 특별히 감사드립니다.',
-    server_intro_ladder: '랭킹 모드는 <a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>가 srvpro를 기반으로 개발했습니다. 소스 코드는 <a href="https://github.com/LREIMU111/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>에 있습니다.',
+    server_intro_ladder: '랭킹 모드는 <a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>가 srvpro를 기반으로 개발했습니다. 소스 코드는 <a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>에 있습니다.',
     server_intro_ai: '본 서버의 코드 개발 과정에서 AI를 많이 사용했으며, 중국어 이외의 내용은 모두 AI로 번역했습니다.',
     server_intro_reconnect: '본 서버는 현재 접속 종료 후 재접속을 지원하지만 클라우드 리플레이는 지원하지 않습니다.',
     server_intro_qq: '서버 QQ 그룹: <button type="button" onclick="copyContent(\'749717894\')">749717894</button> (번호를 클릭하면 복사됩니다). <a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>에 가입하세요.',
@@ -154,7 +155,7 @@ var I18N = {
     download_ygopro: '원본 YGOPro: <a href="https://ygopro.ysepan.com/" target="_blank" rel="noopener">배포 사이트</a> 또는 <a href="https://mycard.moe/" target="_blank" rel="noopener">MyCard에서 다운로드(권장)</a>.',
     download_koishi: 'KoishiPro: <a href="https://koishi.pro/download/" target="_blank" rel="noopener">공식 다운로드</a>.',
     download_bundle: '통합 ZIP: <a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">다운로드</a> (설정이 완료된 KoishiPro, 다운로드 후 바로 플레이할 수 있습니다).',
-    download_desktop: '706 래더 데스크톱 도우미: <a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">최신 Windows ZIP 다운로드</a> 후 게임 루트에 압축을 푸세요. 원클릭 매칭, 리플레이 또는 덱 다운로드 후 열기, 카드 풀 설치 및 복원, 옛 재정 스크립트 다운로드를 지원합니다.',
+    download_desktop: '706 래더 데스크톱 도우미: <a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">최신 Windows ZIP 다운로드</a> 후 게임 루트에 압축을 푸세요. 원클릭 매칭, 리플레이 또는 덱 다운로드 후 열기, 카드 풀 설치 및 복원, 옛 재정 스크립트 다운로드를 지원합니다. 이 프로젝트는 오픈 소스입니다. 소스: <a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>.',
     content1: '온라인 모드 버튼 클릭 -> 호스트 정보: 입력창이 두 개인 경우 첫 번째에 <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>을, 두 번째에 <button onclick="copyContent(\'7911\')">7911</button>을 입력. 입력창이 하나인 경우 <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>을 입력 -> 닉네임에 사용자명 입력 -> 방 비밀번호 의미는 <a href="https://ygo233.com/usage" target="_blank">여기</a> 참조 -> "게임 참가" 클릭. "호스트 만들기"는 클릭하지 마세요',
     content2: '온라인 모드 버튼 클릭 -> 호스트 정보: 입력창이 두 개인 경우 첫 번째에 <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>을, 두 번째에 <button onclick="copyContent(\'7911\')">7911</button>을 입력. 입력창이 하나인 경우 <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>을 입력 -> 닉네임에 "사용자명$비밀번호"를 입력. 사용자명이 미등록인 경우 자동 등록되며 이번에 입력한 비밀번호가 설정됩니다. 이미 등록된 경우 비밀번호가 맞아야만 연결 가능 -> 방 비밀번호는 <button onclick="copyContent(\'TT\')">TT</button>만 입력. 참고: <a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">여기</a> -> "게임 참가" 클릭. "호스트 만들기"는 클릭하지 마세요',
     content_ladder_tip: '채팅창에 /tip을 입력하면 도움말을 볼 수 있고, /ko를 입력하면 한국어로 전환됩니다. 이 명령에 응답이 오는지를 통해 접속이 끊어진 것으로 의심되는지 판단할 수도 있습니다.',

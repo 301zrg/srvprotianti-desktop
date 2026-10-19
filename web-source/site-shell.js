@@ -198,6 +198,7 @@
     renderShell();
     translatePage();
     if (notify && typeof options.onLanguageChange === 'function') options.onLanguageChange(language);
+    if (typeof global.CustomEvent === 'function') document.dispatchEvent(new global.CustomEvent('srvpro-language-change'));
   }
 
   function setLanguage(code) {
@@ -229,7 +230,9 @@
       options = configuration || {};
       applyLanguage(false);
     },
+    deckRateColor: function(rate) { return rateColor(50 + (Number(rate) - 50) * 2); },
     rateColor: rateColor,
+    deckRateClass: function(rate) { return rateClass(50 + (Number(rate) - 50) * 2); },
     rateClass: rateClass,
     semanticClass: semanticClass,
     semanticColor: function (value) {

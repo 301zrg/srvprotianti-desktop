@@ -13,6 +13,9 @@ const pages = [
 
 await mkdir(pageScriptRoot, { recursive: true });
 await copyFile(path.join(source, 'site-shell.js'), path.join(assetRoot, 'site-shell.js'));
+for (const name of ['stats-export', 'stats-workbook', 'exceljs-4.4.0.min', 'player-duel-stats', 'rating-rules', 'self-query']) {
+  await copyFile(path.join(source, name + '.js'), path.join(assetRoot, name + '.js'));
+}
 const neutral = [220, 230, 240];
 function mixColor(start, end, amount) {
   return 'rgb(' + start.map((part, index) => Math.round(part + (end[index] - part) * amount)).join(',') + ')';
@@ -116,8 +119,8 @@ for (const page of pages) {
     );
   }
   html = html.replace(
-    '<script src="/assets/site-shell.js"></script>',
-    '<script src="/assets/desktop-bridge.js"></script>\n<script src="/assets/site-shell.js"></script>'
+    /(<script src="\/assets\/site-shell\.js(?:\?[^"<>]*)?"><\/script>)/,
+    '<script src="/assets/desktop-bridge.js"></script>\n$1'
   );
   const inlineScripts = [];
   html = html.replace(/<script>([\s\S]*?)<\/script>/g, (_, code) => {

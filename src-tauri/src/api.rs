@@ -59,7 +59,9 @@ fn permitted(method: &str, route: &str) -> bool {
             && name.to_ascii_lowercase().ends_with(".ydk");
     }
     match (method, pathname) {
-        ("POST", "/api/ladder/player" | "/api/ladder/player/deck") => true,
+        ("POST", "/api/ladder/player" | "/api/ladder/player/deck" | "/api/ladder/player/stats") => {
+            true
+        }
         (
             "GET",
             "/api/public/rooms"

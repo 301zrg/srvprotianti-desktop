@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>游戏王OCG201103天梯服务器 卡组胜率</title>
-  <link rel="stylesheet" href="/assets/common.css">
+  <link rel="stylesheet" href="/assets/common.css?v=20261019">
   <style>
     .controls, .tabs { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:14px 0; }
     label { font-size:13px; color:#9db8d0; }
@@ -78,7 +78,7 @@
   </div>
   <!-- 自定义 tooltip -->
   <div id="customTip" class="custom-tip"></div>
-<script src="/assets/site-shell.js"></script>
+<script src="/assets/site-shell.js?v=20261019"></script><script src="/assets/stats-export.js?v=20261019-xlsx"></script>
 <script>
 var I18N={
   zh:{
@@ -135,7 +135,7 @@ var lang=SrvproWeb.getLanguage(), data=null, metric=initialMetric<0?0:initialMet
 var selectedMonth=normalizeMonthKey(q.get('month'))||currentMonthKey();
 
 function t(k){return SrvproWeb.t(I18N,k);}
-function currentMonthKey(){var n=new Date();return n.getFullYear()+String(n.getMonth()+1).padStart(2,'0');}
+function currentMonthKey(){var parts={};new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit'}).formatToParts(new Date()).forEach(function(item){parts[item.type]=item.value;});return parts.year+parts.month;}
 function normalizeMonthKey(value){return /^\d{4}(0[1-9]|1[0-2])$/.test(String(value||''))?String(value):'';}
 function syncViewParams(){
   var u=new URL(location.href);
@@ -158,7 +158,7 @@ function months(){
   if(selectedMonth&&!a.includes(selectedMonth))a.unshift(selectedMonth);
   monthSelect.innerHTML=a.map(function(m){return '<option value="'+m+'">'+m.slice(0,4)+'-'+m.slice(4)+'</option>';}).join('');
   monthSelect.value=selectedMonth;
-  monthSelect.onchange=function(){selectedMonth=monthSelect.value;syncViewParams();};
+  monthSelect.onchange=function(){selectedMonth=monthSelect.value;syncViewParams();loadStats();};
 }
 
 function setMetric(i){
@@ -180,7 +180,7 @@ function value(item){
   var rateStr = rate.toFixed(2) + '%';
   // 用 data-* 存储胜场和总场，方便 tooltip 读取
   var winRateStr = w + '/' + n;
-  return '<span class="val-colored '+SrvproWeb.rateClass(rate)+'" data-tip="'+winRateStr+'">'+rateStr+'</span>';
+  return '<span class="val-colored '+SrvproWeb.deckRateClass(rate)+'" data-tip="'+winRateStr+'">'+rateStr+'</span>';
 }
 
 function render(){
@@ -271,6 +271,7 @@ async function loadStats(){
   document.getElementById('summary').textContent=t('loading');
   try{
     var r=await fetch('/api/ladder-deck-stats?month='+encodeURIComponent(monthSelect.value));
+    if(!r.ok)throw Error(r.status);
     data=await r.json();
     document.getElementById('summary').textContent=t('summary').replace('%n%',data.decks?data.decks.length:0).replace('%m%',monthSelect.value);
     render();
@@ -293,6 +294,7 @@ SrvproWeb.init({
 });
 applyPageLanguage();
 loadStats();
+SrvproStatsExport.mount('matrix',function(){return {data:data,month:monthSelect.value};});
 </script>
 </body>
 </html>
