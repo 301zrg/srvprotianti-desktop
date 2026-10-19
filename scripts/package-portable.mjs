@@ -6,6 +6,11 @@ const executable = path.join(root, 'src-tauri', 'target', 'release', 'srvprotian
 const output = path.join(root, 'release-portable');
 await stat(executable);
 await mkdir(path.join(output, 'srvprotianti-desktop-data'), { recursive: true });
+await mkdir(path.join(output, 'srvprotianti-desktop-data', 'licenses'), { recursive: true });
+await copyFile(
+  path.join(root, 'third-party', 'exceljs-LICENSE.txt'),
+  path.join(output, 'srvprotianti-desktop-data', 'licenses', 'exceljs-LICENSE.txt')
+);
 await copyFile(executable, path.join(output, 'srvprotianti-desktop.exe'));
 await copyFile(
   path.join(root, 'src-tauri', 'resources', 'config.default.json'),

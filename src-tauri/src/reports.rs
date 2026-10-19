@@ -60,7 +60,8 @@ fn validate_xlsx(bytes: &[u8]) -> Result<(), String> {
     if bytes.is_empty() || bytes.len() > MAX_REPORT_BYTES {
         return Err("XLSX data is empty or too large".into());
     }
-    let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|_| "Invalid XLSX archive")?;
+    let mut archive =
+        zip::ZipArchive::new(Cursor::new(bytes)).map_err(|_| "Invalid XLSX archive")?;
     if archive.len() > 512 {
         return Err("XLSX has too many parts".into());
     }
