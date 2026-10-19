@@ -30,7 +30,8 @@
     var isSettings=location.pathname.endsWith('/settings.html'), path=location.pathname;
     if(!isSettings&&!/\/(ladder|player-stats)\.html$/.test(path))return;
     var host=isSettings?document.getElementById('save').parentElement:document.querySelector('.search-row,.web-controls');
-    function append(node){if(isSettings)host.insertBefore(node,document.getElementById('configStatus'));else host.appendChild(node);}
+    var settingsAnchor=isSettings?document.getElementById('showName').nextSibling:null;
+    function append(node){if(isSettings)host.insertBefore(node,settingsAnchor);else host.appendChild(node);}
     function button(key,callback){var node=document.createElement('button');node.type='button';node.dataset.selfQuery=key;node.onclick=function(){void callback().catch(function(){global.alert(t('missing'));});};append(node);return node;}
     var nodes=[];
     if(isSettings){nodes.push([button('ranking',function(){return open('ladder');}),'ranking'],[button('stats',function(){return open('player-stats');}),'stats']);}
