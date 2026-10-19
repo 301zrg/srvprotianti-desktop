@@ -106,6 +106,28 @@ fn save_csv(
 }
 
 #[tauri::command]
+fn save_xlsx(
+    window: tauri::WebviewWindow,
+    state: State<'_, AppState>,
+    filename: String,
+    bytes_base64: String,
+) -> Result<Option<String>, String> {
+    let _guard = state
+        .file_lock
+        .lock()
+        .map_err(|_| "File action lock is unavailable")?;
+    let language = settings::load(&state.root)?.ui.language;
+    #[cfg(windows)]
+    let owner = window.hwnd().map_err(|error| error.to_string())?.0 as isize;
+    #[cfg(not(windows))]
+    let owner = {
+        let _ = window;
+        0
+    };
+    reports::save_xlsx(owner, &filename, &bytes_base64, &language)
+}
+
+#[tauri::command]
 fn api_request(
     state: State<'_, AppState>,
     route: String,
@@ -282,6 +304,7 @@ pub fn run() {
             set_language,
             api_request,
             save_csv,
+            save_xlsx,
             launch_game,
             save_and_open,
             open_saved,

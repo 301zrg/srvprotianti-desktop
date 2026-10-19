@@ -13,7 +13,7 @@ const pages = [
 
 await mkdir(pageScriptRoot, { recursive: true });
 await copyFile(path.join(source, 'site-shell.js'), path.join(assetRoot, 'site-shell.js'));
-for (const name of ['stats-export', 'player-duel-stats', 'rating-rules', 'self-query']) {
+for (const name of ['stats-export', 'stats-workbook', 'exceljs-4.4.0.min', 'player-duel-stats', 'rating-rules', 'self-query']) {
   await copyFile(path.join(source, name + '.js'), path.join(assetRoot, name + '.js'));
 }
 const neutral = [220, 230, 240];

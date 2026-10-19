@@ -33,6 +33,8 @@
       metrics:['매치 종합','매치 선공','매치 후공','단판 종합','단판 선공','단판 후공','메인 종합','메인 선공','메인 후공','사이드 종합','사이드 선공','사이드 후공']}
   };
   function language() { return global.SrvproWeb.getLanguage(); }
+  var FORMAT={zh:'导出格式',ja:'保存形式',en:'Export format',ko:'내보내기 형식'};
+  var workbookLoading=null;
   function t(key, lang) { return (TEXT[lang || language()] || TEXT.zh)[key]; }
   function local(names, lang) { return names && (names[lang || language()] || names.zh) || '—'; }
   function percent(value) { return (Number(value || 0) * 100).toFixed(4) + '%'; }
@@ -53,6 +55,34 @@
     anchor.href = url; anchor.download = filename; anchor.click();
     setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
     return null;
+  }
+  function formatPicker(value,onChange) {
+    var label=document.createElement('label'),caption=document.createElement('span'),select=document.createElement('select');
+    select.dataset.exportFormat='';
+    [['xlsx','Excel (.xlsx)'],['csv','CSV (.csv)']].forEach(function(item){var option=document.createElement('option');option.value=item[0];option.textContent=item[1];select.appendChild(option);});
+    select.value=value;select.onchange=function(){onChange(select.value);};
+    label.append(caption,document.createTextNode(' '),select);
+    label.updateLabels=function(){caption.textContent=FORMAT[language()]||FORMAT.zh;select.setAttribute('aria-label',caption.textContent);};
+    label.updateLabels();return label;
+  }
+  function script(url,ready) {
+    if(ready())return Promise.resolve();
+    return new Promise(function(resolve,reject){
+      var node=document.createElement('script');node.src=url;node.onload=function(){if(ready())resolve();else{node.remove();reject(Error('workbook'));}};
+      node.onerror=function(){node.remove();reject(Error('workbook'));};document.head.appendChild(node);
+    });
+  }
+  async function saveWorkbook(filename,kind,data,lang) {
+    if(!workbookLoading)workbookLoading=Promise.all([
+      script('/assets/exceljs-4.4.0.min.js',function(){return !!global.ExcelJS;}),
+      script('/assets/stats-workbook.js?v=20261019-xlsx',function(){return !!global.SrvproWorkbook;})
+    ]).catch(function(error){workbookLoading=null;throw error;});
+    await workbookLoading;
+    var bytes=await global.SrvproWorkbook.bytes(kind,data,lang);
+    if(global.SrvproDesktop&&typeof global.SrvproDesktop.saveXlsx==='function')return global.SrvproDesktop.saveXlsx(filename,bytes);
+    var url=URL.createObjectURL(new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    var anchor=document.createElement('a');anchor.href=url;anchor.download=filename;anchor.click();
+    setTimeout(function(){URL.revokeObjectURL(url);},30000);return null;
   }
   function statHeader(lang, extra) {
     return (extra || ['period','month','deck','opponent','metric','wins','samples','rate']).map(function (key) { return t(key, lang); });
@@ -140,32 +170,34 @@
     var button = document.createElement('button'), status = document.createElement('span');
     button.type = 'button'; button.className = 'csv-download'; button.dataset.csvExport = kind;
     status.className = 'csv-status muted'; status.setAttribute('role','status');
-    host.append(button,status);
+    var format='xlsx',picker=formatPicker(format,function(value){format=value;labels();});
+    host.append(picker,button,status);
     var hint;
     if (kind === 'usage') { hint=document.createElement('p'); hint.className='muted'; host.after(hint); }
-    function labels() { button.textContent=t(kind); if(hint)hint.textContent=t('limit'); }
+    function labels() { button.textContent=t(kind).replace('CSV',format==='csv'?'CSV':'XLSX'); picker.updateLabels();if(hint)hint.textContent=t('limit'); }
     labels(); document.addEventListener('srvpro-language-change', labels);
     button.addEventListener('click', async function () {
-      var state = getState(), lang = language();
+      var state = getState(), lang = language(),selectedFormat=format;
       button.disabled=true; status.textContent=t('preparing',lang);
       try {
-        var rows;
-        if (kind === 'usage') rows=await usageRows({period:state.period,month:state.month},lang);
+        var rows,data;
+        if (kind === 'usage') {rows=await usageRows({period:state.period,month:state.month},lang);data={rows:rows};}
         else {
-          var data=state.data;
+          data=state.data;
           if (kind==='matrix' && data && data.monthKey!==state.month) data=await fetchJson('/api/ladder-deck-stats?month='+encodeURIComponent(state.month));
           if (kind==='detail' && data && state.deckId && Number(data.selected && data.selected.id)!==Number(state.deckId)) data=null;
-          rows=kind==='matrix'?matrixRows(data,lang):detailRows(data,lang);
+          rows=selectedFormat==='csv'?(kind==='matrix'?matrixRows(data,lang):detailRows(data,lang)):
+            data&&(kind==='matrix'?data.decks&&data.decks.length:data.selected)?[true]:[];
         }
         if (!rows.length) {status.textContent=t('empty',lang);return;}
         var period=kind==='matrix'?'month':state.period;
         var suffix=period==='month'?state.month:period;
-        var file='srvpro-'+kind+'-'+(kind==='detail'&&state.data&&state.data.selected?state.data.selected.id+'-':'')+suffix+'.csv';
-        var saved=await save(file,rows); status.textContent=saved?t('saved',lang)+saved:'';
+        var file='srvpro-'+kind+'-'+(kind==='detail'&&data&&data.selected?data.selected.id+'-':'')+suffix+'.'+selectedFormat;
+        var saved=selectedFormat==='csv'?await save(file,rows):await saveWorkbook(file,kind,data,lang); status.textContent=saved?t('saved',lang)+saved:'';
       } catch(error) { status.textContent=t('failed',lang); }
       finally {button.disabled=false;}
     });
   }
   global.SrvproStatsExport={metrics:METRICS,t:t,local:local,percent:percent,csv:csv,save:save,appendStats:appendStats,
-    matrixRows:matrixRows,detailRows:detailRows,usageRows:usageRows,playerRows:playerRows,mount:mount};
+    matrixRows:matrixRows,detailRows:detailRows,usageRows:usageRows,playerRows:playerRows,mount:mount,formatPicker:formatPicker,saveWorkbook:saveWorkbook};
 })(window);

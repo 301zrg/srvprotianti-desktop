@@ -22,7 +22,7 @@
       opponent:'상대 덱',overall:'종합',first:'선공',second:'후공',empty:'통계 없음',tabs:['매치','단판','메인전','사이드전'],
       replays:'리플레이',replayPending:'리플레이를 일시적으로 사용할 수 없습니다',downloadReplay:'리플레이 다운로드',play:'웹 재생',search:'리플레이 검색'}
   };
-  var state=null, root=null, identity='', scope='month', selectedDeck='', tab=0, expanded=false, value=null, status='', serial=0, loading=false;
+  var state=null, root=null, identity='', scope='month', selectedDeck='', tab=0, expanded=false, value=null, status='', serial=0, loading=false,exporting=false,format='xlsx';
   function t(key){return (TEXT[global.SrvproWeb.getLanguage()]||TEXT.zh)[key];}
   function esc(text){return String(text==null?'':text).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function rate(values, metric){
@@ -54,12 +54,21 @@
     root.querySelectorAll('[data-private-scope]').forEach(function(button){button.onclick=function(){if(scope===button.dataset.privateScope)return;scope=button.dataset.privateScope;value=null;selectedDeck='';load();};});
     var select=root.querySelector('[data-private-deck]');if(select)select.onchange=function(){selectedDeck=select.value;draw();};
     root.querySelectorAll('[data-private-tab]').forEach(function(button){button.onclick=function(){tab=Number(button.dataset.privateTab);draw();};});
-    var download=root.querySelector('[data-private-csv]');if(download)download.onclick=async function(){
-      var snapshot=value, lang=global.SrvproWeb.getLanguage();download.disabled=true;
-      try{await global.SrvproStatsExport.save('srvpro-player-stats-'+(scope==='month'?state.month:'all')+'.csv',global.SrvproStatsExport.playerRows(snapshot,lang));}
+    var download=root.querySelector('[data-private-csv]');if(download){
+      download.textContent=t('download').replace('CSV',format==='csv'?'CSV':'XLSX');
+      download.before(global.SrvproStatsExport.formatPicker(format,function(next){format=next;draw();}));
+      download.disabled=exporting;
+      download.onclick=async function(){
+      if(exporting)return;exporting=true;
+      var snapshot=value, lang=global.SrvproWeb.getLanguage(),selectedFormat=format;download.disabled=true;
+      try{
+        var filename='srvpro-player-stats-'+(snapshot.scope==='month'?snapshot.month:'all')+'.'+selectedFormat;
+        if(selectedFormat==='csv')await global.SrvproStatsExport.save(filename,global.SrvproStatsExport.playerRows(snapshot,lang));
+        else await global.SrvproStatsExport.saveWorkbook(filename,'player',snapshot,lang);
+      }
       catch(error){global.alert(global.SrvproStatsExport.t('failed',lang));}
-      finally{download.disabled=false;}
-    };
+      finally{exporting=false;download.disabled=false;var current=root&&root.querySelector('[data-private-csv]');if(current)current.disabled=false;}
+    };}
   }
   async function load(){
     var request=++serial, body=JSON.stringify({player:state.player,password:state.password,scope:scope,month:state.month});

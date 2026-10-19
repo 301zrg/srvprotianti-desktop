@@ -1,6 +1,6 @@
 # 桌面助手当前实现架构
 
-核查日期：2026-10-12。源码基线：本地 HEAD `74e099f30f75e07e456c293ebeb6369714c98335`，应用版本 `0.1.2`。已复核初次审查 `fc7aca7` 之后的登录串长度提示、版权说明、房间类型标识和测试更新；本次对照文档交付提交 `793c0b4`，未发现运行源码差异，保留现有八张图并补充维护规范。本文描述该版本源码中的实现，不代表已经完成 Windows、YGOPro、KoishiPro 的实际游戏验收。
+核查日期：2026-10-19。应用候选版本 `0.1.3`，尚未正式发布。本文更新了统计 XLSX/CSV 本地导出、认证统计和自身查询边界；原有游戏/脚本与环境模块架构保持现有实现。构建验证与用户实际游戏验收分别记录。
 
 ## 1. 文档分工与架构结论
 
@@ -51,6 +51,9 @@ flowchart TB
         Pages["八个业务页 + settings.html"]
         Shell["site-shell.js<br/>导航、语言与公共呈现"]
         Bridge["desktop-bridge.ts<br/>fetch 适配、下载接管、房间预检"]
+        Workbook["stats-export / stats-workbook<br/>ExcelJS 本地 XLSX/CSV"]
+        Pages --> Workbook
+        Workbook --> Bridge
         Pages --> Shell
         Pages --> Bridge
     end
@@ -83,18 +86,18 @@ flowchart TB
     Script --> Git[GitHub 706 脚本与固定 utility.lua]
     Update --> Release[GitHub 最新正式版元数据]
     Game --> Process[本地游戏进程]
-    Reports -->|用户原生对话框选取 CSV 路径| Csv[统计表文件]
+    Reports -->|用户原生对话框选取 XLSX/CSV 路径| Csv[统计表文件]
     Entry -->|open_external| Browser[系统浏览器]
 ```
 
 | 源码入口 | 当前职责 |
 | --- | --- |
 | [src/desktop-bridge.ts](../src/desktop-bridge.ts) | 把原页面 `fetch` 转为 Rust API 调用，接管下载链接和 Blob，绑定桌面动作，保存语言，预检房间 |
-| [src-tauri/src/lib.rs](../src-tauri/src/lib.rs) | 确定游戏根目录、初始化设置和共享状态，注册 17 个命令，启动时尝试脚本事务恢复 |
+| [src-tauri/src/lib.rs](../src-tauri/src/lib.rs) | 确定游戏根目录、初始化设置和共享状态，注册 18 个命令，启动时尝试脚本事务恢复 |
 | [settings.rs](../src-tauri/src/settings.rs) | 默认值与用户覆盖值递归合并、字段校验、临时文件替换、整体恢复默认 |
 | [api.rs](../src-tauri/src/api.rs) | 方法和路由白名单、请求与响应限额、禁止跟随重定向，返回状态码、内容类型和 Base64 响应 |
 | [downloads.rs](../src-tauri/src/downloads.rs) | 来源与内容校验、Windows 文件名处理、同名内容去重、保存并尝试打开 |
-| [reports.rs](../src-tauri/src/reports.rs) | CSV 另存为对话框，校验建议文件名与 8 MiB 内容上限，仅向用户选择的普通 CSV 文件原子写入 |
+| [reports.rs](../src-tauri/src/reports.rs) | XLSX/CSV 另存为对话框，校验建议文件名与 8 MiB 内容上限，仅向用户选择且扩展名匹配的普通文件原子写入；XLSX 另查 ZIP 部件标记、512 部件/32 MiB 展开大小、拒绝宏部件，不自动打开文件 |
 | [game.rs](../src-tauri/src/game.rs) | 限定同目录 EXE、组合参数数组、调用环境检查，以游戏根目录为工作目录启动进程 |
 | [scripts.rs](../src-tauri/src/scripts.rs) | 固定来源 Lua 检查下载、客户端识别、进程检查、冲突检查、清单与事务恢复 |
 | [environment.rs](../src-tauri/src/environment.rs) | 离线 1103 资源校验、备份安装、启动时同步语言与服务器、恢复原环境 |
@@ -106,7 +109,7 @@ flowchart TB
 
 本地页面只通过这些命令使用本地能力。Rust 不提供任意 shell 命令、任意文件路径写入或任意 API 路由入口。外部 HTTP/HTTPS 链接交给系统浏览器。权限配置见 [capabilities/default.json](../src-tauri/capabilities/default.json)，实际 CSP 见 [tauri.conf.json](../src-tauri/tauri.conf.json)。当前 CSP 的 `script-src` 和 `style-src` 含 `unsafe-inline`；构建器另行拒绝 HTML 和 HTML 字符串中的内联事件属性，因此不能把“构建时禁止内联事件”描述成“运行时 CSP 禁止全部内联脚本”。
 
-新增 `save_csv` 只接收建议文件名和前端生成的 CSV；目标路径由 Windows 原生保存对话框确定，取消返回空，不自动启动表格软件。`stats-export.js` 复用网页导出逻辑；`self-query.js` 从桥接设置读取已保存昵称，排行只传昵称，战绩把密码分离后通过 POST 发送，跳转只带 `self=1`。
+`save_csv` / `save_xlsx` 只接收建议文件名和前端本地生成的数据，二进制 XLSX 经 Base64 传递；目标路径由 Windows 原生保存对话框确定，取消返回空，不自动启动表格软件。`stats-export.js` 复用网页导出逻辑，`stats-workbook.js` 使用随包的 ExcelJS 4.4.0，首次 XLSX 下载才加载，不调用服务器生成文件；CSV 仍使用原有编码。`self-query.js` 从桥接设置读取已保存昵称，排行只传昵称，战绩把密码分离后通过 POST 发送，跳转只带 `self=1`。
 
 ## 4. 关键调用与数据流
 
@@ -271,7 +274,7 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TB
-    WebSource["web-source 八页、公共外壳、CSV/私有统计/计分说明/自身查询脚本"] --> Prepare[scripts/prepare-pages.mjs]
+    WebSource["web-source 八页、公共外壳、XLSX/CSV/私有统计/计分说明/自身查询脚本"] --> Prepare[scripts/prepare-pages.mjs]
     Settings[根目录 settings.html] --> Prepare
     Prepare --> Public["public 页面与 assets/pages 脚本<br/>生成静态色阶 CSS，拒绝内联事件"]
     Bridge[src/desktop-bridge.ts] --> Esbuild[esbuild IIFE 打包]
