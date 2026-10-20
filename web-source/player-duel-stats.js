@@ -25,6 +25,12 @@
   var state=null, root=null, identity='', scope='month', selectedDeck='', tab=0, expanded=false, value=null, status='', serial=0, loading=false,exporting=false,format='xlsx';
   function t(key){return (TEXT[global.SrvproWeb.getLanguage()]||TEXT.zh)[key];}
   function esc(text){return String(text==null?'':text).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function deckLink(deck){
+    var name=esc(global.SrvproStatsExport.local(deck.names)), id=Number(deck.deckTypeId), lang=global.SrvproWeb.getLanguage();
+    if(!Number.isInteger(id)||id<=0||id===4095)return name;
+    var href='/deck-detail.html?deckTypeId='+id+'&period='+scope+'&month='+encodeURIComponent(state.month)+(lang==='zh'?'':'&L='+encodeURIComponent(lang));
+    return '<a class="inline-link" href="'+esc(href)+'">'+name+'</a>';
+  }
   function rate(values, metric){
     var count=Number(values&&values[metric[1]]||0), wins=Number(values&&values[metric[2]]||0);
     if(!count)return '—';
@@ -45,8 +51,9 @@
         var selected=selectedDeck?(value.decks||[]).find(function(deck){return String(deck.deckTypeId)===selectedDeck;}):value;
         if(!selected){selectedDeck='';selected=value;}
         var metrics=global.SrvproStatsExport.metrics.slice(tab*3,tab*3+3), rows=[{names:null,values:selected.overall}].concat(selected.opponents||[]);
+        if(selected.names)html+='<p data-private-own-deck>'+deckLink(selected)+'</p>';
         html+='<div class="web-tabs">'+t('tabs').map(function(name,index){return '<button type="button" data-private-tab="'+index+'" class="'+(tab===index?'active':'')+'">'+name+'</button>';}).join('')+'</div><div class="table-wrap"><table><thead><tr><th>'+t('opponent')+'</th>'+['overall','first','second'].map(function(key){return '<th>'+t(key)+'</th>';}).join('')+'</tr></thead><tbody>'+
-          rows.map(function(row){return '<tr><th>'+(row.names?esc(global.SrvproStatsExport.local(row.names)):global.SrvproStatsExport.t('all'))+'</th>'+metrics.map(function(metric){return '<td>'+rate(row.values,metric)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
+          rows.map(function(row){return '<tr><th>'+(row.names?deckLink(row):global.SrvproStatsExport.t('all'))+'</th>'+metrics.map(function(metric){return '<td>'+rate(row.values,metric)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';
       }
     }
     root.innerHTML=html;
