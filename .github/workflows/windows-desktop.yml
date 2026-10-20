@@ -12,6 +12,7 @@ permissions:
 
 jobs:
   build:
+    if: github.ref != 'refs/heads/codex/publish-v0.1.4-20261020'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,25 +43,40 @@ jobs:
           name: srvprotianti-desktop-windows-x64
           path: srvprotianti-desktop-windows-x64.zip
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    if: github.ref == 'refs/heads/codex/publish-v0.1.4-20261020'
     runs-on: windows-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
-      - name: Check tag matches application version
+      - name: Check approved source and successful candidate build
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
           $cargoVersion = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches.Groups[1].Value
-          if ($env:GITHUB_REF_NAME -ne "v$version" -or $version -ne $tauriVersion -or $version -ne $cargoVersion) { throw "Tag and application versions differ" }
-      - uses: actions/download-artifact@v4
-        with:
-          name: srvprotianti-desktop-windows-x64
+          if ($env:GITHUB_REF_NAME -ne 'codex/publish-v0.1.4-20261020' -or $version -ne '0.1.4' -or $version -ne $tauriVersion -or $version -ne $cargoVersion) { throw "Release branch and versions differ" }
+          git fetch origin e9983de0e9c54727fb06e9b8971cfde041c7f61b b67b606e70dc0fb6459e0030ba0da3194118ec3c --depth=1
+          if ($LASTEXITCODE -ne 0) { throw "Cannot fetch approved source" }
+          $changed = @(git diff --name-only 'e9983de0e9c54727fb06e9b8971cfde041c7f61b' HEAD)
+          if ($LASTEXITCODE -ne 0 -or $changed.Count -ne 1 -or $changed[0] -ne '.github/workflows/windows-desktop.yml') { throw "Application differs from approved main" }
+          $mainTree = git rev-parse 'e9983de0e9c54727fb06e9b8971cfde041c7f61b^{tree}'
+          $candidateTree = git rev-parse 'b67b606e70dc0fb6459e0030ba0da3194118ec3c^{tree}'
+          if ($LASTEXITCODE -ne 0 -or $mainTree -ne $candidateTree) { throw "Candidate application differs from merged main" }
+          $run = gh api repos/301zrg/srvprotianti-desktop/actions/runs/39400797292 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $run.event -ne 'push' -or $run.head_sha -ne 'b67b606e70dc0fb6459e0030ba0da3194118ec3c' -or $run.status -ne 'completed' -or $run.conclusion -ne 'success') { throw "Candidate build is not verified" }
+      - name: Download verified candidate ZIP
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 39400797292 --repo 301zrg/srvprotianti-desktop --name srvprotianti-desktop-windows-x64 --dir .
+          if ($LASTEXITCODE -ne 0) { throw "Artifact download failed" }
       - name: Publish GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME srvprotianti-desktop-windows-x64.zip --title $env:GITHUB_REF_NAME --generate-notes --verify-tag
+        run: gh release create v0.1.4 srvprotianti-desktop-windows-x64.zip --title v0.1.4 --target e9983de0e9c54727fb06e9b8971cfde041c7f61b --generate-notes
