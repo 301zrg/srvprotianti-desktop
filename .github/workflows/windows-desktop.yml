@@ -2,7 +2,7 @@ name: Windows desktop
 
 on:
   push:
-    branches: ['**']
+    branches: ['**', '!page-updates', '!page-candidates/**']
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -42,7 +42,7 @@ jobs:
           name: srvprotianti-desktop-windows-x64
           path: srvprotianti-desktop-windows-x64.zip
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/v')
     needs: build
     runs-on: windows-latest
     permissions:
@@ -55,7 +55,9 @@ jobs:
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
           $cargoVersion = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches.Groups[1].Value
-          if ($env:GITHUB_REF_NAME -ne "v$version" -or $version -ne $tauriVersion -or $version -ne $cargoVersion) { throw "Tag and application versions differ" }
+          $releaseTag = $env:GITHUB_REF_NAME -replace '^release/', ''
+          if ($releaseTag -ne "v$version" -or $version -ne $tauriVersion -or $version -ne $cargoVersion) { throw "Tag and application versions differ" }
+          "RELEASE_TAG=$releaseTag" >> $env:GITHUB_ENV
       - uses: actions/download-artifact@v4
         with:
           name: srvprotianti-desktop-windows-x64
@@ -63,4 +65,17 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME srvprotianti-desktop-windows-x64.zip --title $env:GITHUB_REF_NAME --generate-notes --verify-tag
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $reference = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:RELEASE_TAG" 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            $tagFile = Join-Path $env:RUNNER_TEMP 'desktop-release-tag.json'
+            @{ref="refs/tags/$env:RELEASE_TAG";sha=$env:GITHUB_SHA} | ConvertTo-Json | Set-Content -Encoding utf8 $tagFile
+            gh api --method POST "repos/$env:GITHUB_REPOSITORY/git/refs" --input $tagFile
+            $reference = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:RELEASE_TAG"
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag could not be confirmed' }
+          $tag = $reference | ConvertFrom-Json
+          if ($tag.object.type -ne 'commit' -or $tag.object.sha -ne $env:GITHUB_SHA) { throw 'Release tag points to another commit' }
+          gh release create $env:RELEASE_TAG srvprotianti-desktop-windows-x64.zip --title $env:RELEASE_TAG --generate-notes --verify-tag --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Release was not confirmed; inspect existing tag and assets before retrying' }

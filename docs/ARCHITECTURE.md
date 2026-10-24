@@ -1,6 +1,6 @@
 # 桌面助手当前实现架构
 
-核查日期：2026-10-19。应用候选版本 `0.1.3`，尚未正式发布。本文更新了统计 XLSX/CSV 本地导出、认证统计和自身查询边界；原有游戏/脚本与环境模块架构保持现有实现。构建验证与用户实际游戏验收分别记录。
+更新日期：2026-10-25。应用候选版本 `0.2.0`，签名页面更新与共享页面适配已完成本地构建和 WebView 演练，尚未正式发布；当前生产下载不据此改变。原有游戏/脚本与环境模块职责保持现有实现。构建、WebView 验证与用户实际游戏验收分别记录。
 
 ## 1. 文档分工与架构结论
 
@@ -10,9 +10,9 @@
 | [DESIGN](../DESIGN.md) | 产品需求、技术取舍、行为契约和验收标准；包含目标项，不能全部当作已完成 |
 | 本文 | 当前模块、调用与数据流、文件所有权、构建发布，以及实现与设计的边界 |
 
-当前架构适合这个 Windows 游戏助手：随包发布页面保证界面来源可控，Rust 层承担文件和进程操作，服务器保留统计与认证职责。源码按配置、API、下载、启动、脚本更新和环境资源分成模块，两个有状态更新器具有独立清单和恢复流程。现阶段没有因职责划分不清而必须先重构的问题。
+当前架构由本地可信页面、Rust 文件/进程操作与服务端统计/认证组成。页面既可来自 exe 内置资源，也可来自独立 HTTPS 发布并通过本机公钥验证的缓存包；同一次运行固定版本和本地 origin。源码按配置、API、下载、启动、脚本更新、环境资源和页面更新组织，更新器分别拥有自己的清单与恢复流程。
 
-文档原先已有详细需求和验收表，缺少的是一份与源码对照的当前实现地图。补充本文即可覆盖这一缺口，无需为当前项目规模拆分更多目录或移动原有文档。页面快照同步需要人工复核，是已有方案的维护成本；它不妨碍当前架构成立。
+页面同步使用显式源目录、固定清单和源/生成散列，平台差异集中在生成器与 Rust 桥接；仍须审核明确的来源提交和交互结果。
 
 ## 2. 三个项目中的位置
 
@@ -47,7 +47,7 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    subgraph UI[随 EXE 打包的本地 WebView 页面]
+    subgraph UI[内置或签名缓存的本地 WebView 页面]
         Pages["八个业务页 + settings.html"]
         Shell["site-shell.js<br/>导航、语言与公共呈现"]
         Bridge["desktop-bridge.ts<br/>fetch 适配、下载接管、房间预检"]
@@ -67,6 +67,9 @@ flowchart TB
         Script[scripts.rs]
         Env[environment.rs]
         Update[updater.rs]
+        PageRuntime[pages_runtime.rs：固定本地源 / 后台检查]
+        PageCache[pages_cache.rs：状态 / 安装 / 启动恢复]
+        PagePackage[pages_package.rs：签名 / ZIP 边界]
         Entry --> Settings
         Entry --> Api
         Entry --> Download
@@ -75,6 +78,9 @@ flowchart TB
         Entry --> Script
         Entry --> Env
         Entry --> Update
+        Entry --> PageRuntime
+        PageRuntime --> PageCache
+        PageCache --> PagePackage
         Download --> Api
         Download --> Game
         Game -->|启动前同步环境| Env
@@ -85,6 +91,8 @@ flowchart TB
     Api --> HTTP[服务端允许的 HTTP API]
     Script --> Git[GitHub 706 脚本与固定 utility.lua]
     Update --> Release[GitHub 最新正式版元数据]
+    PageRuntime --> PageChannel[独立 HTTPS 签名页面渠道]
+    PageRuntime -->|srvpro-page-update 事件| Bridge
     Game --> Process[本地游戏进程]
     Reports -->|用户原生对话框选取 XLSX/CSV 路径| Csv[统计表文件]
     Entry -->|open_external| Browser[系统浏览器]
@@ -104,8 +112,13 @@ flowchart TB
 | [updater.rs](../src-tauri/src/updater.rs) | 检查 GitHub 正式版和指定 ZIP 资源是否存在；不替换正在运行的程序 |
 | [instance.rs](../src-tauri/src/instance.rs) | Windows 上按规范化游戏目录生成互斥体名称，重复启动时激活已有窗口 |
 | [webview.rs](../src-tauri/src/webview.rs) | 创建 WebView 前检查 WebView2，缺失时提供原生提示与安装页面入口 |
+| [pages_package.rs](../src-tauri/src/pages_package.rs) | 验证签名原始字节、应用/兼容/时效、逐文件清单与 ZIP 内容边界 |
+| [pages_cache.rs](../src-tauri/src/pages_cache.rs) | 页面专属缓存、递增 sequence、候选/上一版、启动确认与隔离恢复 |
+| [pages_runtime.rs](../src-tauri/src/pages_runtime.rs) | 固定本地协议资源、后台受限 HTTPS 请求、页面状态与原生恢复入口 |
 
 `get_settings`、`save_settings`、`reset_settings`、`set_language` 管理配置；`api_request` 管理数据请求；`launch_game`、`save_and_open`、`open_saved` 管理启动和下载；`script_state`、`update_scripts`、`restore_scripts` 管理脚本；`environment_state`、`install_environment`、`restore_environment` 管理资源；`check_desktop_update`、`open_external` 管理版本检查和外部链接。
+
+页面更新只增加 `page_update_status`、`check_page_update`、`page_ready`、`recover_builtin_pages`。这些命令管理页面缓存，不接受任意更新地址、文件路径或新本地权限；页面业务仍沿用已有 Rust 能力和 API 白名单。
 
 本地页面只通过这些命令使用本地能力。Rust 不提供任意 shell 命令、任意文件路径写入或任意 API 路由入口。外部 HTTP/HTTPS 链接交给系统浏览器。权限配置见 [capabilities/default.json](../src-tauri/capabilities/default.json)，实际 CSP 见 [tauri.conf.json](../src-tauri/tauri.conf.json)。当前 CSP 的 `script-src` 和 `style-src` 含 `unsafe-inline`；构建器另行拒绝 HTML 和 HTML 字符串中的内联事件属性，因此不能把“构建时禁止内联事件”描述成“运行时 CSP 禁止全部内联脚本”。
 
@@ -204,6 +217,10 @@ flowchart LR
     environment-state.json           资源清单、散列、备份 ID 与阶段
     environment-backups/<UUID>/      环境改动前的文件
     resources/1103-201103-v1/         随便携包发布的离线环境资源
+    page-packages/
+      state.json                     最高 sequence、当前/候选/上一版与启动确认
+      packages/<版本>/manifest.json  已验证的签名清单
+      packages/<版本>/dist/          逐文件散列校验的只读页面资源
 ```
 
 具体备份文件名以清单引用为准。DESIGN 中的 `staging/` 和 `logs/` 是目标示意；当前脚本下载在内存中准备数据，事务使用 `script-pending.json` 和 `backups/transactions/`，没有对应的常驻 staging/logs 目录实现。
@@ -274,7 +291,9 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TB
-    WebSource["web-source 八页、公共外壳、XLSX/CSV/私有统计/计分说明/自身查询脚本"] --> Prepare[scripts/prepare-pages.mjs]
+    Website["受控官网源码 + 明确来源提交"] --> Sync["scripts/sync-web-source.mjs<br/>固定清单 / 平台适配 / 源与生成 SHA"]
+    Sync --> WebSource["web-source 生成快照 + source-manifest.json"]
+    WebSource --> Prepare["scripts/prepare-pages.mjs<br/>先核对快照 SHA"]
     Settings[根目录 settings.html] --> Prepare
     Prepare --> Public["public 页面与 assets/pages 脚本<br/>生成静态色阶 CSS，拒绝内联事件"]
     Bridge[src/desktop-bridge.ts] --> Esbuild[esbuild IIFE 打包]
@@ -282,6 +301,11 @@ flowchart TB
     Public --> Vite[Vite 构建 dist]
     RootIndex[index.html] --> Vite
     Vite --> Tauri[Tauri 与 Rust 编译]
+    Vite --> Sign["本机页面包构建 / Ed25519 签名"]
+    Sign --> Candidate["候选签名清单：绑定源码提交 A"]
+    Candidate --> PageCI["desktop-pages.yml<br/>可信默认分支验签 / A 构建 / 精确重建"]
+    PageCI --> PageRelease["不可变 pages-v Release<br/>make_latest=false"]
+    PageRelease --> Index["page-updates 稳定索引"]
     Rust[src-tauri Rust 模块] --> Tauri
     Tauri --> Exe[srvprotianti-desktop.exe]
     Exe --> Portable[scripts/package-portable.mjs]
@@ -289,15 +313,19 @@ flowchart TB
     Resources[离线四语资源] --> Portable
     Portable --> Zip[便携 ZIP]
     Zip --> Artifact[Windows CI artifact]
-    Artifact --> Tag{v 标签与三处版本一致}
+    Artifact --> Tag{v 标签或 release/v 分支与三处版本一致}
     Tag -->|通过| Release[GitHub Release 固定名称 ZIP]
 ```
 
-构建器从页面提取内联 `<script>` 到外部文件，插入桌面桥接脚本，改写介绍页动作并添加录像页更新入口。`public/`、`dist/`、`release-portable/` 属于生成产物，修改应回到 `web-source/`、`settings.html`、`src/` 或 `scripts/`。Tauri 默认窗口直接打开 `rooms.html`，根入口也跳转到房间页。
+官网八页和公共资产先按显式清单同步，生成快照保存来源和散列。构建器核对快照后，从页面提取 `<script>`、插入桌面桥接脚本并生成介绍页适配。业务改动回官网源码，适配改动回同步器/桥接，桌面设置和手写适配脚本各归原文件。`public/`、`dist/`、`release-portable/` 属于生成产物。Tauri 仍直接打开 `rooms.html`，根入口跳转到房间页。
 
-命令定义见 [package.json](../package.json)：`npm run check` 包括 TypeScript 检查、页面构建、色阶测试和房间类型/动作回归测试；Rust 测试独立运行。Windows CI 的 [windows-desktop.yml](../.github/workflows/windows-desktop.yml) 固定 Node 22，执行前端检查、Rust 格式检查、Rust 测试、EXE 构建和便携打包。普通分支构建只上传 artifact；标签发布任务核对 `package.json`、`tauri.conf.json`、`Cargo.toml` 与标签后创建 Release。
+命令定义见 [package.json](../package.json)：`npm run check` 包括 TypeScript、页面构建、色阶/房间/统计以及同步和页面包回归；Rust 测试独立运行。Windows [EXE 工作流](../.github/workflows/windows-desktop.yml) 使用 Node 22，执行前端检查、Rust 格式/测试、编译与便携打包。普通分支只上传 artifact，版本标签或显式 `release/v<版本>` 分支通过三处版本核对后发布 EXE。
+
+[页面工作流](../.github/workflows/desktop-pages.yml) 接受 `page-candidates/**` 的公开签名清单，先用默认分支的可信校验器/公钥确认来源提交 A，再检出 A、构建并按签名清单精确重建 ZIP。私钥只在本机使用，不进入 CI；页面资源先发布成功，再更新单独的稳定索引，不占用 EXE 的 latest。未固定来源提交的本地快照可以验证，但不能冒充对应正式来源发布。
 
 便携包的环境资源实际路径为 `release-portable/srvprotianti-desktop-data/resources/1103-201103-v1/`。可选 NSIS 构建没有通过 Tauri bundle 配置携带这批环境文件；若使用安装器，须另外保持这个相对游戏根目录的数据目录结构。设置页的“检查更新”只查正式版元数据并交给系统浏览器下载 ZIP，程序自身不会自动安装更新。
+
+页面加载保持原 `tauri` 本地 origin 和 IPC/CSP 边界；每次启动固定使用通过签名与逐文件校验的缓存目录或内置资源。`page-packages/state.json` 保存已接受的最高 sequence 和候选/当前/上一版；候选启动先写 booting，再由页面 ready 确认，异常退出或 45 秒无确认则隔离并回退。网络下载发生在页面 ready 之后，更新成功也只在下次启动切换。原生菜单提供独立恢复入口；普通业务 API 错误不会触发回退。完整信任和缓存边界见 [页面包约定](PAGE_PACKAGE_UPDATE_PLAN.md)。
 
 ## 7. 当前实现与设计目标的区别
 
@@ -306,17 +334,20 @@ flowchart TB
 | 设计中的目录示意 | 当前以本节之前列出的实际清单为准；未实现常驻 `staging/`、`logs/` 目录 |
 | 设置恢复 | 已实现整体恢复默认并归档原用户配置；未提供独立的单字段恢复按钮 |
 | 设置 schema 迁移 | 当前只接受 `schemaVersion = 1`，其他版本报错；DESIGN 中未来版本迁移流程不是已实现能力 |
-| 页面来源记录 | README 保留最初上游 commit；当前 `web-source` 已有桌面适配，不能把最初 commit 当成持续同步状态或逐文件摘要清单 |
+| 页面来源记录 | 同步器记录固定源清单、来源提交和源/生成 SHA；未固定实际功能提交的本地快照不能作为正式来源发布 |
+| 独立页面更新 | 本轮已完成本地构建和真实 WebView 演练；正式 HTTPS 下载/安装与 CI/渠道尚未验收，未发布 v0.2.0 |
 | 脚本、环境恢复 | 源码有散列、事务及冲突处理和单元测试；这些不能替代真实游戏下的恢复验收 |
 | Windows 与游戏行为 | README/DESIGN 记录 CI 曾通过，同时仍要求两种游戏联机、卡组、录像、旧裁定脚本，以及缺失 WebView2 场景实测 |
 
-这些差异应作为维护和验收记录保留，不能据此宣称设计中的所有目标都已交付。本次文档核查没有启动游戏、执行资源安装、读取玩家配置、连接生产 API 或重跑 Windows 构建。
+这些差异应作为维护和验收记录保留，不能据此宣称设计中的所有目标都已交付。构建、合成浏览器/原生验收和正式发布分别留证，不能相互替代。
 
 ## 8. 维护时从哪里修改
 
 | 变更类型 | 主要入口 | 必须一起核对的边界 |
 | --- | --- | --- |
-| 页面内容、统计呈现、翻页筛选 | `web-source/` | 原服务端页面契约、桌面事件绑定、四语言、生成步骤 |
+| 页面内容、统计呈现、翻页筛选 | 官网源码，经 `sync-web-source.mjs` 同步 | 页面契约、源/生成 SHA、桌面事件绑定、四语言 |
+| 桌面平台适配、设置 | 同步器、`desktop-bridge.ts`、根设置页及手写适配脚本 | 不直接修改已登记快照；保留本地动作、账号与下载语义 |
+| 页面签名/缓存/加载 | `page-package.mjs`、`pages_package/cache/runtime.rs` | 固定来源、信任根、兼容、sequence、下次启动及独立恢复 |
 | API 传输或新增查询 | `api.rs` 与 `desktop-bridge.ts` | 路由白名单、方法、权限语义、响应限额 |
 | 新增本地动作 | `lib.rs`、对应 Rust 模块与桥接类型 | 参数校验、游戏目录限制、互斥与错误显示 |
 | 游戏启动方式 | `game.rs` | 参数次序、单个登录串参数、真实游戏兼容、环境同步 |

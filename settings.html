@@ -62,8 +62,16 @@
     <button id="downloadDesktopUpdate" type="button" hidden>下载新版本</button>
     <p id="desktopUpdateStatus" class="status" role="status"></p>
   </section>
+  <section class="settings-card" id="page-update">
+    <h2 id="pageUpdateTitle">页面更新</h2>
+    <p id="pageUpdateVersion" class="status"></p>
+    <button id="checkPageUpdate" type="button">检查页面更新</button>
+    <button id="recoverBuiltinPages" type="button">下次启动使用内置页面</button>
+    <p id="pageUpdateStatus" class="status" role="status"></p>
+  </section>
 </div>
 <script src="/assets/site-shell.js?v=20261019"></script><script src="/assets/self-query.js?v=20261020"></script>
+<script src="/assets/page-updates.js?v=20261024"></script>
 <script>
 const I18N = {
   zh: {

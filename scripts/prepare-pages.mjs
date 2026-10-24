@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile, copyFile } from 'node:fs/promises';
 import path from 'node:path';
+import { verifySynchronizedSource } from './sync-web-source.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const source = path.join(root, 'web-source');
@@ -11,9 +12,13 @@ const pages = [
   'player-stats', 'usage-stats', 'deck-detail', 'settings'
 ];
 
+const sourceManifest = JSON.parse(await readFile(path.join(source, 'source-manifest.json'), 'utf8'));
+await verifySynchronizedSource(source, sourceManifest);
+
 await mkdir(pageScriptRoot, { recursive: true });
 await copyFile(path.join(source, 'site-shell.js'), path.join(assetRoot, 'site-shell.js'));
-for (const name of ['stats-export', 'stats-workbook', 'exceljs-4.4.0.min', 'player-duel-stats', 'rating-rules', 'self-query']) {
+await copyFile(path.join(source, 'source-manifest.json'), path.join(publicRoot, 'source-manifest.json'));
+for (const name of ['stats-export', 'stats-workbook', 'exceljs-4.4.0.min', 'player-duel-stats', 'rating-rules', 'self-query', 'page-updates']) {
   await copyFile(path.join(source, name + '.js'), path.join(assetRoot, name + '.js'));
 }
 const neutral = [220, 230, 240];

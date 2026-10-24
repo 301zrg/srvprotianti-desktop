@@ -1,6 +1,6 @@
 # 706 天梯助手
 
-放在 YGOPro 或 KoishiPro 根目录的 Windows 桌面客户端。当前为开发中的首版，需求与验收范围见 [DESIGN.md](DESIGN.md)。
+放在 YGOPro 或 KoishiPro 根目录的 Windows 桌面客户端。本轮开发候选为 v0.2.0，新增独立签名页面更新；已完成本地实现与构建验证，尚未正式发布。需求与验收范围见 [DESIGN.md](DESIGN.md)。
 
 维护者从 [当前实现架构](docs/ARCHITECTURE.md) 查看模块、调用流程、文件归属和构建发布关系；该文档区分已实现行为、设计目标与尚待游戏实测的项目。
 每次改动按 [架构维护规范](docs/ARCHITECTURE.md#9-架构影响与图文同步) 判断影响；关系变化时同步对应图和说明，现有图文准确且已覆盖时保留。
@@ -10,6 +10,8 @@
 程序保留服务器网页的八个页面及中、日、英、韩四种语言。介绍页的 QQ 群号、IP、端口、合并地址和 TT 房间密码按钮可点击复制；常规联机行末的启动按钮只预填连接信息，天梯行末的启动按钮直接加入 TT。房间列表按公开 API 的 `roomtype` 显示实际类型；等待中的普通房间可点击加入，等待中的天梯房可直接进入 TT 匹配，已开局的房间可点击观战；密码房会要求当次输入密码。旧版 API 没有类型字段时，按严格房名格式识别已知随机房，其余按 `roommode` 显示。卡组与录像保存到游戏的 deck/replay 目录后直接打开。设置、1103 环境资源及旧裁定脚本更新位于设置页。
 
 每页标题栏提供一键匹配、启动游戏、卡组编辑、查看录像四个快捷按钮。后两项分别以无文件名的 `-d`、`-r` 启动游戏，不要求填写昵称。设置页可手动检查 GitHub 最新正式版；找到新版 Windows ZIP 后用系统浏览器下载，由玩家关闭游戏和助手再解压覆盖。
+
+首次使用独立页面更新需覆盖一次支持该功能的新版助手。此后兼容现有 Rust 命令/API 的页面改动可只发布页面包：启动使用已验证的本地页面，后台从独立 HTTPS 渠道检查和下载，下次启动应用。设置中显示页面版本与检查入口，原生“页面恢复”菜单及 `Ctrl+Shift+R` 可指定下次使用内置页面；普通 API 断网继续保留本地页面。新增本地能力或安全边界变化仍需更新 exe。设计、签名和发布边界见 [页面包约定](docs/PAGE_PACKAGE_UPDATE_PLAN.md)。
 
 统计页默认 XLSX 另存为，也可选择 CSV：卡组月份矩阵十二指标、所选时期使用率/卡组详情，以及带密码验证后的玩家详细统计（月份/全部）。XLSX 分别有 12/6/4/4 张工作表，文件生成和压缩均在本地，不增加服务器导出任务；ExcelJS 4.4.0 随包提供，采用 [MIT 许可证](third-party/exceljs-LICENSE.txt)。排行默认当月；排行、战绩和设置页提供查询自己的入口。新版接口尚未部署时，玩家录像与私有统计显示临时占位，计分规则缺少生效参数时隐藏。
 
@@ -46,7 +48,9 @@ Windows CI 每次构建提供用于检查的 ZIP artifact。维护者确认版�
 
 ## 页面来源与许可
 
-web-source 中的八个 HTML 页面、site-shell.js、common.css 来自相邻的 srvprotianti 项目（本次调研时 HEAD 为 d23c284adf308747623d5d833f311cf2ff58a272）。桌面版对多个页面的按钮绑定作了修改；scripts/prepare-pages.mjs 在构建时提取页面脚本并改写介绍页按钮。同步上游页面时需核对这些改动与 [页面契约](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)。所有静态和动态按钮、表单操作都必须由外部脚本用 addEventListener 或元素事件属性绑定，不能在 HTML 或 innerHTML 字符串中使用 onclick、onchange 等内联事件属性；页面生成步骤会拒绝这种写法。同步后要在桌面构建中逐页检查搜索、筛选、翻页、刷新、下载、启动和语言切换。
+公共业务源码归服务端 `plugins/ladder-web/web/`。维护者先运行 `node scripts/sync-web-source.mjs --website-root <受控web目录> --website-commit <已审核40位提交>`，同步八页和固定公共 assets 清单，记录源及生成文件 SHA。`web-source/source-manifest.json` 中来源提交必须对应实际功能，不能把底稿提交当作未提交功能的来源。构建不自动下载相邻仓库或远程 HTML。
+
+这批生成快照的改动应回到官网源码或同步规则；原生动作归 `src/desktop-bridge.ts`，`self-query.js`、`page-updates.js` 和根目录设置页保留为平台适配。`prepare-pages.mjs` 先校验快照散列，再提取页面脚本和生成介绍页适配；人工改动快照会被拒绝。同步时需核对 [页面契约](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)，并逐页检查搜索、筛选、翻页、刷新、下载、启动和语言切换。HTML 及生成字符串中禁止内联 onclick/onchange 等事件属性；使用 addEventListener 或元素事件属性绑定。
 
 桌面构建还会按网页端胜率色阶生成静态 CSS；统计页用类名呈现红／中性／绿渐变，避免运行时内联颜色受 WebView 样式策略影响。
 

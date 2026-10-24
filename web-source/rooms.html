@@ -4,14 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>游戏王OCG201103天梯服务器 房间列表</title>
-<link rel="stylesheet" href="/assets/common.css?v=20261019">
+<link rel="stylesheet" href="/assets/common.css?v=20261024-entry">
 <style>
   .stats { display: flex; gap: 24px; margin: 10px 0 16px; font-size: 14px; flex-wrap: wrap; }
   .stats b { color: #7ec4ff; font-size: 20px; }
   td.playing { color: #ffd875; }
   td.waiting { color: #7fe07f; }
-  .room-name { display: flex; align-items: center; justify-content: space-between; }
+  .room-name { padding-top: 4px; padding-bottom: 4px; }
+  .spectate-link { display: inline-flex; align-items: center; gap: 8px; min-height: 28px; border-radius: 4px; text-decoration: none; vertical-align: middle; }
+  .spectate-link:hover { color: #fff; }
+  .spectate-badge { padding: 2px 6px; background: #24425d; border: 1px solid #416a8b; border-radius: 4px; font-size: 12px; color: #c2e1ff; }
+  .spectate-link:hover .spectate-badge { background: #2f5c86; border-color: #7ec4ff; }
+  .room-copy { min-height: 28px; margin-left: 12px; padding: 3px 8px; background: #243447; border: 1px solid #3a5068; color: #9db8d0; font: inherit; line-height: 1.5; vertical-align: middle; }
+  .room-copy:hover { background: #2d435a; color: #fff; }
+  .room-copy:focus-visible, .spectate-link:focus-visible { outline: 2px solid #7ec4ff; outline-offset: 2px; }
   @media (max-width: 640px) {
+    .room-name { padding-top: 2px; padding-bottom: 2px; }
     .stats { gap: 10px 16px; font-size: 12px; }
     .stats b { font-size: 15px; }
   }
@@ -26,7 +34,7 @@
   <span data-i18n="update_time">更新时间</span> <b id="sTime">-</b>
 </div>
 <div>
-  <button id="refreshRooms" style="background:#2f5c86; color:#fff; padding:6px 16px; font-size:13px;" data-i18n="refresh">手动刷新</button>
+  <button data-page-action="refresh" style="background:#2f5c86; color:#fff; padding:6px 16px; font-size:13px;" data-i18n="refresh">手动刷新</button>
 </div>
 <div class="table-wrap">
 <table>
@@ -35,44 +43,59 @@
 </table>
 </div>
 <div class="hint" data-i18n="hint">页面不会自动刷新,请点击「手动刷新」或按 F5 查看最新房间。房名中的密码部分不会显示。</div>
-<script src="/assets/site-shell.js?v=20261019"></script>
+<script src="/assets/site-shell.js?v=20261024-entry"></script>
 <script>
 var I18N = {
   zh: {
     title: '游戏王OCG201103天梯服务器 实时房间', rooms_total: '房间总数', playing_now: '对局中', players_online: '在线玩家', update_time: '更新时间',
     refresh: '手动刷新',
     th_roomname: '房名', th_type: '类型', th_mode: '模式', th_players: '玩家', th_status: '状态',
-    hint: '页面不会自动刷新,请点击「手动刷新」或按 F5 查看最新房间。房名中的密码部分不会显示。',
-    waiting: '等待中', waiting_match: '等待匹配中', join_btn: '点击加入', password_btn: '需要密码', watch_btn: '点击观战', unavailable: '暂不可用', load_fail: '加载失败',
+    hint: '点击已开始对局的房名可在新标签页打开网页版观战；密码房需补充房间密码后手动连接。页面不会自动刷新，请点击「手动刷新」或按 F5；房间密码不会显示或写入链接。',
+    hint_disabled: '网页版 YGOPro 入口暂未开放；可复制房间号，在本地游戏中连接。页面不会自动刷新，请点击「手动刷新」或按 F5；房间密码不会显示。',
+    watch_btn: '观战', watch_password: '观战·需密码', copy_short: '复制',
+    waiting: '等待中', waiting_match: '等待匹配中', copy_btn: '点击复制房间号', copied: '已复制:', copy_fail: '复制失败', load_fail: '加载失败',
     ladder_match: '天梯随机(比赛)', random_single: '随机·单局', random_match: '随机·比赛', random_tag: '随机·双打', random_other: '其他随机模式', ai_battle: 'AI 对战', arena_room: '竞技场房', tournament_room: '赛事房', single_room: '单局房', match_room: '比赛房', tag_room: '双打房', unknown_room: '未知类型'
   },
   ja: {
     title: '遊戯王OCG 201103 ランキングサーバー ルーム一覧', rooms_total: '全ルーム', playing_now: '対戦中', players_online: 'オンライン', update_time: '更新時刻',
     refresh: '更新',
     th_roomname: 'ルーム名', th_type: '種別', th_mode: 'モード', th_players: 'プレイヤー', th_status: '状態',
-    hint: '自動更新はありません。「更新」またはF5で最新のルームを表示します。ルーム名のパスワード部分は表示されません。',
-    waiting: '待機中', waiting_match: 'マッチ待ち', join_btn: '参加する', password_btn: 'パスワードが必要', watch_btn: '観戦する', unavailable: '利用できません', load_fail: '読み込み失敗',
+    hint: '対戦開始済みのルーム名をクリックすると、新しいタブでウェブ観戦を開きます。パスワード付きルームは入力後に接続してください。自動更新はありません。「更新」またはF5をご利用ください。パスワードは表示もリンクへの追加もしません。',
+    hint_disabled: 'Web版 YGOPro へのリンクは現在無効です。ルーム名をコピーしてローカルゲームから接続できます。自動更新はありません。「更新」または F5 をご利用ください。パスワードは表示されません。',
+    watch_btn: '観戦', watch_password: '観戦・要パスワード', copy_short: 'コピー',
+    waiting: '待機中', waiting_match: 'マッチ待ち', copy_btn: 'ルーム名コピー', copied: 'コピーしました:', copy_fail: 'コピー失敗', load_fail: '読み込み失敗',
     ladder_match: 'ランクマッチ(MT)', random_single: 'ランダム(1本)', random_match: 'ランダム(MT)', random_tag: 'ランダム(2v2)', random_other: 'その他のランダム', ai_battle: 'AI対戦', arena_room: 'アリーナ部屋', tournament_room: '大会部屋', single_room: 'シングル部屋', match_room: 'マッチ部屋', tag_room: '2v2部屋', unknown_room: '不明な種別'
   },
   en: {
     title: 'Yu-Gi-Oh! OCG 201103 Ladder Server Live Rooms', rooms_total: 'Rooms', playing_now: 'In Duel', players_online: 'Online Players', update_time: 'Updated',
     refresh: 'Refresh',
     th_roomname: 'Room', th_type: 'Type', th_mode: 'Mode', th_players: 'Players', th_status: 'Status',
-    hint: 'No auto refresh. Click "Refresh" or press F5 for the latest rooms. Password parts of room names are hidden.',
-    waiting: 'Waiting', waiting_match: 'Waiting for match', join_btn: 'Join room', password_btn: 'Password needed', watch_btn: 'Watch game', unavailable: 'Unavailable', load_fail: 'Load failed',
+    hint: 'Click a started room name to spectate in the web client in a new tab. Password rooms require manual entry before connecting. Refresh manually or press F5. Room passwords are neither shown nor included in links.',
+    hint_disabled: 'Web YGOPro links are currently disabled. Copy a room name to connect in your local game. Refresh manually or press F5. Room passwords are not shown.',
+    watch_btn: 'Watch', watch_password: 'Watch · password', copy_short: 'Copy',
+    waiting: 'Waiting', waiting_match: 'Waiting for match', copy_btn: 'Copy room name', copied: 'Copied:', copy_fail: 'Copy failed', load_fail: 'Load failed',
     ladder_match: 'Ladder Match', random_single: 'Random Single', random_match: 'Random Match', random_tag: 'Random Tag', random_other: 'Other Random Mode', ai_battle: 'AI Battle', arena_room: 'Arena Room', tournament_room: 'Tournament Room', single_room: 'Single Room', match_room: 'Match Room', tag_room: 'Tag Room', unknown_room: 'Unknown Type'
   },
   ko: {
     title: '유희왕 OCG 201103 랭킹 서버 라이브 룸', rooms_total: '전체 룸', playing_now: '듀얼 중', players_online: '온라인 플레이어', update_time: '업데이트',
     refresh: '새로고침',
     th_roomname: '룸 이름', th_type: '종류', th_mode: '모드', th_players: '플레이어', th_status: '상태',
-    hint: '자동 새로고침되지 않습니다. 「새로고침」 또는 F5로 최신 룸을 확인하세요. 비밀번호 부분은 표시되지 않습니다.',
-    waiting: '대기 중', waiting_match: '매칭 대기 중', join_btn: '참가하기', password_btn: '비밀번호 필요', watch_btn: '관전하기', unavailable: '이용 불가', load_fail: '로드 실패',
+    hint: '시작된 방 이름을 클릭하면 새 탭에서 웹 관전이 열립니다. 비밀번호 방은 비밀번호 입력 후 접속하세요. 자동 새로고침은 없습니다. 「새로고침」 또는 F5를 사용하세요. 비밀번호는 표시하거나 링크에 넣지 않습니다.',
+    hint_disabled: '웹 YGOPro 링크는 현재 비활성화되어 있습니다. 방 이름을 복사해 로컬 게임에서 접속할 수 있습니다. 자동 새로고침은 없으니 「새로고침」 또는 F5를 사용하세요. 비밀번호는 표시되지 않습니다.',
+    watch_btn: '관전', watch_password: '관전 · 비밀번호', copy_short: '복사',
+    waiting: '대기 중', waiting_match: '매칭 대기 중', copy_btn: '룸 이름 복사', copied: '복사됨:', copy_fail: '복사 실패', load_fail: '로드 실패',
     ladder_match: '랭크 매치(MT)', random_single: '랜덤(1판)', random_match: '랜덤(MT)', random_tag: '랜덤(2v2)', random_other: '기타 랜덤 모드', ai_battle: 'AI 대전', arena_room: '아레나 룸', tournament_room: '대회 룸', single_room: '싱글 룸', match_room: '매치 룸', tag_room: '2v2 룸', unknown_room: '알 수 없는 종류'
   }
 };
 var lang = SrvproWeb.getLanguage();
 function t(key) { return SrvproWeb.t(I18N, key); }
+if (typeof SrvproWeb.clientEnabled === 'function' && !SrvproWeb.clientEnabled()) {
+  document.querySelector('.hint').setAttribute('data-i18n', 'hint_disabled');
+}
+function spectatorUrl(roomName, needsPassword) {
+  try { return SrvproWeb.entryUrl('spectate', {room:roomName, autojoin:!needsPassword}).href; }
+  catch (error) { return ''; }
+}
 const ROOM_TYPES = new Set(['ladder_match', 'random_single', 'random_match', 'random_tag', 'random_other',
   'ai_battle', 'arena_room', 'tournament_room', 'single_room', 'match_room', 'tag_room', 'unknown_room']);
 function roomTypeKey(room) {
@@ -103,13 +126,14 @@ function escapeHtml(value) {
 async function refresh() {
   try {
     const res = await fetch('/api/public/rooms?t=' + Date.now());
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     const rooms = data.rooms || [];
     let players = 0, playing = 0;
     const tbody = document.getElementById('tbody');
     tbody.innerHTML = '';
     for (const r of rooms) {
-      const isPlaying = r.istart !== 'wait';
+      const isPlaying = /^Duel:\d+ (?:Turn:\d+|Siding)$/.test(r.istart || '');
       if (isPlaying) playing++;
       const names = (r.users || []).map(function (u) {
         const name = String(u.name || '').split('$')[0];
@@ -119,8 +143,12 @@ async function refresh() {
       }).join('、') || '(' + escapeHtml(t('waiting')) + ')';
       players += (r.users || []).length;
       const tr = document.createElement('tr');
-      const roomName = r.roomname ? r.roomname.split('$')[0] : ('#' + r.roomid);
+      const rawRoomName = typeof r.roomname === 'string' ? r.roomname : '';
+      const roomName = rawRoomName ? rawRoomName.split('$')[0] : ('#' + r.roomid);
       const type = roomTypeKey(r);
+      tr.dataset.roomName = roomName;
+      tr.dataset.roomState = String(r.istart || '');
+      tr.dataset.roomType = type;
       const dispType = friendlyName(r, type);
       const isLadder = type === 'ladder_match';
       const playersCell = (r.istart !== 'wait' || !isLadder) ? names : escapeHtml(t('waiting_match'));
@@ -129,37 +157,64 @@ async function refresh() {
         '<td>' + modeName(r.roommode) + '</td>' +
         '<td>' + playersCell + '</td>' +
         '<td class="' + (isPlaying ? 'playing' : 'waiting') + '">' + escapeHtml(r.istart) + '</td>';
-      const actionButton = document.createElement('button');
-      const hasName = typeof r.roomname === 'string' && r.roomname.length > 0;
-      const waiting = r.istart === 'wait';
-      const started = typeof r.istart === 'string' && r.istart.startsWith('Duel:');
-      const knownPasswordState = r.needpass === 'false' || r.needpass === 'true';
-      const canJoin = hasName && waiting && (isLadder || knownPasswordState);
-      const canWatch = hasName && started && knownPasswordState;
-      const needsPassword = r.needpass === 'true' && (canWatch || (canJoin && !isLadder));
-      actionButton.textContent = needsPassword ? t('password_btn') : canJoin ? t('join_btn') : canWatch ? t('watch_btn') :
-        t('unavailable');
-      actionButton.disabled = !canJoin && !canWatch;
-      actionButton.addEventListener('click', function () {
-        if (canJoin) {
-          if (isLadder) void window.SrvproDesktop.ladder();
-          else void window.SrvproDesktop.joinRoom(r);
-        } else if (canWatch) {
-          void window.SrvproDesktop.watchRoom(r);
+      if (isLadder && r.istart === 'wait' && typeof SrvproWeb.createClientLink === 'function') {
+        const matchLink = SrvproWeb.createClientLink('ladder', null, 'match');
+        matchLink.className = 'spectate-badge';
+        tr.firstElementChild.appendChild(matchLink);
+      }
+      if (isPlaying && rawRoomName && roomName) {
+        const needsPassword = r.needpass === 'true' || r.needpass === true || r.roomname.includes('$');
+        const href = spectatorUrl(roomName, needsPassword);
+        if (href) {
+          const link = SrvproWeb.createClientLink('spectate', {room:roomName, autojoin:!needsPassword});
+          link.textContent = '';
+          link.className = 'spectate-link';
+          link.href = href;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          const label = needsPassword ? t('watch_password') : t('watch_btn');
+          link.title = label;
+          const name = document.createElement('span');
+          name.textContent = roomName;
+          const badge = document.createElement('span');
+          badge.className = 'spectate-badge';
+          badge.textContent = label;
+          link.appendChild(name);
+          link.appendChild(badge);
+          tr.firstElementChild.replaceChildren(link);
         }
-      });
-      tr.firstElementChild.appendChild(actionButton);
+      }
+      const copyButton = document.createElement('button');
+      copyButton.className = 'room-copy';
+      copyButton.textContent = t('copy_short');
+      copyButton.title = t('copy_btn');
+      copyButton.setAttribute('aria-label', t('copy_btn') + ': ' + roomName);
+      copyButton.onclick = function () { copyRoomName(roomName); };
+      tr.firstElementChild.appendChild(copyButton);
       tbody.appendChild(tr);
     }
     document.getElementById('sRooms').textContent = rooms.length;
     document.getElementById('sPlaying').textContent = playing;
     document.getElementById('sPlayers').textContent = players;
-    document.getElementById('sTime').textContent = new Date().toLocaleTimeString();
+    document.getElementById('sTime').textContent = new Date().toLocaleTimeString(lang === 'zh' ? 'zh-CN' : lang);
   } catch (e) {
     document.getElementById('sTime').textContent = t('load_fail') + ': ' + e;
   }
 }
-document.getElementById('refreshRooms').addEventListener('click', refresh);
+function copyRoomName(roomName) {
+    const temp = document.createElement('input');
+    temp.value = roomName;
+    document.body.appendChild(temp);
+    temp.select();
+    try {
+        document.execCommand('copy');
+        alert(t('copied') + roomName);
+    } catch(err) {
+        alert(t('copy_fail'));
+    }
+    document.body.removeChild(temp);
+}
+document.querySelectorAll('[data-page-action="refresh"]').forEach(function (button) { button.addEventListener('click', refresh); });
 SrvproWeb.init({
   translations: I18N,
   onLanguageChange: function (code) { lang = code; refresh(); }

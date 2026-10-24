@@ -15,6 +15,7 @@ type EnvironmentState = { installed: boolean; revision: string | null; kind: str
 type ApiResponse = { status: number; contentType: string; bodyBase64: string };
 type SaveOutcome = { filename: string; savedPath: string; launchError: string | null };
 type DesktopUpdate = { currentVersion: string; latestVersion: string; updateAvailable: boolean; downloadUrl: string | null };
+type PageUpdate = { status: string; currentVersion: string; pendingVersion?: string | null; updateAvailable?: boolean; error?: string | null };
 type DesktopBridge = {
   saveCsv(filename: string, contents: string): Promise<string | null>;
   saveXlsx(filename: string, bytes: Uint8Array): Promise<string | null>;
@@ -35,6 +36,9 @@ type DesktopBridge = {
   installEnvironment(): Promise<EnvironmentState>;
   restoreEnvironment(): Promise<EnvironmentState>;
   checkDesktopUpdate(): Promise<DesktopUpdate>;
+  pageUpdateStatus(): Promise<PageUpdate>;
+  checkPageUpdate(): Promise<PageUpdate>;
+  recoverBuiltinPages(): Promise<PageUpdate>;
   openUpdateDownload(): Promise<void>;
   onScriptProgress(callback: (progress: ScriptProgress) => void): void;
 };
@@ -45,6 +49,8 @@ declare global {
     desktopRegular(): void;
     desktopLadder(): void;
     desktopUpdateScripts(): void;
+    doSearch?(): void;
+    queryMyStats?(account: {username: string; password: string}): void;
     __TAURI_INTERNALS__?: unknown;
   }
 }
@@ -96,8 +102,12 @@ const messages: Record<Language, Record<string, string>> = {
 function currentLanguage(): Language {
   const value = new URLSearchParams(location.search).get('L');
   if (languages.includes(value as Language)) return value as Language;
-  const stored = localStorage.getItem('srvprotianti.language');
+  let stored: string | null = null;
+  try { stored = localStorage.getItem('srvprotianti.language'); } catch { /* Native settings remain authoritative without browser storage. */ }
   return languages.includes(stored as Language) ? stored as Language : 'zh';
+}
+function writeLanguagePreference(language: Language) {
+  try { localStorage.setItem('srvprotianti.language', language); } catch { /* Persist through the native command below. */ }
 }
 function msg(key: string): string {
   return messages[currentLanguage()][key] || messages.zh[key] || key;
@@ -146,9 +156,10 @@ const settingsPromise = tauriAvailable
       if (!new URLSearchParams(location.search).has('L') &&
           !['jp', 'en', 'kr'].some(key => new URLSearchParams(location.search).has(key)) &&
           value.ui.language !== currentLanguage()) {
-        localStorage.setItem('srvprotianti.language', value.ui.language);
+        writeLanguagePreference(value.ui.language);
         const url = new URL(location.href);
         if (value.ui.language !== 'zh') url.searchParams.set('L', value.ui.language);
+        if (initialSelfQuery) url.searchParams.set('self', '1');
         location.replace(url.pathname + url.search + url.hash);
       }
       updateIntroButtons();
@@ -218,6 +229,74 @@ URL.revokeObjectURL = (url: string) => {
 };
 
 const busyAnchors = new WeakSet<HTMLAnchorElement>();
+// Consume this before shared page scripts run, so only the Rust account source
+// can satisfy an explicit self query in the desktop program.
+const initialSelfQuery = /\/(ladder|player-stats)\.html$/.test(location.pathname) &&
+  new URLSearchParams(location.search).get('self') === '1';
+if (initialSelfQuery) {
+  const url = new URL(location.href);
+  url.searchParams.delete('self');
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
+}
+
+async function queryNativeSelf(kind: 'ranking' | 'stats'): Promise<void> {
+  try {
+    const settings = cachedSettings || await settingsPromise;
+    const raw = settings.player.launchName.trim(), separator = raw.indexOf('$');
+    const username = (separator < 0 ? raw : raw.slice(0, separator)).trim();
+    const password = separator < 0 ? '' : raw.slice(separator + 1);
+    if (!username) { toast(msg('setName'), true); return; }
+    const target = kind === 'ranking' ? '/ladder.html' : '/player-stats.html';
+    if (location.pathname !== target) {
+      const url = new URL(target, location.href);
+      url.searchParams.set('self', '1');
+      if (currentLanguage() !== 'zh') url.searchParams.set('L', currentLanguage());
+      location.href = url.pathname + url.search;
+    } else if (kind === 'ranking') {
+      const input = document.getElementById('searchInput') as HTMLInputElement | null;
+      if (input && window.doSearch) { input.value = username; window.doSearch(); }
+    } else if (window.queryMyStats) window.queryMyStats({ username, password });
+  } catch { toast(msg('setName'), true); }
+}
+
+async function openNativeRoomByName(name: string, kind: 'join' | 'watch'): Promise<void> {
+  try {
+    const response = await apiFetch('/api/public/rooms?t=' + Date.now());
+    if (!response.ok) throw new Error(msg('roomGone'));
+    const rooms = (await response.json()).rooms as Record<string, unknown>[];
+    const room = rooms.find(item => typeof item.roomname === 'string' && item.roomname.split('$')[0] === name &&
+      (kind === 'join' ? item.istart === 'wait' : /^Duel:\d+ (?:Turn:\d+|Siding)$/.test(String(item.istart))));
+    if (!room) throw new Error(msg('roomGone'));
+    await (kind === 'join' ? window.SrvproDesktop.joinRoom(room) : window.SrvproDesktop.watchRoom(room));
+  } catch (error) { toast(msg('failed') + ': ' + String(error), true); }
+}
+
+document.addEventListener('click', event => {
+  const target = event.target instanceof Element ? event.target : null;
+  const control = target?.closest<HTMLElement>('[data-client-intent],[data-site-settings],[data-query-self],[data-native-room-action]');
+  if (!control) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  if (control.hasAttribute('data-site-settings')) {
+    location.href = '/settings.html' + (currentLanguage() === 'zh' ? '' : '?L=' + currentLanguage());
+    return;
+  }
+  if (control.hasAttribute('data-query-self')) {
+    void queryNativeSelf(control.dataset.querySelf === 'ranking' ? 'ranking' : 'stats');
+    return;
+  }
+  const intent = control.dataset.clientIntent;
+  if (intent === 'spectate' || control.dataset.nativeRoomAction) {
+    const name = control.dataset.clientRoom || control.closest<HTMLElement>('tr[data-room-name]')?.dataset.roomName;
+    if (name) void openNativeRoomByName(name, intent === 'spectate' || control.dataset.nativeRoomAction === 'watch' ? 'watch' : 'join');
+    return;
+  }
+  const native = window.SrvproDesktop;
+  if (intent === 'ladder') void native.ladder();
+  else if (intent === 'home' || intent === 'regular') void native.regular();
+  else if (intent === 'deck-editor') void native.deckEditor();
+  else if (intent === 'replay-list') void native.replayList();
+}, true);
 function downloadName(anchor: HTMLAnchorElement): string {
   if (anchor.download) return anchor.download;
   const url = new URL(anchor.href, location.href);
@@ -331,12 +410,42 @@ function updateDownloadLabels() {
   const shortcut = document.getElementById('updateScriptsShortcut');
   if (shortcut && shortcut.textContent !== msg('update')) shortcut.textContent = msg('update');
 }
+
+function updatePlatformControls() {
+  const settingsLabels = {zh: '设置', ja: '設定', en: 'Settings', ko: '설정'};
+  const nav = document.querySelector('[data-site-shell] nav');
+  if (nav && !nav.querySelector('[data-desktop-settings]')) {
+    const link = document.createElement('a');
+    link.dataset.desktopSettings = '';
+    link.href = '/settings.html' + (currentLanguage() === 'zh' ? '' : '?L=' + currentLanguage());
+    link.textContent = settingsLabels[currentLanguage()];
+    if (location.pathname === '/settings.html') {link.className = 'active'; link.setAttribute('aria-current', 'page');}
+    nav.appendChild(link);
+  }
+  document.querySelectorAll<HTMLElement>('tr[data-room-name]').forEach(row => {
+    const waiting = row.dataset.roomState === 'wait';
+    const watch = /^Duel:\d+ (?:Turn:\d+|Siding)$/.test(row.dataset.roomState || '');
+    if ((waiting && row.dataset.roomType !== 'ladder_match') || (watch && !row.querySelector('[data-client-intent="spectate"]'))) {
+      if (row.querySelector('[data-native-room-action]')) return;
+      const button = document.createElement('button'); button.type = 'button';
+      button.className = 'desktop-room-action'; button.dataset.nativeRoomAction = waiting ? 'join' : 'watch';
+      button.textContent = msg(waiting ? 'roomPasswordSubmit' : 'roomPasswordWatch');
+      row.firstElementChild?.appendChild(button);
+    }
+  });
+}
 document.addEventListener('DOMContentLoaded', () => {
   updateIntroButtons();
   updateDownloadLabels();
+  updatePlatformControls();
+  if (initialSelfQuery) void queryNativeSelf(location.pathname === '/ladder.html' ? 'ranking' : 'stats');
   document.getElementById('updateScriptsShortcut')?.addEventListener('click', () => window.desktopUpdateScripts());
-  const observer = new MutationObserver(() => { updateIntroButtons(); updateDownloadLabels(); });
+  const observer = new MutationObserver(() => { updateIntroButtons(); updateDownloadLabels(); updatePlatformControls(); });
   observer.observe(document.body, { childList: true, subtree: true });
+});
+document.addEventListener('srvpro-language-change', () => {
+  window.SrvproDesktop.setLanguage(currentLanguage());
+  updatePlatformControls();
 });
 
 async function requireName(): Promise<Settings | null> {
@@ -357,7 +466,7 @@ async function launch(kind: 'regular' | 'ladder' | 'deck-editor' | 'replay-list'
 async function copyIntroValue(button: HTMLButtonElement): Promise<void> {
   try {
     const field = button.dataset.copyConnection;
-    let value = button.dataset.copyValue;
+    let value = button.dataset.copyValue || button.dataset.copyContent;
     if (field) {
       const settings = cachedSettings || await settingsPromise;
       const values: Record<string, string> = {
@@ -382,7 +491,7 @@ document.addEventListener('click', event => {
   const target = event.target;
   const button = target instanceof Element ? target.closest('button') : null;
   if (!(button instanceof HTMLButtonElement) || !button.closest('[data-i18n="content1"], [data-i18n="content2"], [data-i18n="server_intro_qq"]')) return;
-  if (button.hasAttribute('data-copy-connection') || button.hasAttribute('data-copy-value')) {
+  if (button.hasAttribute('data-copy-connection') || button.hasAttribute('data-copy-value') || button.hasAttribute('data-copy-content')) {
     event.preventDefault();
     event.stopImmediatePropagation();
     void copyIntroValue(button);
@@ -510,19 +619,19 @@ window.SrvproDesktop = {
   async saveSettings(settings) {
     const saved = await invoke<Settings>('save_settings', { settings });
     cachedSettings = saved;
-    localStorage.setItem('srvprotianti.language', saved.ui.language);
+    writeLanguagePreference(saved.ui.language);
     updateIntroButtons();
     return saved;
   },
   async resetSettings() {
     const saved = await invoke<Settings>('reset_settings');
     cachedSettings = saved;
-    localStorage.setItem('srvprotianti.language', saved.ui.language);
+    writeLanguagePreference(saved.ui.language);
     updateIntroButtons();
     return saved;
   },
   setLanguage(language) {
-    localStorage.setItem('srvprotianti.language', language);
+    writeLanguagePreference(language);
     if (cachedSettings) cachedSettings.ui.language = language;
     if (tauriAvailable) {
       pendingLanguageWrite = pendingLanguageWrite.catch(() => {}).then(() => invoke('set_language', { language }));
@@ -545,6 +654,9 @@ window.SrvproDesktop = {
   },
   restoreEnvironment: () => invoke('restore_environment'),
   checkDesktopUpdate: () => invoke('check_desktop_update'),
+  pageUpdateStatus: () => invoke('page_update_status'),
+  checkPageUpdate: () => invoke('check_page_update'),
+  recoverBuiltinPages: () => invoke('recover_builtin_pages'),
   openUpdateDownload: () => invoke('open_external', {
     url: 'https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip'
   }),
@@ -553,3 +665,17 @@ window.SrvproDesktop = {
 window.desktopRegular = () => { void window.SrvproDesktop.regular(); };
 window.desktopLadder = () => { void window.SrvproDesktop.ladder(); };
 window.desktopUpdateScripts = () => { location.href = '/settings.html?update=1#scripts'; };
+
+async function reportPageReady() {
+  // A shell and the local bridge must work before a new package is accepted.
+  // Business API requests are deliberately outside this readiness decision.
+  if (!tauriAvailable || !document.querySelector('[data-site-shell] nav')) return;
+  try {
+    await listen<PageUpdate>('srvpro-page-update', event => {
+      document.dispatchEvent(new CustomEvent('srvpro-page-update', {detail: event.payload}));
+    });
+    await invoke('page_ready');
+  } catch { /* A missing updater in browser fixtures must not break local actions. */ }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { void reportPageReady(); }, {once: true});
+else void reportPageReady();

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>游戏王OCG201103天梯服务器 卡组胜率</title>
-  <link rel="stylesheet" href="/assets/common.css?v=20261019">
+  <link rel="stylesheet" href="/assets/common.css?v=20261024-entry">
   <style>
     .controls, .tabs { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:14px 0; }
     label { font-size:13px; color:#9db8d0; }
@@ -62,7 +62,7 @@
   <div class="controls">
     <label for="monthSelect" data-i18n="month">月份</label>
     <select id="monthSelect"></select>
-    <button id="refreshStats" data-i18n="refresh">刷新</button>
+    <button data-page-action="refresh" data-i18n="refresh">刷新</button>
   </div>
   <div class="tabs" id="metricTabs"></div>
   <div class="hint" id="hintRow" data-i18n="hint"></div>
@@ -78,7 +78,7 @@
   </div>
   <!-- 自定义 tooltip -->
   <div id="customTip" class="custom-tip"></div>
-<script src="/assets/site-shell.js?v=20261019"></script><script src="/assets/stats-export.js?v=20261019-xlsx"></script>
+<script src="/assets/site-shell.js?v=20261024-entry"></script><script src="/assets/stats-export.js?v=20261019-xlsx"></script>
 <script>
 var I18N={
   zh:{
@@ -147,6 +147,7 @@ function applyPageLanguage(){
   document.getElementById('metricTabs').innerHTML=t('metrics').map(function(x,i){
     return '<button class="'+(i===metric?'active':'')+'" data-metric="'+i+'">'+x+'</button>';
   }).join('');
+  document.querySelectorAll('[data-metric]').forEach(function(button){button.addEventListener('click',function(){setMetric(Number(button.dataset.metric));});});
 }
 
 function months(){
@@ -178,9 +179,10 @@ function value(item){
   }
   var rate = (w/n)*100;
   var rateStr = rate.toFixed(2) + '%';
+  var color = SrvproWeb.deckRateClass(rate);
   // 用 data-* 存储胜场和总场，方便 tooltip 读取
   var winRateStr = w + '/' + n;
-  return '<span class="val-colored '+SrvproWeb.deckRateClass(rate)+'" data-tip="'+winRateStr+'">'+rateStr+'</span>';
+  return '<span class="val-colored '+color+'" data-tip="'+winRateStr+'">'+rateStr+'</span>';
 }
 
 function render(){
@@ -282,11 +284,7 @@ async function loadStats(){
   }
 }
 
-document.getElementById('refreshStats').addEventListener('click', loadStats);
-document.getElementById('metricTabs').addEventListener('click', function(event){
-  var button=event.target.closest('button[data-metric]');
-  if(button) setMetric(Number(button.dataset.metric));
-});
+document.querySelectorAll('[data-page-action="refresh"]').forEach(function(button){button.addEventListener('click',loadStats);});
 months();
 SrvproWeb.init({
   translations:I18N,

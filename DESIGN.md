@@ -399,3 +399,9 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 服务器网页和桌面介绍页同样提供四行下载：原版 YGOPro 的 [网盘](https://ygopro.ysepan.com/) 或 [MyCard](https://mycard.moe/)（推荐）、[KoishiPro 官方](https://koishi.pro/download/)、暂沿用的 [整合包](https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp)、以及 [桌面最新 Windows ZIP](https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip)。整合包标注“整合好的KoishiPro，下载即玩”；桌面一行说明匹配、录像／卡组打开、卡池恢复和旧裁定脚本。Release 仅由维护者确认后推送版本标签触发；普通 CI artifact 用于测试，不作为稳定下载入口。
 
 桌面端所有页面标题栏显示一键匹配、启动游戏、卡组编辑、查看录像四个入口；前两项复用介绍页联机行为，后两项分别传无文件名的 `-d`、`-r`。胜率与胜负配色沿用网页语义；桌面构建生成静态色阶样式并使用类名显示，避免运行时内联颜色在 WebView 中失效，50% 保持中性色。
+
+## 15. 独立页面更新与共享源码
+
+维护者已批准“HTTP 业务 API＋独立 HTTPS 签名页面渠道＋本地缓存”。官网业务页从受控源和明确提交同步，平台差异集中在生成器及桌面桥接；页面包可以更新展示和已有能力范围内的交互，不能增加 Rust 命令、API 权限或游戏/脚本/卡库资源。首次启用需要新版 exe，之后页面与 exe 分别发布。
+
+用户先看到本地已验证页面，再在后台检查更新；成功下载于下次启动启用，失败保留当前版本。候选启动无 ready 或异常退出则隔离并恢复上一可用版/内置版；原生恢复入口不依赖业务页面。设置中的页面版本、检查/恢复文案、签名/兼容/缓存和发布约定统一维护在 [页面包约定](docs/PAGE_PACKAGE_UPDATE_PLAN.md)，模块与流程见 [当前架构](docs/ARCHITECTURE.md)。本轮已完成本地实现与演练；2026-10-25 最新指令已授权准备新固定批次并重启原 cmd，待空闲维护门禁通过后发布。
