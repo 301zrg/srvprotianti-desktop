@@ -54,6 +54,14 @@ test('legacy native responses and exceptions remain compatible',async()=>{
   const old=fixture('zh',async()=>{throw 'GitHub temporarily limited update checks';});
   await old.nodes.get('checkDesktopUpdate').click();assert.match(old.nodes.get('desktopUpdateStatus').textContent,/限制/);
 });
+
+test('structured native rejections retain cross-page last good results and retry time',async()=>{
+  const f=fixture('zh',async()=>{throw {...current,status:'stale',error:'rate_limited',retryAt:1792955000};});
+  await f.nodes.get('checkDesktopUpdate').click();
+  assert.match(f.nodes.get('desktopUpdateVersion').textContent,/0\.2\.1/);
+  assert.match(f.nodes.get('desktopUpdateStatus').textContent,/限制.*上次/);
+  assert.match(f.nodes.get('desktopUpdateTime').textContent,/重试/);
+});
 test('a pending check cannot create concurrent requests',async()=>{
   let resolve,calls=0;const f=fixture('zh',()=>{calls++;return new Promise(done=>resolve=done);});
   const pending=f.nodes.get('checkDesktopUpdate').click();await f.nodes.get('checkDesktopUpdate').click();

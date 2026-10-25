@@ -30,7 +30,7 @@
   async function check(){
     if(busy)return;busy=true;node('checkDesktopUpdate').disabled=true;render();
     try{last=await global.SrvproDesktop.checkDesktopUpdate();}
-    catch(error){last=Object.assign({},last,{status:last?.latestVersion?'stale':'unavailable',error:errorCode(error)});}
+    catch(error){last=error&&typeof error==='object'&&['stale','unavailable'].includes(error.status)?error:Object.assign({},last,{status:last?.latestVersion?'stale':'unavailable',error:errorCode(error)});}
     finally{busy=false;node('checkDesktopUpdate').disabled=false;render();}
   }
   function mount(){

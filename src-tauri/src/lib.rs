@@ -263,7 +263,9 @@ fn open_external(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn check_desktop_update(state: State<'_, AppState>) -> Result<updater::UpdateView, String> {
+fn check_desktop_update(
+    state: State<'_, AppState>,
+) -> Result<updater::UpdateView, updater::CheckError> {
     state.updater.check()
 }
 

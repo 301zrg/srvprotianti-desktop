@@ -330,7 +330,7 @@ flowchart TB
 
 便携包的环境资源实际路径为 `release-portable/srvprotianti-desktop-data/resources/1103-201103-v1/`。可选 NSIS 构建没有通过 Tauri bundle 配置携带这批环境文件；若使用安装器，须另外保持这个相对游戏根目录的数据目录结构。
 
-助手更新由 [原生检查器](../src-tauri/src/updater.rs)、[设置页适配](../src/desktop-updates.js) 和 [发布脚本](../scripts/desktop-release.mjs) 协作。检查器以专用 HTTPS 客户端读取最新 Release 的静态 `desktop-update.json`，不依赖 REST API 匿名额度，成功结果缓存 600 秒，失败冷却并保留带原时间的旧结果。共享的附件跳转域名约束归 `release_http.rs`，业务 API 客户端仍禁止跳转。检查后的 ZIP 链接固定已验证版本，页面始终有官方下载页入口；仍由系统浏览器下载、玩家手动覆盖。清单 SHA-256 用于发布附件核对，不宣称助手已校验浏览器下载的 ZIP。完整契约见 [DESIGN](../DESIGN.md#121-助手版本清单2026-10-26-本地候选待后续新版-exe-发布)。此项为 2026-10-26 本地候选，尚未推送、发布或入队，需要后续选择新版本发布 exe；现有线上版本行为不据此改变。
+助手更新由 [原生检查器](../src-tauri/src/updater.rs)、[设置页适配](../src/desktop-updates.js) 和 [发布脚本](../scripts/desktop-release.mjs) 协作。检查器以专用 HTTPS 客户端读取最新 Release 的静态 `desktop-update.json`，不依赖 REST API 匿名额度，成功结果缓存 600 秒，失败冷却并保留带原时间的旧结果。共享的附件跳转域名约束归 `release_http.rs`，业务 API 客户端仍禁止跳转。检查后的 ZIP 链接固定已验证版本，页面始终有官方下载页入口；仍由系统浏览器下载、玩家手动覆盖。清单 SHA-256 用于发布附件核对，不宣称助手已校验浏览器下载的 ZIP。完整契约见 [DESIGN](../DESIGN.md#121-助手版本清单2026-10-26-v021-发布候选)。此项为 v0.2.1 发布候选，已获用户授权，按独立队列和正式 Release 回执区分待发布与已上线；现有线上版本不会因源码提交或排队自动改变。
 
 页面加载保持原 `tauri` 本地 origin 和 IPC/CSP 边界；每次启动固定使用通过签名与逐文件校验的缓存目录或内置资源。`page-packages/state.json` 保存已接受的最高 sequence 和候选/当前/上一版；候选启动先写 booting，再由页面 ready 确认，异常退出或 45 秒无确认则隔离并回退。网络下载发生在页面 ready 之后，更新成功也只在下次启动切换。原生菜单提供独立恢复入口；普通业务 API 错误不会触发回退。完整信任和缓存边界见 [页面包约定](PAGE_PACKAGE_UPDATE_PLAN.md)。
 

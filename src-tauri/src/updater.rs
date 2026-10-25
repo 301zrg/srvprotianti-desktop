@@ -43,6 +43,13 @@ pub struct UpdateView {
     error: Option<&'static str>,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
+pub enum CheckError {
+    Unavailable(UpdateView),
+    Internal(&'static str),
+}
+
 #[derive(Clone, Debug)]
 struct Failure {
     code: &'static str,
@@ -225,7 +232,7 @@ pub struct Updater {
 }
 
 impl Updater {
-    pub fn check(&self) -> Result<UpdateView, String> {
+    pub fn check(&self) -> Result<UpdateView, CheckError> {
         self.check_with(now, || {
             fetch_latest(&client()?, MANIFEST_URL, env!("CARGO_PKG_VERSION"), now)
         })
@@ -235,9 +242,12 @@ impl Updater {
         &self,
         clock: impl Fn() -> u64,
         fetch: impl FnOnce() -> Result<UpdateView, Failure>,
-    ) -> Result<UpdateView, String> {
+    ) -> Result<UpdateView, CheckError> {
         // One request in flight across callers; cache never writes into the game directory.
-        let mut cache = self.cache.lock().map_err(|_| "update_state_unavailable")?;
+        let mut cache = self
+            .cache
+            .lock()
+            .map_err(|_| CheckError::Internal("update_state_unavailable"))?;
         let now = clock();
         if cache.last_failure.is_none() {
             if let Some(good) = &cache.good {
@@ -285,7 +295,9 @@ impl Updater {
         };
         view.error = cache.last_failure.as_ref().map(|error| error.code);
         view.retry_at = Some(cache.retry_at);
-        Ok(view)
+        // Older cached pages only inspect success fields. Reject failures so they cannot
+        // turn an unavailable check into a false "current version" message.
+        Err(CheckError::Unavailable(view))
     }
 }
 
@@ -293,6 +305,17 @@ impl Updater {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    fn failure_view(result: Result<UpdateView, CheckError>) -> UpdateView {
+        match result {
+            Err(CheckError::Unavailable(view)) => {
+                let encoded = serde_json::to_value(CheckError::Unavailable(view.clone())).unwrap();
+                assert_eq!(encoded["status"], view.status);
+                view
+            }
+            other => panic!("expected a structured rejection, got {other:?}"),
+        }
+    }
 
     fn manifest(version: &str) -> Vec<u8> {
         serde_json::to_vec(&json!({"schemaVersion":1,"version":version,"tag":format!("v{version}"),"sourceCommit":"a".repeat(40),"asset":{"name":ASSET_NAME,"size":1234,"sha256":"b".repeat(64)}})).unwrap()
@@ -359,18 +382,13 @@ mod tests {
             .unwrap();
         assert_eq!(cached.status, "cached");
         assert_eq!(cached.checked_at, Some(1000));
-        let stale = updater
-            .check_with(|| 1600, || Err(failure("network")))
-            .unwrap();
+        let stale = failure_view(updater.check_with(|| 1600, || Err(failure("network"))));
         assert_eq!(stale.status, "stale");
         assert_eq!(stale.checked_at, Some(1000));
         assert_eq!(stale.latest_version.as_deref(), Some("0.2.1"));
         assert_eq!(stale.retry_at, Some(1630));
         assert_eq!(
-            updater
-                .check_with(|| 1629, || panic!("cooldown request"))
-                .unwrap()
-                .status,
+            failure_view(updater.check_with(|| 1629, || panic!("cooldown request"))).status,
             "stale"
         );
         let recovered = updater
@@ -382,27 +400,30 @@ mod tests {
     }
 
     #[test]
+    fn failure_is_rejected_so_cached_older_pages_cannot_claim_current() {
+        let updater = Updater::default();
+        assert!(updater
+            .check_with(|| 1000, || Err(failure("network")))
+            .is_err());
+    }
+
+    #[test]
     fn first_failure_is_unavailable_and_obeys_retry_after() {
         let updater = Updater::default();
-        let view = updater
-            .check_with(
-                || 1000,
-                || {
-                    Err(Failure {
-                        code: "rate_limited",
-                        retry_at: Some(1120),
-                    })
-                },
-            )
-            .unwrap();
+        let view = failure_view(updater.check_with(
+            || 1000,
+            || {
+                Err(Failure {
+                    code: "rate_limited",
+                    retry_at: Some(1120),
+                })
+            },
+        ));
         assert_eq!(view.status, "unavailable");
         assert!(view.latest_version.is_none());
         assert!(view.checked_at.is_none());
         assert_eq!(
-            updater
-                .check_with(|| 1119, || panic!("must respect retry"))
-                .unwrap()
-                .retry_at,
+            failure_view(updater.check_with(|| 1119, || panic!("must respect retry"))).retry_at,
             Some(1120)
         );
         assert!(updater
@@ -416,21 +437,16 @@ mod tests {
     fn failure_cooldown_starts_after_the_request_finishes() {
         let clock = std::cell::Cell::new(1000);
         let updater = Updater::default();
-        let view = updater
-            .check_with(
-                || clock.get(),
-                || {
-                    clock.set(1015);
-                    Err(failure("network"))
-                },
-            )
-            .unwrap();
+        let view = failure_view(updater.check_with(
+            || clock.get(),
+            || {
+                clock.set(1015);
+                Err(failure("network"))
+            },
+        ));
         assert_eq!(view.retry_at, Some(1045));
         assert_eq!(
-            updater
-                .check_with(|| 1044, || panic!("early retry"))
-                .unwrap()
-                .status,
+            failure_view(updater.check_with(|| 1044, || panic!("early retry"))).status,
             "unavailable"
         );
         let good = updater.check_with(
@@ -440,7 +456,7 @@ mod tests {
                 parse_release(&manifest("0.2.1"), "0.2.0")
             },
         );
-        assert_eq!(good.unwrap().status, "unavailable");
+        assert_eq!(failure_view(good).status, "unavailable");
         clock.set(1045);
         let good = updater
             .check_with(

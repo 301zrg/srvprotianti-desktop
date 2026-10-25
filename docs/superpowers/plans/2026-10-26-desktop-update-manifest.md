@@ -1,6 +1,6 @@
 # Desktop update manifest implementation plan
 
-> **For agentic workers:** Use superpowers:executing-plans to implement this plan task-by-task. This conversation authorizes local implementation only.
+> **For agentic workers:** Use superpowers:executing-plans to implement this plan task-by-task. Initial local-only work is complete; the user subsequently authorized source publication, release/queuing, and restarting the original cmd after verified recovery.
 
 **Goal:** Check assistant versions without unauthenticated GitHub REST requests; retain manual browser download and useful offline behavior.
 
@@ -12,9 +12,9 @@
 
 ## Global constraints
 
-- Local work only: no push, tag creation, Release publication, production connections, cmd start/stop, or live queue changes.
+- Initial local-only boundary has been lifted by the user on 2026-10-26. Use the existing release workflow and append a new immutable batch after the already armed batch. Do not replay old or uncertain launches.
 - Base: `87933444bbeacbc7b203ac6a0a81070f863ec345`, including the pending page changes. Worktree/branch: `.audit-tmp/desktop-update-manifest-20261026`, `feat/desktop-update-manifest-20261026`.
-- Keep the current version until a later authorized release chooses and synchronizes an unused version in all version files. Do not reuse v0.2.0 for publication.
+- Candidate version is 0.2.1, confirmed unused on GitHub before publication; all package/Cargo/Tauri version files must match. Do not reuse v0.2.0.
 - No automatic executable installation, GitHub tokens in clients, HTTP update fallback, or changes to business API redirect permissions.
 - Application metadata and signed page metadata remain independent; page Releases keep `make_latest=false`.
 - Manifest schema 1: `version`, `tag`, `sourceCommit`, and `asset: {name,size,sha256}`. Exact application ZIP name; stable canonical semver/tag; lowercase 40/64 hex commit/hash; positive safe-integer size.
@@ -56,7 +56,7 @@
 
 - [x] Update existing contracts, architecture diagram and release flow; record local verification and deferred release conditions here.
 - [x] Run formatting, frontend checks and a focused browser smoke; review the complete diff and address material findings. Full Windows application validation remains a release gate.
-- [x] Preserve a local commit and record it here/with handoff: implementation commit `39437f6`, branch `feat/desktop-update-manifest-20261026`. Later publication requires explicit authorization, a newly selected version and live verification. If the release monitor is busy then, prepare a new immutable queue batch rather than edit/replay existing batches. Do not enqueue now.
+- [x] Preserve a local commit and record it here/with handoff: implementation commit `39437f6`, branch `feat/desktop-update-manifest-20261026`. Later publication requires explicit authorization, a newly selected version and live verification. If the release monitor is busy then, prepare a new immutable queue batch rather than edit/replay existing batches. The user subsequently authorized a new immutable queue entry.
 
 ## Execution record
 
@@ -74,4 +74,11 @@
 1. Confirm that online publication is authorized, inspect current monitor/cmd and enabled queue state read-only, and reconcile the latest application/page source commits. This branch includes the pending page candidate at base `8793344`; preserve it when integrating.
 2. Choose an unused stable application version (do not publish this work again as v0.2.0), synchronize package/package-lock, Cargo/Cargo.lock and Tauri versions, and run full Windows MSVC build/tests. A successful test fixture is not a release artifact.
 3. Pin the audited source commit, ZIP and `desktop-update.json`; require the CI draft/read-back verification and post-publication latest/tag/asset verification. Existing v0.2.0 clients need one manual EXE replacement to get the new native checker.
-4. If cmd has a current batch, prepare a new immutable batch and append through the established queue mechanism. Do not edit active/historical manifests or receipts, replay finished/uncertain batches, restart cmd or replace its current payload. A queue addition is not proof of publication.
+4. If cmd has a current batch, prepare a new immutable batch and append through the established queue mechanism. Do not edit active/historical manifests or receipts, replay finished/uncertain batches, restart cmd merely to add a batch, or replace its current payload. A queue addition is not proof of publication.
+
+## Authorized publication preparation, 2026-10-26
+
+- User explicitly selected online publication and queuing, then authorized restarting the stopped cmd after diagnosis.
+- The original `deck-card-announcements-20261025` stopped at 05:18 in desktop GitHub preflight, before durable launch intent. Read-only SSH confirmed no remote batch state, coordinator or lock; its manifest SHA matched. Authenticated GitHub and original queue preflight subsequently passed.
+- Local monitor patch retries only GET transport failures and HTTP 500/502/503/504 at most three times. Writes retain one-attempt/reconciliation behavior; safe cause codes replace raw exception messages. Full monitor regression: 188/188. Original receipts archived, all 45 queue files unchanged, and original cmd restarted at 05:42 with monitor PID 28304. This is recovery of the already armed batch, not a new server launch.
+- Release compatibility adds structured IPC rejection of unavailable/stale checks, so older cached pages cannot falsely announce current status. New pages preserve native last-good and retry timestamps. Both JS and native RED regressions reproduced the previous behavior; frontend release check passed 77/77. Native/CI validation and final queued batch evidence follow in the local release handoff.
