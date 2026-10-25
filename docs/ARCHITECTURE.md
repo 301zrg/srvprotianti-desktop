@@ -90,7 +90,8 @@ flowchart TB
     Script -->|script-progress 事件| Bridge
     Api --> HTTP[服务端允许的 HTTP API]
     Script --> Git[GitHub 706 脚本与固定 utility.lua]
-    Update --> Release[GitHub 最新正式版元数据]
+    Update --> Cache[进程内检查缓存与失败冷却]
+    Cache --> Release[GitHub 正式版 desktop-update.json]
     PageRuntime --> PageChannel[独立 HTTPS 签名页面渠道]
     PageRuntime -->|srvpro-page-update 事件| Bridge
     Game --> Process[本地游戏进程]
@@ -109,7 +110,7 @@ flowchart TB
 | [game.rs](../src-tauri/src/game.rs) | 限定同目录 EXE、组合参数数组、调用环境检查，以游戏根目录为工作目录启动进程 |
 | [scripts.rs](../src-tauri/src/scripts.rs) | 固定来源 Lua 检查下载、客户端识别、进程检查、冲突检查、清单与事务恢复 |
 | [environment.rs](../src-tauri/src/environment.rs) | 离线 1103 资源校验、备份安装、启动时同步语言与服务器、恢复原环境 |
-| [updater.rs](../src-tauri/src/updater.rs) | 检查 GitHub 正式版和指定 ZIP 资源是否存在；不替换正在运行的程序 |
+| [updater.rs](../src-tauri/src/updater.rs) | 校验静态版本清单、缓存结果/失败冷却、构造固定 tag 的下载地址；不替换正在运行的程序 |
 | [instance.rs](../src-tauri/src/instance.rs) | Windows 上按规范化游戏目录生成互斥体名称，重复启动时激活已有窗口 |
 | [webview.rs](../src-tauri/src/webview.rs) | 创建 WebView 前检查 WebView2，缺失时提供原生提示与安装页面入口 |
 | [pages_package.rs](../src-tauri/src/pages_package.rs) | 验证签名原始字节、应用/兼容/时效、逐文件清单与 ZIP 内容边界 |
@@ -316,7 +317,9 @@ flowchart TB
     Portable --> Zip[便携 ZIP]
     Zip --> Artifact[Windows CI artifact]
     Artifact --> Tag{v 标签或 release/v 分支与三处版本一致}
-    Tag -->|通过| Release[GitHub Release 固定名称 ZIP]
+    Tag -->|通过| Draft[草稿 Release 上传 ZIP 与版本清单]
+    Draft --> Verify[核对来源提交、附件大小及 SHA-256]
+    Verify --> Release[公开 Release 并确认 latest]
 ```
 
 官网八页和公共资产先按显式清单同步，生成快照保存来源和散列。构建器核对快照后，从页面提取 `<script>`、插入桌面桥接脚本并生成介绍页适配。业务改动回官网源码，适配改动回同步器/桥接，桌面设置和手写适配脚本各归原文件。`public/`、`dist/`、`release-portable/` 属于生成产物。Tauri 仍直接打开 `rooms.html`，根入口跳转到房间页。
@@ -325,7 +328,9 @@ flowchart TB
 
 [页面工作流](../.github/workflows/desktop-pages.yml) 接受 `page-candidates/**` 的公开签名清单，先用默认分支的可信校验器/公钥确认来源提交 A，再检出 A、构建并按签名清单精确重建 ZIP。私钥只在本机使用，不进入 CI；页面资源先发布成功，再更新单独的稳定索引，不占用 EXE 的 latest。未固定来源提交的本地快照可以验证，但不能冒充对应正式来源发布。
 
-便携包的环境资源实际路径为 `release-portable/srvprotianti-desktop-data/resources/1103-201103-v1/`。可选 NSIS 构建没有通过 Tauri bundle 配置携带这批环境文件；若使用安装器，须另外保持这个相对游戏根目录的数据目录结构。设置页的“检查更新”只查正式版元数据并交给系统浏览器下载 ZIP，程序自身不会自动安装更新。
+便携包的环境资源实际路径为 `release-portable/srvprotianti-desktop-data/resources/1103-201103-v1/`。可选 NSIS 构建没有通过 Tauri bundle 配置携带这批环境文件；若使用安装器，须另外保持这个相对游戏根目录的数据目录结构。
+
+助手更新由 [原生检查器](../src-tauri/src/updater.rs)、[设置页适配](../src/desktop-updates.js) 和 [发布脚本](../scripts/desktop-release.mjs) 协作。检查器以专用 HTTPS 客户端读取最新 Release 的静态 `desktop-update.json`，不依赖 REST API 匿名额度，成功结果缓存 600 秒，失败冷却并保留带原时间的旧结果。共享的附件跳转域名约束归 `release_http.rs`，业务 API 客户端仍禁止跳转。检查后的 ZIP 链接固定已验证版本，页面始终有官方下载页入口；仍由系统浏览器下载、玩家手动覆盖。清单 SHA-256 用于发布附件核对，不宣称助手已校验浏览器下载的 ZIP。完整契约见 [DESIGN](../DESIGN.md#121-助手版本清单2026-10-26-本地候选待后续新版-exe-发布)。此项为 2026-10-26 本地候选，尚未推送、发布或入队，需要后续选择新版本发布 exe；现有线上版本行为不据此改变。
 
 页面加载保持原 `tauri` 本地 origin 和 IPC/CSP 边界；每次启动固定使用通过签名与逐文件校验的缓存目录或内置资源。`page-packages/state.json` 保存已接受的最高 sequence 和候选/当前/上一版；候选启动先写 booting，再由页面 ready 确认，异常退出或 45 秒无确认则隔离并回退。网络下载发生在页面 ready 之后，更新成功也只在下次启动切换。原生菜单提供独立恢复入口；普通业务 API 错误不会触发回退。完整信任和缓存边界见 [页面包约定](PAGE_PACKAGE_UPDATE_PLAN.md)。
 
@@ -350,7 +355,7 @@ flowchart TB
 | 页面内容、统计呈现、翻页筛选 | 官网源码，经 `sync-web-source.mjs` 同步 | 页面契约、源/生成 SHA、桌面事件绑定、四语言 |
 | 桌面平台适配、设置 | 同步器、`desktop-bridge.ts`、根设置页及手写适配脚本 | 不直接修改已登记快照；保留本地动作、账号与下载语义 |
 | 页面签名/缓存/加载 | `page-package.mjs`、`pages_package/cache/runtime.rs` | 固定来源、信任根、兼容、sequence、下次启动及独立恢复 |
-| API 传输或新增查询 | `api.rs` 与 `desktop-bridge.ts` | 路由白名单、方法、权限语义、响应限额 |
+| API 传输或新增查询 | `release_http.rs` 与 `desktop-bridge.ts` | 路由白名单、方法、权限语义、响应限额 |
 | 新增本地动作 | `lib.rs`、对应 Rust 模块与桥接类型 | 参数校验、游戏目录限制、互斥与错误显示 |
 | 游戏启动方式 | `game.rs` | 参数次序、单个登录串参数、真实游戏兼容、环境同步 |
 | 706 脚本行为 | `scripts.rs` | 固定来源与一致 commit、两种客户端、冲突、事务恢复 |

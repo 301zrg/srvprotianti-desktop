@@ -9,7 +9,9 @@
 
 程序保留服务器网页的八个页面及中、日、英、韩四种语言。介绍页的 QQ 群号、IP、端口、合并地址和 TT 房间密码按钮可点击复制；常规联机行末的启动按钮只预填连接信息，天梯行末的启动按钮直接加入 TT。房间列表按公开 API 的 `roomtype` 显示实际类型；等待中的普通房间可点击加入，等待中的天梯房可直接进入 TT 匹配，已开局的房间可点击观战；密码房会要求当次输入密码。旧版 API 没有类型字段时，按严格房名格式识别已知随机房，其余按 `roommode` 显示。卡组与录像保存到游戏的 deck/replay 目录后直接打开。设置、1103 环境资源及旧裁定脚本更新位于设置页。
 
-每页标题栏提供一键匹配、启动游戏、卡组编辑、查看录像四个快捷按钮。后两项分别以无文件名的 `-d`、`-r` 启动游戏，不要求填写昵称。设置页可手动检查 GitHub 最新正式版；找到新版 Windows ZIP 后用系统浏览器下载，由玩家关闭游戏和助手再解压覆盖。
+每页标题栏提供一键匹配、启动游戏、卡组编辑、查看录像四个快捷按钮。后两项分别以无文件名的 `-d`、`-r` 启动游戏，不要求填写昵称。设置页可手动检查正式版，并用系统浏览器下载 Windows ZIP，由玩家关闭游戏和助手再解压覆盖。
+
+本地候选已将助手版本检查改为读取 Release 附带的 `desktop-update.json`，不再请求 GitHub REST API。成功结果在本次助手进程内缓存 10 分钟；检查失败保留并明确标注上次结果和时间，始终提供官方下载页。该行为需要后续新版 exe，当前线上 v0.2.0 不会因本地修改自动改变；详细实施和待发布条件见 [本地计划](docs/superpowers/plans/2026-10-26-desktop-update-manifest.md)。
 
 首次使用独立页面更新需覆盖一次支持该功能的新版助手。此后兼容现有 Rust 命令/API 的页面改动可只发布页面包：启动使用已验证的本地页面，后台从独立 HTTPS 渠道检查和下载，下次启动应用。设置中显示页面版本与检查入口，原生“页面恢复”菜单及 `Ctrl+Shift+R` 可指定下次使用内置页面；普通 API 断网继续保留本地页面。新增本地能力或安全边界变化仍需更新 exe。设计、签名和发布边界见 [页面包约定](docs/PAGE_PACKAGE_UPDATE_PLAN.md)。
 
@@ -38,7 +40,7 @@ npm run package:portable
 
 上述命令构建无安装器的 exe，再把 exe、config.default.json 与四语资源放入 release-portable。将其内容复制到游戏根目录使用。可选 npm run build:installer 生成 NSIS 安装器；安装位置必须选择目标游戏根目录，且使用环境资源时还须复制 release-portable 中的 resources 目录。
 
-Windows CI 每次构建提供用于检查的 ZIP artifact。维护者确认版本后推送与 package.json、tauri.conf.json、Cargo.toml 一致的 `v<版本>` 标签，CI 才会创建 GitHub Release，并上传固定名称 `srvprotianti-desktop-windows-x64.zip`。介绍页的“最新 Windows ZIP”链接指向该 Release 资源。解压 ZIP 时将内容直接放进 YGOPro／KoishiPro 根目录，保留 `srvprotianti-desktop-data` 文件夹。
+Windows CI 每次构建提供用于检查的 ZIP 和版本清单 artifact。维护者确认版本后推送与 package.json、tauri.conf.json、Cargo.toml 一致的 `v<版本>` 标签（或既有显式 `release/v<版本>` 分支），CI 才会创建草稿 GitHub Release，上传固定名称 `srvprotianti-desktop-windows-x64.zip` 与 `desktop-update.json`，核对来源标签、附件大小与 SHA-256 后公开并设置 latest。已有 Release 或不明确的发布结果停止待复核，不自动覆盖/重放。介绍页的“最新 Windows ZIP”链接保持可用；检查后的下载使用对应版本标签。解压 ZIP 时将内容直接放进 YGOPro／KoishiPro 根目录，保留 `srvprotianti-desktop-data` 文件夹。
 
 项目仅保存首次运行后的用户配置在 srvprotianti-desktop-data/config.user.json；覆盖默认值后不修改 config.default.json。默认游戏地址 121.4.34.71:7911，网页/API 地址独立为 http://121.4.34.71:7922。完整的“昵称$密码”登录串按用户输入保存在本地 JSON 中，请自行保管该文件。
 

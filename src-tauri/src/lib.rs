@@ -7,6 +7,7 @@ mod instance;
 mod pages_cache;
 mod pages_package;
 mod pages_runtime;
+mod release_http;
 mod reports;
 mod scripts;
 mod settings;
@@ -27,6 +28,7 @@ struct AppState {
     config_lock: Mutex<()>,
     file_lock: Mutex<()>,
     script_lock: Mutex<()>,
+    updater: updater::Updater,
 }
 
 fn game_root() -> PathBuf {
@@ -262,7 +264,7 @@ fn open_external(url: String) -> Result<(), String> {
 
 #[tauri::command]
 fn check_desktop_update(state: State<'_, AppState>) -> Result<updater::UpdateView, String> {
-    updater::check(&state.client)
+    state.updater.check()
 }
 
 #[tauri::command]
@@ -310,6 +312,7 @@ pub fn run() {
         config_lock: Mutex::new(()),
         file_lock: Mutex::new(()),
         script_lock: Mutex::new(()),
+        updater: updater::Updater::default(),
     };
     let app = tauri::Builder::default()
         .register_uri_scheme_protocol("tauri", |context, request| {

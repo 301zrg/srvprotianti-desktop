@@ -11,16 +11,7 @@ use tauri::{AppHandle, Emitter, Manager};
 const CSP:&str="default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost";
 const RECOVER_MENU: &str = "recover-builtin-pages";
 
-pub fn allowed_redirect(url: &Url) -> bool {
-    url.scheme() == "https"
-        && url.username().is_empty()
-        && url.password().is_none()
-        && url.port_or_known_default() == Some(443)
-        && matches!(
-            url.host_str(),
-            Some("release-assets.githubusercontent.com" | "objects.githubusercontent.com")
-        )
-}
+pub use crate::release_http::allowed_asset_redirect as allowed_redirect;
 pub fn local_path(path: &str) -> Result<String, String> {
     if path == "/" {
         return Ok("index.html".into());

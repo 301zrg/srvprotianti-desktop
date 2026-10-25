@@ -14,7 +14,7 @@ type ScriptProgress = { done: number; total: number; message: string };
 type EnvironmentState = { installed: boolean; revision: string | null; kind: string | null; needsRecovery: boolean };
 type ApiResponse = { status: number; contentType: string; bodyBase64: string };
 type SaveOutcome = { filename: string; savedPath: string; launchError: string | null };
-type DesktopUpdate = { currentVersion: string; latestVersion: string; updateAvailable: boolean; downloadUrl: string | null };
+type DesktopUpdate = { currentVersion: string; latestVersion: string | null; updateAvailable: boolean; downloadUrl: string | null; status?: string; checkedAt?: number | null; retryAt?: number | null; error?: string | null };
 type PageUpdate = { status: string; currentVersion: string; pendingVersion?: string | null; updateAvailable?: boolean; error?: string | null };
 type DesktopBridge = {
   saveCsv(filename: string, contents: string): Promise<string | null>;
@@ -39,7 +39,7 @@ type DesktopBridge = {
   pageUpdateStatus(): Promise<PageUpdate>;
   checkPageUpdate(): Promise<PageUpdate>;
   recoverBuiltinPages(): Promise<PageUpdate>;
-  openUpdateDownload(): Promise<void>;
+  openUpdateDownload(url?: string): Promise<void>;
   onScriptProgress(callback: (progress: ScriptProgress) => void): void;
 };
 
@@ -657,9 +657,12 @@ window.SrvproDesktop = {
   pageUpdateStatus: () => invoke('page_update_status'),
   checkPageUpdate: () => invoke('check_page_update'),
   recoverBuiltinPages: () => invoke('recover_builtin_pages'),
-  openUpdateDownload: () => invoke('open_external', {
-    url: 'https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip'
-  }),
+  openUpdateDownload: (url = 'https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip') => {
+    if (!/^https:\/\/github\.com\/301zrg\/srvprotianti-desktop\/releases\/(?:latest\/download|download\/v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))\/srvprotianti-desktop-windows-x64\.zip$/.test(url)) {
+      return Promise.reject(new Error('Invalid application download URL'));
+    }
+    return invoke('open_external', { url });
+  },
   onScriptProgress(callback) { progressCallbacks.add(callback); }
 };
 window.desktopRegular = () => { void window.SrvproDesktop.regular(); };
