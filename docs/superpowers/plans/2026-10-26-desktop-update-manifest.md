@@ -56,7 +56,7 @@
 
 - [x] Update existing contracts, architecture diagram and release flow; record local verification and deferred release conditions here.
 - [x] Run formatting, frontend checks and a focused browser smoke; review the complete diff and address material findings. Full Windows application validation remains a release gate.
-- [ ] Preserve a local commit and record it here/with handoff. Later publication requires explicit authorization, a newly selected version and live verification. If the release monitor is busy then, prepare a new immutable queue batch rather than edit/replay existing batches. Do not enqueue now.
+- [x] Preserve a local commit and record it here/with handoff: implementation commit `39437f6`, branch `feat/desktop-update-manifest-20261026`. Later publication requires explicit authorization, a newly selected version and live verification. If the release monitor is busy then, prepare a new immutable queue batch rather than edit/replay existing batches. Do not enqueue now.
 
 ## Execution record
 

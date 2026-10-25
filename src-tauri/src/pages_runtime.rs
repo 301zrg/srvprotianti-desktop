@@ -3,7 +3,7 @@ use crate::{
     pages_cache::{self, Selected, Store},
     pages_package::{self as package, TrustedKey},
 };
-use reqwest::{blocking::Client, Url};
+use reqwest::blocking::Client;
 use serde::Serialize;
 use std::{io::Read, path::Path, sync::Mutex, time::Duration};
 use tauri::{AppHandle, Emitter, Manager};
