@@ -16,7 +16,7 @@ const RESOURCE_DIRS = new Set('private config game games ygopro script scripts e
 const CONFIG_FILES = new Set('config.json settings.json account.json accounts.json player.json players.json userdata.json key.json tauri.conf.json package.json package-lock.json tsconfig.json cargo.json'.split(' '));
 const WEBSITE_SOURCE_FILES = [
   ...'intro rooms replays ladder deck-stats player-stats usage-stats deck-detail'.split(' ').map(name => `${name}.html`),
-  ...'common.css site-shell.js stats-export.js stats-workbook.js exceljs-4.4.0.min.js player-duel-stats.js rating-rules.js'.split(' ').map(name => `assets/${name}`)
+  ...'common.css site-shell.js stats-export.js stats-workbook.js exceljs-4.4.0.min.js player-duel-stats.js deck-card-usage.js rating-rules.js'.split(' ').map(name => `assets/${name}`)
 ];
 const PRIVATE_KEY = /-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/;
 const sha256 = data => createHash('sha256').update(data).digest('hex');

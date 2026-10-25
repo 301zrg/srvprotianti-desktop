@@ -132,7 +132,7 @@ function parseName(name) {
 }
 function playerStatsLink(value) {
   const name = String(value || '').split('$', 1)[0].trim();
-  if (!name || name === '-' || /^\*+$/.test(name)) return document.createTextNode(name || '-');
+  if (!name || name === '-') return document.createTextNode(name || '-');
   const link = document.createElement('a');
   link.className = 'inline-link';
   link.textContent = name;

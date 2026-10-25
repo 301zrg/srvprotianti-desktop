@@ -264,14 +264,15 @@ async function refresh() {
       const u = list[i];
       const tr = document.createElement('tr');
       if (u.rank <= 3) tr.className = 'top' + u.rank;
-      const showName = currentType === 'month' || (total > 0 && (u.rank / total < 0.7 || searchKeyword !== '')) ? u.name : '******';
+      const nameVisible = currentType === 'month' || (total > 0 && (u.rank / total < 0.7 || searchKeyword !== ''));
+      const showName = nameVisible ? u.name : '******';
       const points = Number(u.duelPoints ?? 1000);
       const wins = Number(u.wins || 0);
       const losses = Number(u.losses || 0);
       const diff = Number(u.diff || 0);
       const winRate = wins + losses ? wins / (wins + losses) * 100 : 0;
       const rankingColumn = getRankingBasisColumn();
-      var playerCell = showName === '******' ? showName : '<a href="/player-stats.html?player=' + encodeURIComponent(showName) + '&month=' + encodeURIComponent(selectedMonth) + (lang === 'zh' ? '' : '&L=' + lang) + '">' + escapeHtml(showName) + '</a>';
+      var playerCell = !nameVisible ? showName : '<a href="/player-stats.html?player=' + encodeURIComponent(showName) + '&month=' + encodeURIComponent(selectedMonth) + (lang === 'zh' ? '' : '&L=' + lang) + '">' + escapeHtml(showName) + '</a>';
       tr.innerHTML = '<td>' + u.rank + '</td><td>' + playerCell + '</td><td class="' + (rankingColumn === 'points' ? 'ranking-basis' : '') + '">' + points + '</td><td class="' + (rankingColumn === 'wins' ? 'ranking-basis' : '') + '">' + colored(wins, 'desktop-positive') + '</td><td>' + colored(losses, 'desktop-negative') + '</td><td class="' + (rankingColumn === 'diff' ? 'ranking-basis' : '') + '">' + colored(diff, SrvproWeb.semanticClass(diff)) + '</td><td class="' + (rankingColumn === 'winRate' ? 'ranking-basis' : '') + '">' + colored(winRate.toFixed(2) + '%', SrvproWeb.rateClass(winRate)) + '</td>';
       tbody.appendChild(tr);
     }

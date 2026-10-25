@@ -137,7 +137,7 @@ async function refresh() {
       if (isPlaying) playing++;
       const names = (r.users || []).map(function (u) {
         const name = String(u.name || '').split('$')[0];
-        if (!name || /\*{3,}/.test(name)) return escapeHtml(name);
+        if (!name) return escapeHtml(name);
         return '<a class="inline-link" href="/player-stats.html?player=' + encodeURIComponent(name) +
           (lang === 'zh' ? '' : '&L=' + encodeURIComponent(lang)) + '">' + escapeHtml(name) + '</a>';
       }).join('、') || '(' + escapeHtml(t('waiting')) + ')';

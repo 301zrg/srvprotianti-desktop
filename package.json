@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "prepare:pages": "node scripts/prepare-pages.mjs",
-    "predev": "npm run prepare:pages && esbuild src/desktop-bridge.ts --bundle --format=iife --platform=browser --target=es2022 --outfile=public/assets/desktop-bridge.js",
+    "predev": "npm run prepare:pages && esbuild src/desktop-bridge.ts --bundle --preserve-symlinks --format=iife --platform=browser --target=es2022 --outfile=public/assets/desktop-bridge.js",
     "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
     "build:web": "npm run predev && vite build --outDir dist",
     "build": "tauri build --no-bundle",
