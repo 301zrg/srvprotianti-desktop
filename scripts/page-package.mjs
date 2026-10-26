@@ -11,12 +11,13 @@ export const PAGE_PACKAGE_LIMITS = Object.freeze({
 export const PAGE_ARCHIVE_NAME = 'srvprotianti-desktop-pages.zip';
 const DOMAIN = Buffer.from('srvprotianti-desktop-pages-v1\0');
 const APPLICATION = 'org.srvprotianti.desktop';
+const APP_VERSION = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version;
 const EXTENSIONS = new Set('html css js mjs json png jpg jpeg gif svg webp ico avif woff woff2 ttf otf eot txt webmanifest map'.split(' '));
 const RESOURCE_DIRS = new Set('private config game games ygopro script scripts expansions replay replays deck decks database db card cards resources node_modules'.split(' '));
 const CONFIG_FILES = new Set('config.json settings.json account.json accounts.json player.json players.json userdata.json key.json tauri.conf.json package.json package-lock.json tsconfig.json cargo.json'.split(' '));
 const WEBSITE_SOURCE_FILES = [
   ...'intro rooms replays ladder deck-stats player-stats usage-stats deck-detail'.split(' ').map(name => `${name}.html`),
-  ...'common.css site-shell.js stats-export.js stats-workbook.js exceljs-4.4.0.min.js player-duel-stats.js deck-card-usage.js rating-rules.js'.split(' ').map(name => `assets/${name}`)
+  ...'common.css site-shell.js stats-export.js stats-workbook.js exceljs-4.4.0.min.js player-duel-stats.js deck-card-usage.js rating-rules.js card-images.js'.split(' ').map(name => `assets/${name}`)
 ];
 const PRIVATE_KEY = /-----BEGIN (?:RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY-----/;
 const sha256 = data => createHash('sha256').update(data).digest('hex');
@@ -249,7 +250,7 @@ export function signManifestPayload(payload, { privateKey, keyId }) {
   return envelope;
 }
 
-export function verifyPageManifest({ manifest, publicKey, keyId, now = new Date(), appVersion = '0.2.0', bridgeVersion = 1, minSequence = 0 }) {
+export function verifyPageManifest({ manifest, publicKey, keyId, now = new Date(), appVersion = APP_VERSION, bridgeVersion = 1, minSequence = 0 }) {
   const manifestBytes = typeof manifest === 'string' || Buffer.isBuffer(manifest) ? Buffer.from(manifest) : Buffer.from(JSON.stringify(manifest));
   boundedInteger(manifestBytes.length, PAGE_PACKAGE_LIMITS.manifestSize, 'Manifest', 1);
   let envelope;
@@ -323,7 +324,7 @@ export async function buildPagePackage({ distDir, outputDir, privateKey, keyId, 
   if (inside(dist, output)) fail('Package output must be outside dist');
   const entries = await collectPageEntries(path.resolve(distDir)), archive = createPageArchive(entries);
   const payload = {
-    application: APPLICATION, channel: 'stable', version, sequence, bridgeVersion: 1, minAppVersion: '0.2.0', createdAt, expiresAt,
+    application: APPLICATION, channel: 'stable', version, sequence, bridgeVersion: 1, minAppVersion: APP_VERSION, createdAt, expiresAt,
     archive: { url: archiveURL(version), size: archive.length, sha256: sha256(archive), unpackedSize: entries.reduce((sum, entry) => sum + entry.data.length, 0) },
     files: entries.map(entry => ({ path: entry.path, size: entry.data.length, sha256: sha256(entry.data) })).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
     sourceCommits: { desktop: sourceCommits?.desktop, website: sourceCommits?.website }
@@ -366,7 +367,7 @@ async function main(argv) {
   } else if (command === 'verify') {
     required('manifest archive public-key');
     const trusted = JSON.parse(await readFile(values['public-key'], 'utf8'));
-    const payload = verifyPagePackage({ manifest: await readFile(values.manifest), archive: await readFile(values.archive), ...trusted, minSequence: Number(values['min-sequence'] || 0), appVersion: values['app-version'] || '0.2.0' });
+    const payload = verifyPagePackage({ manifest: await readFile(values.manifest), archive: await readFile(values.archive), ...trusted, minSequence: Number(values['min-sequence'] || 0), appVersion: values['app-version'] || APP_VERSION });
     process.stdout.write(JSON.stringify({ verified: true, version: payload.version, sequence: payload.sequence, files: payload.files.length, sha256: payload.archive.sha256 }) + '\n');
   } else fail('Unknown page package command');
 }

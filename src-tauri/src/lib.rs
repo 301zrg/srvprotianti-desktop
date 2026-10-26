@@ -1,4 +1,5 @@
 mod api;
+mod card_images;
 mod downloads;
 mod environment;
 mod game;
@@ -140,6 +141,17 @@ fn api_request(
     body: String,
 ) -> Result<ApiResponse, String> {
     api::request(&state.root, &state.client, &method, &route, &body)
+}
+
+#[tauri::command]
+async fn read_card_images(
+    state: State<'_, AppState>,
+    card_id: u32,
+) -> Result<Vec<card_images::CardImage>, String> {
+    let root = state.root.clone();
+    tauri::async_runtime::spawn_blocking(move || card_images::read(&root, card_id))
+        .await
+        .map_err(|_| "Could not read local card images".to_string())
 }
 
 #[tauri::command]
@@ -342,6 +354,7 @@ pub fn run() {
             reset_settings,
             set_language,
             api_request,
+            read_card_images,
             save_csv,
             save_xlsx,
             launch_game,

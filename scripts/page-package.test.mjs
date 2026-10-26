@@ -65,6 +65,15 @@ test('build emits identical ZIP and signed bytes regardless of file mtime and cr
   assert.equal(verify(first).version, '1.0.0');
 });
 
+test('new page packages require the application version that supplies their native capabilities', async t => {
+  const root = await directory(t);
+  const current = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).version;
+  const built = await buildPagePackage({ ...options, distDir: path.join(root, 'dist'), outputDir: path.join(root, 'native-floor') });
+  assert.equal(built.payload.minAppVersion, current);
+  assert.throws(() => verify(built, { appVersion: '0.2.0' }), /too old/i);
+  assert.equal(verify(built, { appVersion: current }).minAppVersion, current);
+});
+
 test('an independent ZIP reader sees exactly the sorted frontend files with valid CRCs', async () => {
   const bundle = fixture();
   const decoded = await JSZip.loadAsync(bundle.archive, { checkCRC32: true });
@@ -258,7 +267,7 @@ test('manifest-only verification authenticates source metadata without needing a
 });
 
 function syntheticProvenance() {
-  const paths = ['intro.html', 'rooms.html', 'replays.html', 'ladder.html', 'deck-stats.html', 'player-stats.html', 'usage-stats.html', 'deck-detail.html', 'assets/common.css', 'assets/site-shell.js', 'assets/stats-export.js', 'assets/stats-workbook.js', 'assets/exceljs-4.4.0.min.js', 'assets/player-duel-stats.js', 'assets/deck-card-usage.js', 'assets/rating-rules.js'];
+  const paths = ['intro.html', 'rooms.html', 'replays.html', 'ladder.html', 'deck-stats.html', 'player-stats.html', 'usage-stats.html', 'deck-detail.html', 'assets/common.css', 'assets/site-shell.js', 'assets/stats-export.js', 'assets/stats-workbook.js', 'assets/exceljs-4.4.0.min.js', 'assets/player-duel-stats.js', 'assets/deck-card-usage.js', 'assets/rating-rules.js', 'assets/card-images.js'];
   return {
     schemaVersion: 1, generatorVersion: 1, websiteCommit: 'b'.repeat(40), websiteBaseCommit: 'b'.repeat(40),
     sourceFiles: paths.map(path => ({ path, size: 1, sha256: digest('x') })),

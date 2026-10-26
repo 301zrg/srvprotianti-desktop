@@ -63,6 +63,7 @@ flowchart TB
         Api[api.rs]
         Download[downloads.rs]
         Reports[reports.rs]
+        CardImages[card_images.rs：只读本地卡图]
         Game[game.rs]
         Script[scripts.rs]
         Env[environment.rs]
@@ -74,6 +75,7 @@ flowchart TB
         Entry --> Api
         Entry --> Download
         Entry --> Reports
+        Entry --> CardImages
         Entry --> Game
         Entry --> Script
         Entry --> Env
@@ -95,6 +97,7 @@ flowchart TB
     PageRuntime --> PageChannel[独立 HTTPS 签名页面渠道]
     PageRuntime -->|srvpro-page-update 事件| Bridge
     Game --> Process[本地游戏进程]
+    CardImages --> Pics[游戏根目录 pics：受限读取]
     Reports -->|用户原生对话框选取 XLSX/CSV 路径| Csv[统计表文件]
     Entry -->|open_external| Browser[系统浏览器]
 ```
@@ -102,11 +105,12 @@ flowchart TB
 | 源码入口 | 当前职责 |
 | --- | --- |
 | [src/desktop-bridge.ts](../src/desktop-bridge.ts) | 把原页面 `fetch` 转为 Rust API 调用，接管下载链接和 Blob，绑定桌面动作，保存语言，预检房间 |
-| [src-tauri/src/lib.rs](../src-tauri/src/lib.rs) | 确定游戏根目录、初始化设置和共享状态，注册 18 个命令，启动时尝试脚本事务恢复 |
+| [src-tauri/src/lib.rs](../src-tauri/src/lib.rs) | 确定游戏根目录、初始化设置和共享状态，注册受限本地命令，启动时尝试脚本事务恢复 |
 | [settings.rs](../src-tauri/src/settings.rs) | 默认值与用户覆盖值递归合并、字段校验、临时文件替换、整体恢复默认 |
 | [api.rs](../src-tauri/src/api.rs) | 方法和路由白名单、请求与响应限额、禁止跟随重定向，返回状态码、内容类型和 Base64 响应 |
 | [downloads.rs](../src-tauri/src/downloads.rs) | 来源与内容校验、Windows 文件名处理、同名内容去重、保存并尝试打开 |
 | [reports.rs](../src-tauri/src/reports.rs) | XLSX/CSV 另存为对话框，校验建议文件名与 8 MiB 内容上限，仅向用户选择且扩展名匹配的普通文件原子写入；XLSX 另查 ZIP 部件标记、512 部件/32 MiB 展开大小、拒绝宏部件，不自动打开文件 |
+| [card_images.rs](../src-tauri/src/card_images.rs) | `read_card_images` 仅接受数字卡号，只读游戏根目录 `pics` 的 jpg/jpeg/png/webp；拒绝目录和文件重解析点，限制每图 2 MiB、每次合计 4 MiB，返回 Base64，不接受任意路径或写文件 |
 | [game.rs](../src-tauri/src/game.rs) | 限定同目录 EXE、组合参数数组、调用环境检查，以游戏根目录为工作目录启动进程 |
 | [scripts.rs](../src-tauri/src/scripts.rs) | 固定来源 Lua 检查下载、客户端识别、进程检查、冲突检查、清单与事务恢复 |
 | [environment.rs](../src-tauri/src/environment.rs) | 离线 1103 资源校验、备份安装、启动时同步语言与服务器、恢复原环境 |
@@ -122,6 +126,8 @@ flowchart TB
 卡组详情的单卡投入率使用独立懒加载请求 `GET /api/ladder/deck-detail?view=card-usage`，沿用 v0.2.0 已有的精确 GET 白名单。网页与助手共享单卡板块、数据和 XLSX/CSV 逻辑，按五分区导出；`sync-web-source.mjs` 与页面包来源清单都显式包含 `deck-card-usage.js`。本功能无需扩展 Rust 权限或重发 EXE。
 
 页面更新只增加 `page_update_status`、`check_page_update`、`page_ready`、`recover_builtin_pages`。这些命令管理页面缓存，不接受任意更新地址、文件路径或新本地权限；页面业务仍沿用已有 Rust 能力和 API 白名单。
+
+v0.2.2 候选为使用率图片模式增加 `read_card_images`，由 `desktop-bridge.cardImages` 调用；共享 `card-images.js` 完成本地候选解码、语言图源与英文回退。原生文件读取在线程池中执行。外部图片以 HTTPS `img` 加载，本地内容使用已允许的 data URL，不扩大通用文件访问或任意网络 API 权限。页面包最低应用版本取构建源码的应用版本，新增能力本轮要求至少 v0.2.2；本地实现和发布验收仍分别记录。
 
 本地页面只通过这些命令使用本地能力。Rust 不提供任意 shell 命令、任意文件路径写入或任意 API 路由入口。外部 HTTP/HTTPS 链接交给系统浏览器。权限配置见 [capabilities/default.json](../src-tauri/capabilities/default.json)，实际 CSP 见 [tauri.conf.json](../src-tauri/tauri.conf.json)。当前 CSP 的 `script-src` 和 `style-src` 含 `unsafe-inline`；构建器另行拒绝 HTML 和 HTML 字符串中的内联事件属性，因此不能把“构建时禁止内联事件”描述成“运行时 CSP 禁止全部内联脚本”。
 

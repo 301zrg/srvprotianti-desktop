@@ -13,10 +13,12 @@ type ScriptResult = { status: string; files: string[] };
 type ScriptProgress = { done: number; total: number; message: string };
 type EnvironmentState = { installed: boolean; revision: string | null; kind: string | null; needsRecovery: boolean };
 type ApiResponse = { status: number; contentType: string; bodyBase64: string };
+type LocalCardImage = { contentType: string; bodyBase64: string };
 type SaveOutcome = { filename: string; savedPath: string; launchError: string | null };
 type DesktopUpdate = { currentVersion: string; latestVersion: string | null; updateAvailable: boolean; downloadUrl: string | null; status?: string; checkedAt?: number | null; retryAt?: number | null; error?: string | null };
 type PageUpdate = { status: string; currentVersion: string; pendingVersion?: string | null; updateAvailable?: boolean; error?: string | null };
 type DesktopBridge = {
+  cardImages(cardId: number): Promise<LocalCardImage[]>;
   saveCsv(filename: string, contents: string): Promise<string | null>;
   saveXlsx(filename: string, bytes: Uint8Array): Promise<string | null>;
   settings(): Promise<Settings>;
@@ -613,6 +615,7 @@ async function openRoom(room: Record<string, unknown>, kind: 'join' | 'watch'): 
 }
 
 window.SrvproDesktop = {
+  cardImages: cardId => tauriAvailable ? invoke<LocalCardImage[]>('read_card_images', { cardId }) : Promise.resolve([]),
   saveCsv: (filename, contents) => invoke<string | null>('save_csv', { filename, contents }),
   saveXlsx: (filename, bytes) => invoke<string | null>('save_xlsx', { filename, bytesBase64: base64FromBytes(bytes) }),
   settings: async () => cachedSettings || await settingsPromise,

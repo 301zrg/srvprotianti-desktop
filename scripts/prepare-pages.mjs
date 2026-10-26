@@ -19,7 +19,7 @@ await mkdir(pageScriptRoot, { recursive: true });
 await copyFile(path.join(source, 'site-shell.js'), path.join(assetRoot, 'site-shell.js'));
 await copyFile(path.join(source, 'source-manifest.json'), path.join(publicRoot, 'source-manifest.json'));
 await copyFile(path.join(root, 'src', 'desktop-updates.js'), path.join(assetRoot, 'desktop-updates.js'));
-for (const name of ['stats-export', 'stats-workbook', 'exceljs-4.4.0.min', 'player-duel-stats', 'deck-card-usage', 'rating-rules', 'self-query', 'page-updates']) {
+for (const name of ['stats-export', 'stats-workbook', 'exceljs-4.4.0.min', 'player-duel-stats', 'deck-card-usage', 'rating-rules', 'card-images', 'self-query', 'page-updates']) {
   await copyFile(path.join(source, name + '.js'), path.join(assetRoot, name + '.js'));
 }
 const neutral = [220, 230, 240];

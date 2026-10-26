@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 
 const root=path.resolve(import.meta.dirname,'..');
 const pages=['intro','rooms','replays','ladder','deck-stats','player-stats','usage-stats','deck-detail'];
-const assets=['common.css','site-shell.js','stats-export.js','stats-workbook.js','exceljs-4.4.0.min.js','player-duel-stats.js','deck-card-usage.js','rating-rules.js'];
+const assets=['common.css','site-shell.js','stats-export.js','stats-workbook.js','exceljs-4.4.0.min.js','player-duel-stats.js','deck-card-usage.js','rating-rules.js','card-images.js'];
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 const inputs=[...pages.map(page=>page+'.html'),...assets.map(asset=>'assets/'+asset)];
 const outputs=[...pages.map(page=>page+'.html'),...assets];

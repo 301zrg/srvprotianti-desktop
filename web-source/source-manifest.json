@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "generatorVersion": 1,
-  "websiteCommit": "edb1a0f80fa93413113d25225c7348cd64a5293f",
-  "websiteBaseCommit": "edb1a0f80fa93413113d25225c7348cd64a5293f",
+  "websiteCommit": "ddbd842284f539a51b81a8970a7180fac3ba8757",
+  "websiteBaseCommit": "ddbd842284f539a51b81a8970a7180fac3ba8757",
   "sourceFiles": [
     {
       "path": "intro.html",
@@ -36,8 +36,8 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 8424,
-      "sha256": "0a3cd08c445575394b7088f32e9a2c5c7deb5314dd7ace949d4fe61bcca45bc2"
+      "size": 11662,
+      "sha256": "064348453cd897bbf66ca4346c7d102ab810338d8429596126f0d3c290620200"
     },
     {
       "path": "deck-detail.html",
@@ -46,8 +46,8 @@
     },
     {
       "path": "assets/common.css",
-      "size": 7023,
-      "sha256": "0e7332ced635071b6bceefc5ff8ad17a157766c9894a97d955f8c04d5bcbceed"
+      "size": 9151,
+      "sha256": "33cfb6e9c330266c5fd2377d38ea7da645e80117140de7c3f8c23fd344b2fec5"
     },
     {
       "path": "assets/site-shell.js",
@@ -83,6 +83,11 @@
       "path": "assets/rating-rules.js",
       "size": 3751,
       "sha256": "9fa92379cc40b4a3dfc64e037ae0ffa6f6396dcd80c0fc45a0716b84bb00cd26"
+    },
+    {
+      "path": "assets/card-images.js",
+      "size": 4671,
+      "sha256": "f3267606dea78f412f56258cd377bd66c8332ded4ea5a4e9fea8a4b537be2790"
     }
   ],
   "generatedFiles": [
@@ -118,8 +123,8 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 8361,
-      "sha256": "35dc664ea66442db0994effe24f714c0c364f07f791a05b21d99733b6450c7e1"
+      "size": 11599,
+      "sha256": "be80654349554f01baf5a9f0bc04b84945dc3103c6a21a9bbde4f16620e091f2"
     },
     {
       "path": "deck-detail.html",
@@ -128,8 +133,8 @@
     },
     {
       "path": "common.css",
-      "size": 7322,
-      "sha256": "547a772e1c741c4cdfb1ea0069b1e904fd41030ce380fda6a166b5e334dfc205"
+      "size": 9450,
+      "sha256": "3361b050de7208150c9c3b3651a08282d0285a796d4c902d496922d1f522270d"
     },
     {
       "path": "site-shell.js",
@@ -165,6 +170,11 @@
       "path": "rating-rules.js",
       "size": 3751,
       "sha256": "9fa92379cc40b4a3dfc64e037ae0ffa6f6396dcd80c0fc45a0716b84bb00cd26"
+    },
+    {
+      "path": "card-images.js",
+      "size": 4671,
+      "sha256": "f3267606dea78f412f56258cd377bd66c8332ded4ea5a4e9fea8a4b537be2790"
     }
   ]
 }

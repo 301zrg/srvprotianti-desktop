@@ -15,7 +15,7 @@ async function gitFixture(run) {
   await mkdir(path.join(website,'assets'),{recursive:true});
   const names=['intro','rooms','replays','ladder','deck-stats','player-stats','usage-stats','deck-detail'];
   for(const name of names)await writeFile(path.join(website,name+'.html'),'<p>'+name+' fixture</p>\n');
-  for(const name of ['common.css','stats-export.js','stats-workbook.js','exceljs-4.4.0.min.js','player-duel-stats.js','deck-card-usage.js','rating-rules.js'])await writeFile(path.join(website,'assets',name),'/* fixture */\n');
+  for(const name of ['common.css','stats-export.js','stats-workbook.js','exceljs-4.4.0.min.js','player-duel-stats.js','deck-card-usage.js','rating-rules.js','card-images.js'])await writeFile(path.join(website,'assets',name),'/* fixture */\n');
   await writeFile(path.join(website,'assets/site-shell.js'),"(function(global){\n  'use strict';\n  global.SrvproWeb = Object.freeze({\n    rateColor: rateColor,\n  });\n})(window);\n");
   const git=(...args)=>execFileSync('git',['-c','core.autocrlf=false','-c','core.safecrlf=false','-c','commit.gpgsign=false','-c','user.name=Source Fixture','-c','user.email=source@example.invalid','-C',repository,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
   try {
@@ -141,7 +141,7 @@ test('read-only provenance regeneration rejects forged source lists and rehashed
     await api.verifyWebsiteProvenance({websiteRoot:website,sourceDirectory,websiteCommit:commit});
     assert.deepEqual(await readFile(manifestPath),before);
     const output=execFileSync(process.execPath,[fileURLToPath(new URL('./sync-web-source.mjs',import.meta.url)),'--verify-only','--website-root',website,'--website-commit',commit,'--source-directory',sourceDirectory],{encoding:'utf8'});
-    assert.match(output,/Verified website provenance for 16/);
+    assert.match(output,/Verified website provenance for 17/);
     assert.deepEqual(await readFile(manifestPath),before);
     const forged=structuredClone(manifest);forged.sourceFiles[0].sha256='0'.repeat(64);
     await writeFile(manifestPath,JSON.stringify(forged));
