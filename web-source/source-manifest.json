@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "generatorVersion": 1,
-  "websiteCommit": "ddbd842284f539a51b81a8970a7180fac3ba8757",
-  "websiteBaseCommit": "ddbd842284f539a51b81a8970a7180fac3ba8757",
+  "websiteCommit": "f410061f8627645e90793dc01da4d8cf8dd5fa85",
+  "websiteBaseCommit": "f410061f8627645e90793dc01da4d8cf8dd5fa85",
   "sourceFiles": [
     {
       "path": "intro.html",
@@ -36,8 +36,8 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 11662,
-      "sha256": "064348453cd897bbf66ca4346c7d102ab810338d8429596126f0d3c290620200"
+      "size": 11670,
+      "sha256": "b9227c9cb89e4b1bbe2c7de60b627b2e4dacca6e29e564f86302d41b164f4f71"
     },
     {
       "path": "deck-detail.html",
@@ -46,8 +46,8 @@
     },
     {
       "path": "assets/common.css",
-      "size": 9151,
-      "sha256": "33cfb6e9c330266c5fd2377d38ea7da645e80117140de7c3f8c23fd344b2fec5"
+      "size": 9676,
+      "sha256": "6f115eb843617733d289d7ed6d37ca281ffd364c144a73208ea75734fc460589"
     },
     {
       "path": "assets/site-shell.js",
@@ -123,8 +123,8 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 11599,
-      "sha256": "be80654349554f01baf5a9f0bc04b84945dc3103c6a21a9bbde4f16620e091f2"
+      "size": 11607,
+      "sha256": "7c5e41935911a609c9f9357b6f2c1e8238b08ee1efe4866d0b7d25fe206a6140"
     },
     {
       "path": "deck-detail.html",
@@ -133,8 +133,8 @@
     },
     {
       "path": "common.css",
-      "size": 9450,
-      "sha256": "3361b050de7208150c9c3b3651a08282d0285a796d4c902d496922d1f522270d"
+      "size": 9975,
+      "sha256": "4280ed777df4dda1df6a6159e9d5b23ae888915a648c02d76503c21805e523bd"
     },
     {
       "path": "site-shell.js",
