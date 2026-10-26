@@ -31,7 +31,7 @@ test('verification rejects a changed ZIP, mismatched tag and nonstable versions'
   await assert.rejects(()=>m.verifyManifest(manifest,{archive:f.archive,tag:'v0.2.1',commit}));
 });
 
-async function publisherFixture(t,{badDigest=false,publicAlready=false,wrongLatest=false,wrongCommit=false,failPublish=false}={}) {
+async function publisherFixture(t,{badDigest=false,publicAlready=false,wrongLatest=false,wrongCommit=false,failPublish=false,missingDraft=false,duplicateDraft=false}={}) {
   const f=await fixture(t),m=await import('./desktop-release.mjs');
   const manifest=await m.makeManifest({version:'0.2.1',commit,archive:f.archive});
   await writeFile(f.manifestPath,JSON.stringify(manifest)+'\n');
@@ -43,23 +43,32 @@ async function publisherFixture(t,{badDigest=false,publicAlready=false,wrongLate
     if(args[0]==='api'&&args[1].includes('/git/ref/'))return JSON.stringify({object:{type:'commit',sha:wrongCommit?'c'.repeat(40):commit}});
     if(args[0]==='release'&&args[1]==='create')return '';
     if(args[0]==='release'&&args[1]==='edit'){if(failPublish)throw Error('uncertain publish');published=true;return '';}
-    if(args[0]==='api')return JSON.stringify({tag_name:wrongLatest&&args[1].endsWith('/latest')?'v0.2.0':'v0.2.1',draft:!published,prerelease:false,assets});
+    if(args[0]==='api'){
+      const release={id:42,tag_name:'v0.2.1',draft:!published,prerelease:false,assets};
+      if(args[1].endsWith('/releases?per_page=100'))return JSON.stringify(missingDraft?[]:duplicateDraft?[release,{...release,id:43}]:[release]);
+      if(args[1].endsWith('/releases/tags/v0.2.1')&&!published)throw Error('gh: Not Found (HTTP 404): tag lookup returns published releases only');
+      if(wrongLatest&&args[1].endsWith('/latest'))release.tag_name='v0.2.0';
+      return JSON.stringify(release);
+    }
     throw Error('unexpected gh operation');
   };
   return {...f,m,calls,run,publish:()=>m.publishRelease({...f,tag:'v0.2.1',commit,run})};
 }
 
-test('publishes only after draft assets have matching sizes and digests',async t=>{
+test('verifies the uploaded draft by ID while its published tag endpoint still returns 404',async t=>{
   const f=await publisherFixture(t);await f.publish();
   const create=f.calls.find(a=>a[0]==='release'&&a[1]==='create');
   assert.ok(create.includes('--draft'));assert.ok(create.includes(f.archive));assert.ok(create.includes(f.manifestPath));
   const edit=f.calls.findIndex(a=>a[0]==='release'&&a[1]==='edit');
-  assert.ok(f.calls.slice(0,edit).some(a=>a[0]==='api'&&a[1].endsWith('/releases/tags/v0.2.1')));
+  assert.ok(f.calls.slice(0,edit).some(a=>a[0]==='api'&&a[1].endsWith('/releases?per_page=100')));
+  assert.ok(f.calls.slice(0,edit).some(a=>a[0]==='api'&&a[1].endsWith('/releases/42')));
+  assert.ok(!f.calls.slice(0,edit).some(a=>a[0]==='api'&&a[1].endsWith('/releases/tags/v0.2.1')));
+  assert.ok(f.calls.slice(edit+1).some(a=>a[0]==='api'&&a[1].endsWith('/releases/tags/v0.2.1')));
   assert.ok(f.calls.at(-1)[1].endsWith('/releases/latest'));
 });
 
 test('digest mismatch, wrong tag commit and public release stop before publication',async t=>{
-  for(const option of [{badDigest:true},{wrongCommit:true},{publicAlready:true}]){
+  for(const option of [{badDigest:true},{wrongCommit:true},{publicAlready:true},{missingDraft:true},{duplicateDraft:true}]){
     const f=await publisherFixture(t,option);await assert.rejects(f.publish);
     assert.ok(!f.calls.some(a=>a[0]==='release'&&a[1]==='edit'));
   }

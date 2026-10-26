@@ -42,7 +42,12 @@ export async function publishRelease({archive,manifestPath,tag,commit,run=args=>
       requireValue(matches.length===1&&matches[0].state==='uploaded'&&matches[0].size===asset.size&&matches[0].digest===`sha256:${asset.sha256}`,'Release asset size or digest mismatch');
     }
   }
-  verifyAssets(api(`releases/tags/${tag}`),true);
+  // GitHub's tag endpoint returns published releases only; inspect a draft by its ID.
+  const releases=api('releases?per_page=100');
+  requireValue(Array.isArray(releases),'Invalid Release listing');
+  const drafts=releases.filter(release=>release.tag_name===tag);
+  requireValue(drafts.length===1&&Number.isSafeInteger(drafts[0].id)&&drafts[0].id>0,'Draft Release identity is ambiguous');
+  verifyAssets(api(`releases/${drafts[0].id}`),true);
   run(['release','edit',tag,'--repo',repository,'--draft=false','--latest']);
   verifyAssets(api(`releases/tags/${tag}`),false);
   verifyAssets(api('releases/latest'),false);
