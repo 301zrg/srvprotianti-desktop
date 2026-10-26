@@ -127,7 +127,7 @@ flowchart TB
 
 页面更新只增加 `page_update_status`、`check_page_update`、`page_ready`、`recover_builtin_pages`。这些命令管理页面缓存，不接受任意更新地址、文件路径或新本地权限；页面业务仍沿用已有 Rust 能力和 API 白名单。
 
-v0.2.2 候选为使用率图片模式增加 `read_card_images`，由 `desktop-bridge.cardImages` 调用；共享 `card-images.js` 完成本地候选解码、语言图源与英文回退。原生文件读取在线程池中执行。外部图片以 HTTPS `img` 加载，本地内容使用已允许的 data URL，不扩大通用文件访问或任意网络 API 权限。页面包最低应用版本取构建源码的应用版本，新增能力本轮要求至少 v0.2.2；本地实现和发布验收仍分别记录。
+v0.2.2 候选为使用率及卡组详情单卡投入率的图片模式增加 `read_card_images`，由 `desktop-bridge.cardImages` 调用；共享 `card-images.js` 完成网格渲染、显示偏好、本地候选解码、语言图源与英文回退。原生文件读取在线程池中执行。外部图片以 HTTPS `img` 加载，本地内容使用已允许的 data URL，不扩大通用文件访问或任意网络 API 权限。页面包最低应用版本取构建源码的应用版本，新增能力本轮要求至少 v0.2.2；本地实现和发布验收仍分别记录。
 
 本地页面只通过这些命令使用本地能力。Rust 不提供任意 shell 命令、任意文件路径写入或任意 API 路由入口。外部 HTTP/HTTPS 链接交给系统浏览器。权限配置见 [capabilities/default.json](../src-tauri/capabilities/default.json)，实际 CSP 见 [tauri.conf.json](../src-tauri/tauri.conf.json)。当前 CSP 的 `script-src` 和 `style-src` 含 `unsafe-inline`；构建器另行拒绝 HTML 和 HTML 字符串中的内联事件属性，因此不能把“构建时禁止内联事件”描述成“运行时 CSP 禁止全部内联脚本”。
 

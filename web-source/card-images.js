@@ -118,5 +118,52 @@
       anchor.querySelectorAll('img').forEach(function(image) { image.removeAttribute('src'); image.remove(); });
     };
   }
-  global.SrvproCardImages = Object.freeze({mount:mount, sources:sources});
+  function readView() {
+    try { return localStorage.getItem('srvpro.usage.view.v1') === 'image' ? 'image' : 'list'; }
+    catch (_) { return 'list'; }
+  }
+
+  function saveView(view) {
+    try { localStorage.setItem('srvpro.usage.view.v1', view === 'image' ? 'image' : 'list'); }
+    catch (_) {}
+  }
+
+  function element(tag, text, className) {
+    var node = document.createElement(tag);
+    if (text != null) node.textContent = text;
+    if (className) node.className = className;
+    return node;
+  }
+
+  function renderGrid(grid, cards, options) {
+    var labels = options.labels, disposers = [];
+    grid.replaceChildren();
+    cards.forEach(function(card) {
+      var article = element('article', null, 'usage-card');
+      var heading = element('div', null, 'usage-card-heading'), rate = element('span', null, 'usage-rate');
+      rate.append(element('small', labels.rate), element('strong', (Number(card.usageRate || 0) * 100).toFixed(2) + '%'));
+      heading.append(element('span', labels.rank + ' ' + card.rank, 'usage-rank'), rate);
+      var link = element('a', null, 'card-image-link'), id = Number(card.cardId);
+      if (Number.isInteger(id) && id > 0 && id <= 4294967295) link.href = 'https://ygocdb.com/card/' + id;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.title = String(card.name || '') + ' (' + card.cardId + ')';
+      link.setAttribute('aria-label', link.title);
+      var fallback = element('span', null, 'card-image-fallback');
+      fallback.append(element('strong', card.name), element('span', card.cardId));
+      link.append(fallback);
+      var counts = element('dl', null, 'usage-card-counts');
+      [['decks', 'deckCount'], ['one', 'copies1'], ['two', 'copies2'], ['three', 'copies3']].forEach(function(pair, index) {
+        var item = element('div', null, index === 0 ? 'usage-card-decks' : '');
+        item.append(element('dt', labels[pair[0]]), element('dd', card[pair[1]]));
+        counts.append(item);
+      });
+      article.append(heading, link, counts);
+      grid.append(article);
+      disposers.push(mount(link, {cardId:id, language:options.language}));
+    });
+    return function() { disposers.forEach(function(dispose) { dispose(); }); };
+  }
+
+  global.SrvproCardImages = Object.freeze({mount:mount, sources:sources, readView:readView, saveView:saveView, renderGrid:renderGrid});
 })(window);

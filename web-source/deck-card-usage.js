@@ -8,19 +8,22 @@
     en:{title:'Card adoption',show:'Show card adoption',hide:'Hide card adoption',loading:'Loading card adoption…',retry:'Retry',failed:'Failed to load card adoption. Please retry.',legacy:'This server does not support card adoption yet.',busy:'Statistics are busy. Please retry later.',timeout:'Statistics timed out. Please retry.',invalid:'This deck or period is unavailable.',empty:'No cards in this zone.',noSamples:'No valid card samples for this period.',coverage:'Valid card samples %v% / all samples %a%',hint:'Uses game 1 decks; adoption is divided by valid card samples. Shows and exports up to 200 cards per zone, 50 per page.',zones:['Main deck monsters','Main deck spells','Main deck traps','Extra deck','Side deck'],prev:'Previous',next:'Next',download:'Download selected period card adoption'},
     ko:{title:'카드 투입률',show:'카드 투입률 펼치기',hide:'카드 투입률 접기',loading:'카드 투입률을 불러오는 중…',retry:'다시 시도',failed:'카드 투입률을 불러오지 못했습니다. 다시 시도하세요.',legacy:'현재 서버는 카드 투입률을 지원하지 않습니다.',busy:'통계가 혼잡합니다. 나중에 다시 시도하세요.',timeout:'통계 시간이 초과되었습니다. 다시 시도하세요.',invalid:'현재 덱 또는 기간을 사용할 수 없습니다.',empty:'이 구역에 카드가 없습니다.',noSamples:'선택 기간에 유효한 카드 표본이 없습니다.',coverage:'유효 카드 표본 %v% / 전체 표본 %a%',hint:'첫 게임 덱을 집계하며 유효 카드 표본이 분모입니다. 구역별 상위 200장까지 표시 및 저장하며 페이지당 50장입니다.',zones:['메인 덱 몬스터','메인 덱 마법','메인 덱 함정','엑스트라 덱','사이드 덱'],prev:'이전',next:'다음',download:'선택 기간 카드 투입률 저장'}
   };
+  var VIEWS={zh:['列表模式','图片模式','显示方式'],ja:['リスト表示','画像表示','表示形式'],en:['List view','Image view','Display mode'],ko:['목록 보기','이미지 보기','표시 방식']};
   function element(tag,text,className){var node=document.createElement(tag);if(text!=null)node.textContent=text;if(className)node.className=className;return node;}
   function identity(scope){return scope?JSON.stringify([Number(scope.deckId),scope.period,scope.period==='month'?scope.month:null,scope.lang]):'';}
   function create(){
     var api=global.SrvproStatsExport,root=element('section',null,'web-card deck-card-usage');root.dataset.deckCardUsage='';
     var scope=null,key='',serial=0,data=null,loadedAt=0,error='',loading=false,expanded=false,zone='monster',page=1,format='xlsx',exporting=false,status='';
+    var images=global.SrvproCardImages,view=images.readView(),disposeImages=function(){};
     function words(){return TEXT[scope&&scope.lang]||TEXT.zh;}
     function render(){
-      var active=document.activeElement,attribute=root.contains(active)?['data-card-expand','data-card-zone','data-card-prev','data-card-next','data-card-export','data-card-retry','data-export-format'].find(function(name){return active.hasAttribute(name);}):null;
+      var active=document.activeElement,attribute=root.contains(active)?['data-card-expand','data-card-zone','data-card-view','data-card-prev','data-card-next','data-card-export','data-card-retry','data-export-format'].find(function(name){return active.hasAttribute(name);}):null;
       var value=attribute?active.getAttribute(attribute):null;
       draw();
       if(attribute){var replacement=Array.from(root.querySelectorAll('['+attribute+']')).find(function(node){return node.getAttribute(attribute)===value;});if(replacement&&!replacement.disabled)replacement.focus();}
     }
     function draw(){
+      disposeImages();disposeImages=function(){};
       var t=words(),lang=scope&&scope.lang||'zh';root.replaceChildren();
       var heading=element('div',null,'deck-card-heading'),toggle=element('button',expanded?t.hide:t.show,'web-button');toggle.type='button';toggle.dataset.cardExpand='';
       toggle.setAttribute('aria-expanded',String(expanded));toggle.setAttribute('aria-controls','deckCardUsageBody');heading.append(element('h2',t.title),toggle);root.append(heading);
@@ -39,13 +42,22 @@
       var message=element('span',status,'csv-status muted');message.setAttribute('role','status');toolbar.append(picker,download,message);body.append(toolbar);
       if(!data.coverage.validCardDecks){var noSamples=element('p',t.noSamples,'empty-state');noSamples.dataset.cardNoSamples='';body.append(noSamples);return;}
       var tabs=element('div',null,'web-tabs deck-card-zones');
-      ZONES.forEach(function(name,index){var tab=element('button',t.zones[index],zone===name?'active':'');tab.type='button';tab.dataset.cardZone=name;tab.setAttribute('aria-pressed',String(zone===name));tab.onclick=function(){zone=name;page=1;render();root.querySelector('[data-card-zone="'+name+'"]').focus();};tabs.append(tab);});body.append(tabs);
+      ZONES.forEach(function(name,index){var tab=element('button',t.zones[index],zone===name?'active':'');tab.type='button';tab.dataset.cardZone=name;tab.setAttribute('aria-pressed',String(zone===name));tab.onclick=function(){zone=name;page=1;render();root.querySelector('[data-card-zone="'+name+'"]').focus();};tabs.append(tab);});
+      var controls=element('div',null,'deck-card-toolbar'),views=element('div',null,'web-tabs usage-views'),viewLabels=VIEWS[lang]||VIEWS.zh;
+      views.setAttribute('role','group');views.setAttribute('aria-label',viewLabels[2]);
+      ['list','image'].forEach(function(name,index){var button=element('button',viewLabels[index],view===name?'active':'');button.type='button';button.dataset.cardView=name;button.setAttribute('aria-pressed',String(view===name));button.onclick=function(){view=name;images.saveView(view);render();};views.append(button);});
+      controls.append(tabs,views);body.append(controls);
       var cards=data.cards[zone],pages=Math.max(1,Math.ceil(cards.length/50));page=Math.min(page,pages);
       if(!cards.length){var empty=element('p',t.empty,'empty-state');empty.dataset.cardEmpty='';body.append(empty);return;}
+      if(view==='image'){
+        var grid=element('div',null,'usage-grid');grid.dataset.cardGrid='';body.append(grid);
+        disposeImages=images.renderGrid(grid,cards.slice((page-1)*50,page*50),{language:lang,labels:{rank:api.t('rank',lang),rate:api.t('adoptionRate',lang),decks:api.t('adoptionCount',lang),one:api.t('one',lang),two:api.t('two',lang),three:api.t('three',lang)}});
+      }else{
       var wrap=element('div',null,'table-wrap'),table=element('table'),thead=element('thead'),header=element('tr'),tbody=element('tbody');table.dataset.cardTable='';wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label',t.zones[ZONES.indexOf(zone)]);
       ['rank','cardId','name','adoptionCount','adoptionRate','one','two','three'].forEach(function(name){var th=element('th',api.t(name,lang));th.scope='col';header.append(th);});thead.append(header);
       cards.slice((page-1)*50,page*50).forEach(function(card){var row=element('tr');[card.rank,card.cardId,card.name,card.deckCount,(Number(card.usageRate||0)*100).toFixed(2)+'%',card.copies1,card.copies2,card.copies3].forEach(function(value,index){var cell=element('td');if((index===1||index===2)&&Number.isSafeInteger(Number(card.cardId))&&Number(card.cardId)>0){var link=element('a',value,'inline-link');link.href='https://ygocdb.com/card/'+Number(card.cardId);link.target='_blank';link.rel='noopener';cell.append(link);}else cell.textContent=value;row.append(cell);});tbody.append(row);});
       table.append(thead,tbody);wrap.append(table);body.append(wrap);
+      }
       var pagination=element('div',null,'web-pagination deck-card-toolbar'),previous=element('button',t.prev),next=element('button',t.next);previous.type=next.type='button';previous.dataset.cardPrev='';next.dataset.cardNext='';previous.disabled=page<=1;next.disabled=page>=pages;
       previous.onclick=function(){page--;render();root.querySelector(page<=1?'[data-card-next]':'[data-card-prev]').focus();};next.onclick=function(){page++;render();root.querySelector(page>=pages?'[data-card-prev]':'[data-card-next]').focus();};pagination.append(previous,element('span',page+' / '+pages),next);body.append(pagination);
     }

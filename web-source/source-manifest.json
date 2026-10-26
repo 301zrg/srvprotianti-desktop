@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "generatorVersion": 1,
-  "websiteCommit": "f410061f8627645e90793dc01da4d8cf8dd5fa85",
-  "websiteBaseCommit": "f410061f8627645e90793dc01da4d8cf8dd5fa85",
+  "websiteCommit": "7c93bcf39497b53ab8182c17462dd91b53a999c2",
+  "websiteBaseCommit": "7c93bcf39497b53ab8182c17462dd91b53a999c2",
   "sourceFiles": [
     {
       "path": "intro.html",
@@ -36,18 +36,18 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 11670,
-      "sha256": "b9227c9cb89e4b1bbe2c7de60b627b2e4dacca6e29e564f86302d41b164f4f71"
+      "size": 10715,
+      "sha256": "2fc46ea51f7290a523d0011643b009b20d56a5e4618b714af5717cb4c04cb3c8"
     },
     {
       "path": "deck-detail.html",
-      "size": 14070,
-      "sha256": "b036f2d342c2e5104bd3a878d69a99dbd64049984f1de5147504d505faed822b"
+      "size": 14150,
+      "sha256": "d766a0076c8915ec28a398b16a40be2374d6bc0f34948ea742e9d6bf2bcf8e92"
     },
     {
       "path": "assets/common.css",
-      "size": 9676,
-      "sha256": "6f115eb843617733d289d7ed6d37ca281ffd364c144a73208ea75734fc460589"
+      "size": 9690,
+      "sha256": "7364921e7d24d3b6e7853be02cd2c33c0931f0086cd23cb8cb129b61f9e1e459"
     },
     {
       "path": "assets/site-shell.js",
@@ -76,8 +76,8 @@
     },
     {
       "path": "assets/deck-card-usage.js",
-      "size": 12785,
-      "sha256": "689aa02f489e5e47a1c601aa97dccbf1e6cc77033f54062322748467472b4aa2"
+      "size": 14160,
+      "sha256": "b58f48d81da703894a93233efbcba52d9d98505cbbe0333dcace983a2ebb4d3c"
     },
     {
       "path": "assets/rating-rules.js",
@@ -86,8 +86,8 @@
     },
     {
       "path": "assets/card-images.js",
-      "size": 4671,
-      "sha256": "f3267606dea78f412f56258cd377bd66c8332ded4ea5a4e9fea8a4b537be2790"
+      "size": 6955,
+      "sha256": "259dc484b11ef71a1e936d1eefb1569675d1743832a77b38257a5bec3d13884d"
     }
   ],
   "generatedFiles": [
@@ -123,18 +123,18 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 11607,
-      "sha256": "7c5e41935911a609c9f9357b6f2c1e8238b08ee1efe4866d0b7d25fe206a6140"
+      "size": 10652,
+      "sha256": "742d85024e99c741c07bf2a752b393cde90db5183fb80ac51ab721395b462c11"
     },
     {
       "path": "deck-detail.html",
-      "size": 13522,
-      "sha256": "78d73841578e70b6e9b7a1e402c898ea46f601db3c8bebde6cb2b42e9dca0f1d"
+      "size": 13602,
+      "sha256": "c7d4daf9d56b52d16e0cdef7c172c785a5446b070ead571f1fe0276535f268d1"
     },
     {
       "path": "common.css",
-      "size": 9975,
-      "sha256": "4280ed777df4dda1df6a6159e9d5b23ae888915a648c02d76503c21805e523bd"
+      "size": 9989,
+      "sha256": "cce0da50fd9c725338b443e6e80b3e9c1053256acde371ba07e78fd6e9316f3c"
     },
     {
       "path": "site-shell.js",
@@ -163,8 +163,8 @@
     },
     {
       "path": "deck-card-usage.js",
-      "size": 12785,
-      "sha256": "689aa02f489e5e47a1c601aa97dccbf1e6cc77033f54062322748467472b4aa2"
+      "size": 14160,
+      "sha256": "b58f48d81da703894a93233efbcba52d9d98505cbbe0333dcace983a2ebb4d3c"
     },
     {
       "path": "rating-rules.js",
@@ -173,8 +173,8 @@
     },
     {
       "path": "card-images.js",
-      "size": 4671,
-      "sha256": "f3267606dea78f412f56258cd377bd66c8332ded4ea5a4e9fea8a4b537be2790"
+      "size": 6955,
+      "sha256": "259dc484b11ef71a1e936d1eefb1569675d1743832a77b38257a5bec3d13884d"
     }
   ]
 }
