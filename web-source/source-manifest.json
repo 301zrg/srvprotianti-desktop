@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "generatorVersion": 1,
-  "websiteCommit": "7c93bcf39497b53ab8182c17462dd91b53a999c2",
-  "websiteBaseCommit": "7c93bcf39497b53ab8182c17462dd91b53a999c2",
+  "websiteCommit": "c7a4b335ddf75e9baa304af90f7302e9567d52ad",
+  "websiteBaseCommit": "c7a4b335ddf75e9baa304af90f7302e9567d52ad",
   "sourceFiles": [
     {
       "path": "intro.html",
-      "size": 39829,
-      "sha256": "d194a9f68c68342969f06d49e572cb67959fd9def8d40e850bd924045d7f4e20"
+      "size": 39892,
+      "sha256": "e2e0201c052440c3bcc9c55df44e6bbb49e6b8b20da8d79c6333d3e45ef6871f"
     },
     {
       "path": "rooms.html",
@@ -93,8 +93,8 @@
   "generatedFiles": [
     {
       "path": "intro.html",
-      "size": 38943,
-      "sha256": "b03d273325fd638cedfd8553f793eb5646f85023412df08599a2b6a5e659e171"
+      "size": 39006,
+      "sha256": "3495681a89021e6267ef89707c44d2faa567dffb0110417ea3413432c8e9ac8e"
     },
     {
       "path": "rooms.html",
@@ -138,8 +138,8 @@
     },
     {
       "path": "site-shell.js",
-      "size": 29293,
-      "sha256": "6fcb4a3325546eee70db122b93cc13d9844b00bc8d7f597411f05ccc8480790c"
+      "size": 28988,
+      "sha256": "258837fda71d59e38cca82954a24f5103bdda0be2bb07ab02da01bcc5cbaa102"
     },
     {
       "path": "stats-export.js",

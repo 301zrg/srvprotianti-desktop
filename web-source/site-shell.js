@@ -333,9 +333,6 @@
     var clientLink = createWebClientEntry();
     if (clientLink) titleRow.appendChild(clientLink);
     root.appendChild(titleRow);
-    var settings = document.createElement('button');
-    settings.type = 'button'; settings.className = 'site-settings-button'; settings.textContent = entryText('settings'); settings.setAttribute('data-site-settings', '');
-    settings.addEventListener('click', openSettings); root.appendChild(settings);
     var entryStatus = document.createElement('p'); entryStatus.className = 'site-entry-status'; entryStatus.hidden = true;
     entryStatus.setAttribute('data-entry-status', ''); entryStatus.setAttribute('role', 'status'); root.appendChild(entryStatus);
 

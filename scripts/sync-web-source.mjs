@@ -68,13 +68,15 @@ export function adaptPage(page,html) {
 function adaptShell(code) {
   const marker='  global.SrvproWeb = Object.freeze({';
   if(!code.includes(marker))throw Error('Shared shell export contract changed');
+  const settingsButton=/    var settings = document\.createElement\('button'\);\r?\n    settings\.type = 'button'; settings\.className = 'site-settings-button'; settings\.textContent = entryText\('settings'\); settings\.setAttribute\('data-site-settings', ''\);\r?\n    settings\.addEventListener\('click', openSettings\); root\.appendChild\(settings\);\r?\n/;
+  if(!settingsButton.test(code))throw Error('Shared shell settings button contract changed');
   const helpers=`  function rateClass(rate) {
     var value=Number(rate);
     return 'desktop-rate-'+(Number.isFinite(value)?Math.round(Math.max(0,Math.min(100,value))):50);
   }
   function semanticClass(value) { return Number(value)>0?'desktop-positive':Number(value)<0?'desktop-negative':'desktop-rate-50'; }
 `;
-  return code.replace("  'use strict';",`  'use strict';
+  return code.replace(settingsButton,'').replace("  'use strict';",`  'use strict';
   // These hrefs are public fallbacks; the native bridge captures every game action.
   global.SRVPRO_WEB_CLIENT_URL='https://ocg1103nexus.com/';
   global.SRVPRO_WEB_CLIENT_ENABLED=true;`).replace(marker,helpers+marker).replace('    rateColor: rateColor,',`    rateColor: rateColor,

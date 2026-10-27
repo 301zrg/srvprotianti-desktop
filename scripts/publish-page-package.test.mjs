@@ -36,7 +36,7 @@ async function provenanceFixture(t,{withGit=true}={}) {
   await mkdir(path.join(websiteRoot,'assets'),{recursive:true});
   for(const name of ['intro','rooms','replays','ladder','deck-stats','player-stats','usage-stats','deck-detail'])await writeFile(path.join(websiteRoot,name+'.html'),'<p>'+name+' fixture</p>\n');
   for(const name of ['common.css','stats-export.js','stats-workbook.js','exceljs-4.4.0.min.js','player-duel-stats.js','deck-card-usage.js','rating-rules.js','card-images.js'])await writeFile(path.join(websiteRoot,'assets',name),'/* fixture */\n');
-  await writeFile(path.join(websiteRoot,'assets/site-shell.js'),"(function(global){\n  'use strict';\n  global.SrvproWeb = Object.freeze({\n    rateColor: rateColor,\n  });\n})(window);\n");
+  await writeFile(path.join(websiteRoot,'assets/site-shell.js'),"(function(global){\n  'use strict';\n  function openSettings() {}\n  function renderShell() {\n    var settings = document.createElement('button');\n    settings.type = 'button'; settings.className = 'site-settings-button'; settings.textContent = entryText('settings'); settings.setAttribute('data-site-settings', '');\n    settings.addEventListener('click', openSettings); root.appendChild(settings);\n  }\n  global.SrvproWeb = Object.freeze({\n    rateColor: rateColor,\n  });\n})(window);\n");
   const git=(...args)=>execFileSync('git',['-c','core.autocrlf=false','-c','core.safecrlf=false','-c','commit.gpgsign=false','-c','user.name=Publisher Fixture','-c','user.email=publisher@example.invalid','-C',repository,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
   let websiteCommit='b'.repeat(40);
   if(withGit){git('init','--template=');git('add','.');git('commit','-m','publisher fixture');websiteCommit=git('rev-parse','HEAD');}

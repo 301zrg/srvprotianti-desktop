@@ -16,7 +16,7 @@ async function gitFixture(run) {
   const names=['intro','rooms','replays','ladder','deck-stats','player-stats','usage-stats','deck-detail'];
   for(const name of names)await writeFile(path.join(website,name+'.html'),'<p>'+name+' fixture</p>\n');
   for(const name of ['common.css','stats-export.js','stats-workbook.js','exceljs-4.4.0.min.js','player-duel-stats.js','deck-card-usage.js','rating-rules.js','card-images.js'])await writeFile(path.join(website,'assets',name),'/* fixture */\n');
-  await writeFile(path.join(website,'assets/site-shell.js'),"(function(global){\n  'use strict';\n  global.SrvproWeb = Object.freeze({\n    rateColor: rateColor,\n  });\n})(window);\n");
+  await writeFile(path.join(website,'assets/site-shell.js'),"(function(global){\n  'use strict';\n  function rateColor() {}\n  function openSettings() {}\n  function renderShell() {\n    var settings = document.createElement('button');\n    settings.type = 'button'; settings.className = 'site-settings-button'; settings.textContent = entryText('settings'); settings.setAttribute('data-site-settings', '');\n    settings.addEventListener('click', openSettings); root.appendChild(settings);\n  }\n  global.SrvproWeb = Object.freeze({\n    rateColor: rateColor,\n  });\n})(window);\n");
   const git=(...args)=>execFileSync('git',['-c','core.autocrlf=false','-c','core.safecrlf=false','-c','commit.gpgsign=false','-c','user.name=Source Fixture','-c','user.email=source@example.invalid','-C',repository,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
   try {
     git('init','--template=');git('add','.');git('commit','-m','fixture');
@@ -60,6 +60,18 @@ test('native source strips web-only import actions while preserving original fil
     assert.ok(generated.includes('download'),page+' keeps downloads');
     new Script(generated.match(/<script>([\s\S]*?)<\/script>/)[1]);
   }
+});
+
+test('desktop shell removes the duplicate settings button for the native navigation entry',async()=>{
+  const {syncWebsite}=await import('./sync-web-source.mjs');
+  await gitFixture(async({temporary,website,commit})=>{
+    const outputRoot=path.join(temporary,'snapshot');
+    await syncWebsite({websiteRoot:website,websiteCommit:commit,outputRoot});
+    const shell=await readFile(path.join(outputRoot,'site-shell.js'),'utf8');
+    assert.ok(!shell.includes('site-settings-button'));
+    assert.ok(!shell.includes('data-site-settings'));
+    assert.ok(shell.includes('global.SRVPRO_WEB_CLIENT_URL'));
+  });
 });
 
 test('build rejects manual drift in the synchronized snapshot',async()=>{

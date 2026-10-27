@@ -40,7 +40,7 @@ try{
         if(url.pathname==='/api/ladder')value={ladder:[],total:0,rankingBasis:'points'};
         if(url.pathname==='/api/ladder/player') {const q=JSON.parse(args.body);value={found:true,authenticated:q.password==='secret',player:q.player,month:q.month,summary:{month:summary,total:summary},chart:[],matches:[{matchId:12,opponent:'Opponent',playerDeckAvailable:true,opponentDeckAvailable:false,won:true,score:'2-1',settledAt:'2026-10-23T00:00:00Z'}],total:1,pageSize:10};}
         if(url.pathname==='/api/ladder/player/deck')return {status:200,contentType:'text/plain',bodyBase64:btoa('#main\n1\n#extra\n!side\n')};
-        if(url.pathname==='/api/example-decks')value={groups:[{name:{zh:'Fixture'},decks:[{file:'fixture.ydk',name:{zh:'Fixture deck'}}]}]};
+        if(url.pathname==='/api/example-decks')value={groups:[{name:{zh:'Fixture'},decks:[{file:'fixture.ydk',name:{zh:'Fixture deck'}}]},{name:{zh:'Second fixture'},decks:[{file:'second.ydk',name:{zh:'Second fixture deck'}}]}]};
         if(url.pathname==='/api/public/replays')value={replays:[{name:'fixture.yrp',size:10,players:[{id:'Fixture',deckbuffer:'AQAAAAAAAAABAAAA'}],duelCount:1}],total:1};
         return {status:200,contentType:'application/json',bodyBase64:btoa(unescape(encodeURIComponent(JSON.stringify(value))))};
       }
@@ -53,6 +53,8 @@ try{
     await page.goto(base+'/'+name+'.html?L='+lang);
     await expect(page.locator('.site-client-actions a')).toHaveCount(4);
     await expect(page.locator('[data-site-shell] nav a')).toHaveCount(8);
+    await expect(page.locator('[data-site-shell] nav [data-desktop-settings]')).toHaveCount(1);
+    await expect(page.locator('[data-site-settings]')).toHaveCount(0);
     assert.equal(await page.locator('.deck-web-open,.replay-web-open').count(),0);
     for(const [intent,kind] of [['ladder','ladder'],['home','regular'],['deck-editor','deck-editor'],['replay-list','replay-list']]){
       await page.locator('.site-client-actions [data-client-intent="'+intent+'"]').click();
@@ -84,7 +86,10 @@ try{
   await page.goto(base+'/ladder.html?L=en&month=202609&type=total');await page.locator('[data-query-self]').click();await expect(page.locator('#searchInput')).toHaveValue('Native');
   await page.locator('.lbtn-main').click();await page.getByRole('button',{name:'日本語',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='set_language').at(-1)?.args.language)).toBe('ja');
-  await page.locator('[data-site-settings]').click();await expect(page).toHaveURL(/\/settings.html\?L=ja/);assert.equal(await page.locator('.site-settings-dialog').count(),0);
+  await page.locator('[data-desktop-settings]').click();await expect(page).toHaveURL(/\/settings.html\?L=ja/);assert.equal(await page.locator('.site-settings-dialog').count(),0);
+  await page.goto(base+'/intro.html?L=en');await expect(page.locator('#deckGroups > .deck-group')).toHaveCount(2);
+  const deckGroupGap=await page.locator('#deckGroups > .deck-group').evaluateAll(nodes=>{const first=nodes[0].getBoundingClientRect(),second=nodes[1].getBoundingClientRect();return Math.round(second.top-first.bottom);});
+  assert.equal(deckGroupGap,12);
   await page.goto(base+'/intro.html?L=en');await page.locator('a[download]').first().click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.some(c=>c.command==='save_and_open'&&c.args.kind==='deck'))).toBe(true);
   await page.evaluate(()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['#main\n1']));a.download='fixture.ydk';a.click();});
