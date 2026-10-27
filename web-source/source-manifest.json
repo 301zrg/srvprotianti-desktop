@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "generatorVersion": 1,
-  "websiteCommit": "c7a4b335ddf75e9baa304af90f7302e9567d52ad",
-  "websiteBaseCommit": "c7a4b335ddf75e9baa304af90f7302e9567d52ad",
+  "websiteCommit": "412c0a21922d7d29e3efbc08d856bd16193642f9",
+  "websiteBaseCommit": "412c0a21922d7d29e3efbc08d856bd16193642f9",
   "sourceFiles": [
     {
       "path": "intro.html",
@@ -36,8 +36,8 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 10715,
-      "sha256": "2fc46ea51f7290a523d0011643b009b20d56a5e4618b714af5717cb4c04cb3c8"
+      "size": 19712,
+      "sha256": "1af56d0cbfffdd36c8aab704fe32e53aa6daadafebdd1c257f5c6dd5238344b2"
     },
     {
       "path": "deck-detail.html",
@@ -46,8 +46,8 @@
     },
     {
       "path": "assets/common.css",
-      "size": 9690,
-      "sha256": "7364921e7d24d3b6e7853be02cd2c33c0931f0086cd23cb8cb129b61f9e1e459"
+      "size": 11325,
+      "sha256": "5ca038c7c9ceba62c239ccdae85a0914be7569fdf16751ca280a59e43698d3f8"
     },
     {
       "path": "assets/site-shell.js",
@@ -123,8 +123,8 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 10652,
-      "sha256": "742d85024e99c741c07bf2a752b393cde90db5183fb80ac51ab721395b462c11"
+      "size": 19649,
+      "sha256": "45446da65471c9776deeb1552a6482fa1527e52a52c0673620af796d40737b12"
     },
     {
       "path": "deck-detail.html",
@@ -133,8 +133,8 @@
     },
     {
       "path": "common.css",
-      "size": 9989,
-      "sha256": "cce0da50fd9c725338b443e6e80b3e9c1053256acde371ba07e78fd6e9316f3c"
+      "size": 11624,
+      "sha256": "4b79d0d96527b93dbec813c0d3c1ae9995c59380cfb9d59deec34248f852f436"
     },
     {
       "path": "site-shell.js",

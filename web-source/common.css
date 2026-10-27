@@ -256,6 +256,29 @@ th {
   .site-client-actions { width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
   .site-client-actions .site-play-link { width:auto; min-width:0; padding:10px 7px; font-size:13px; white-space:normal; text-align:center; }
 }
-
+.usage-split-toggle { background:#2f5c86; color:#fff; padding:4px 10px; font-size:12px; }
+.usage-split-toggle.active { background:#7ec4ff; color:#16202b; font-weight:600; }
+.usage-card .usage-split-toggle { width:100%; margin-top:8px; }
+.usage-split-row > td { padding:0; background:#16212d; white-space:normal; }
+.usage-split-row .usage-split { position:sticky; left:0; box-sizing:border-box; }
+.usage-split { min-width:0; padding:10px 12px 12px; border-left:3px solid #7ec4ff; background:#16212d; }
+.usage-grid > .usage-split { grid-column:1/-1; border:1px solid #3a5575; border-left:3px solid #7ec4ff; border-radius:8px; }
+.usage-split h3 { margin:0 0 4px; font-size:15px; }
+.usage-split .muted { margin:4px 0; white-space:normal; }
+.usage-split .table-wrap { margin-top:8px; }
+.usage-split table { min-width:480px; background:#1a2633; }
+.usage-split-share { display:inline-flex; align-items:center; gap:8px; font-variant-numeric:tabular-nums; }
+.usage-split-bar { width:90px; height:6px; flex-shrink:0; overflow:hidden; border-radius:3px; background:#2c3e50; }
+.usage-split-bar > span { display:block; height:100%; background:#8cdbce; }
+@media (max-width:640px) {
+  .usage-split { padding:8px; }
+  .usage-split table { min-width:0; font-size:12px; }
+  .usage-split th, .usage-split td { padding:6px 4px; }
+  .usage-split th { white-space:normal; }
+  .usage-split td:nth-child(2) { white-space:normal; overflow-wrap:anywhere; }
+  .usage-split-share { flex-direction:column; align-items:flex-start; gap:3px; }
+  .usage-split-bar { width:48px; }
+  .usage-card .usage-split-toggle { margin-top:5px; padding:4px 2px; font-size:11px; }
+}
 /* Native platform actions share the website layout. */
 .deck-actions,.replay-actions{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap}.desktop-room-action{margin-left:8px;padding:4px 8px;background:#2f5c86;color:#fff;border-radius:4px}.nav a[data-desktop-settings]{margin-left:4px}

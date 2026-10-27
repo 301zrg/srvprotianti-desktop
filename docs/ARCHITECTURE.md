@@ -125,6 +125,8 @@ flowchart TB
 
 卡组详情的单卡投入率使用独立懒加载请求 `GET /api/ladder/deck-detail?view=card-usage`，沿用 v0.2.0 已有的精确 GET 白名单。网页与助手共享单卡板块、数据和 XLSX/CSV 逻辑，按五分区导出；`sync-web-source.mjs` 与页面包来源清单都显式包含 `deck-card-usage.js`。本功能无需扩展 Rust 权限或重发 EXE。
 
+使用率页的单卡“卡组分布”同理复用已放行的 `GET /api/ladder/usage/cards`，以 `view=deck-distribution` 区分；面板逻辑写在 `usage-stats.html` 内，样式在 `common.css`，不新增页面包资源文件，只需同步官网源码并发布页面包，无需改 Rust 白名单或重发 EXE。
+
 页面更新只增加 `page_update_status`、`check_page_update`、`page_ready`、`recover_builtin_pages`。这些命令管理页面缓存，不接受任意更新地址、文件路径或新本地权限；页面业务仍沿用已有 Rust 能力和 API 白名单。
 
 v0.2.2 候选为使用率及卡组详情单卡投入率的图片模式增加 `read_card_images`，由 `desktop-bridge.cardImages` 调用；共享 `card-images.js` 完成网格渲染、显示偏好、本地候选解码、语言图源与英文回退。原生文件读取在线程池中执行。外部图片以 HTTPS `img` 加载，本地内容使用已允许的 data URL，不扩大通用文件访问或任意网络 API 权限。页面包最低应用版本取构建源码的应用版本，新增能力本轮要求至少 v0.2.2；本地实现和发布验收仍分别记录。
