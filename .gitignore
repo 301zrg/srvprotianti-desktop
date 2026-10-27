@@ -5,6 +5,7 @@ dist/
 public/
 src-tauri/target/
 src-tauri/gen/schemas/
+src-tauri/build-local.ps1
 release-portable/
 *.log
 *.tmp

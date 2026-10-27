@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>游戏王OCG201103天梯服务器 录像下载</title>
-<link rel="stylesheet" href="/assets/common.css?v=20261019">
+<link rel="stylesheet" href="/assets/common.css?v=20261024-entry">
+
+
 <style>
   @media (max-width: 640px) {
     #searchInput { width: 100% !important; margin-left: 0 !important; }
@@ -16,9 +18,9 @@
 <div data-site-shell></div>
 <div class="nav">
   <input id="searchInput" data-i18n-ph="search_ph" placeholder="输入玩家 ID 搜索其全部录像" style="background:#243447; color:#dce6f0; border:1px solid #2c3e50; padding:6px 10px; width:220px; font-size:13px;" />
-  <button id="searchButton" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="search">搜索</button>
+  <button data-page-action="search" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="search">搜索</button>
   <select id="deckFilter" aria-label="卡组类型筛选"></select>
-  <button id="clearButton" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="clear">清空</button>
+  <button data-page-action="clear" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer; font-size:13px;" data-i18n="clear">清空</button>
 </div>
 <div class="table-wrap">
 <table>
@@ -27,14 +29,16 @@
 </table>
 </div>
 <div style="margin-top:12px; font-size:13px;">
-  <button id="btnFirst" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="first_page">首页</button>
-  <button id="btnPrev" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="prev">上一页</button>
+  <button id="btnFirst" data-page-action="first" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="first_page">首页</button>
+  <button id="btnPrev" data-page-action="prev" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="prev">上一页</button>
   <span id="pageInfo" style="margin:0 12px; color:#9db8d0;">-</span>
-  <button id="btnNext" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="next">下一页</button>
-  <button id="refreshButton" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; margin-left:16px; cursor:pointer;" data-i18n="refresh_page">刷新本页</button>
+  <button id="btnNext" data-page-action="next" style="background:#243447; color:#9db8d0; border:none; padding:6px 14px; cursor:pointer;" data-i18n="next">下一页</button>
+  <button data-page-action="refresh" style="background:#2f5c86; color:#fff; border:none; padding:6px 14px; margin-left:16px; cursor:pointer;" data-i18n="refresh_page">刷新本页</button>
 </div>
 <div class="hint" data-i18n="hint">页面不会自动刷新,请点击「刷新本页」获取最新录像。每页 20 条。当前只保存天梯(TT)模式的对局录像。文件名为"时间 玩家1 VS 玩家2.yrp"。</div>
-<script src="/assets/site-shell.js?v=20261019"></script>
+<script src="/assets/site-shell.js?v=20261024-entry"></script>
+
+
 <script>
 var I18N = {
   zh: {
@@ -128,7 +132,7 @@ function parseName(name) {
 }
 function playerStatsLink(value) {
   const name = String(value || '').split('$', 1)[0].trim();
-  if (!name || name === '-' || /^\*+$/.test(name)) return document.createTextNode(name || '-');
+  if (!name || name === '-') return document.createTextNode(name || '-');
   const link = document.createElement('a');
   link.className = 'inline-link';
   link.textContent = name;
@@ -212,7 +216,11 @@ async function refresh() {
         tr.appendChild(td);
       });
       const replayCell = document.createElement('td');
-      replayCell.appendChild(replayLink);
+      replayCell.className = 'replay-action-cell';
+      const replayActions = document.createElement('div');
+      replayActions.className = 'replay-actions';
+      replayActions.appendChild(replayLink);
+      replayCell.appendChild(replayActions);
       tr.appendChild(replayCell);
       [0, 1].forEach(function (playerIndex) {
         const td = document.createElement('td');
@@ -230,11 +238,15 @@ async function refresh() {
         const td = document.createElement('td');
         const player = (r.players || [])[playerIndex];
         if (player && player.id && player.deckbuffer) {
+          td.className = 'deck-action-cell';
           const deckButton = document.createElement('button');
           deckButton.type = 'button';
           deckButton.textContent = player.id;
           deckButton.onclick = function () { downloadDeck(r.name, r.duelCount, player); };
-          td.appendChild(deckButton);
+          const actions = document.createElement('div');
+          actions.className = 'deck-actions deck-actions--table';
+          actions.appendChild(deckButton);
+          td.appendChild(actions);
         } else {
           td.textContent = '-';
         }
@@ -262,12 +274,10 @@ function goPage(p) {
   currentPage = p;
   refresh();
 }
-document.getElementById('searchButton').addEventListener('click', doSearch);
-document.getElementById('clearButton').addEventListener('click', clearSearch);
-document.getElementById('btnFirst').addEventListener('click', function () { goPage(1); });
-document.getElementById('btnPrev').addEventListener('click', function () { goPage(currentPage - 1); });
-document.getElementById('btnNext').addEventListener('click', function () { goPage(currentPage + 1); });
-document.getElementById('refreshButton').addEventListener('click', refresh);
+document.querySelectorAll('[data-page-action]').forEach(function (button) {
+  var actions = {search:doSearch, clear:clearSearch, refresh:refresh, first:function(){goPage(1);}, prev:function(){goPage(currentPage-1);}, next:function(){goPage(currentPage+1);}};
+  button.addEventListener('click', actions[button.dataset.pageAction]);
+});
 SrvproWeb.init({
   translations: I18N,
   onLanguageChange: function (code) { lang = code; fillDeckFilter(); refresh(); }

@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "generatorVersion": 1,
+  "websiteCommit": "e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d",
+  "websiteBaseCommit": "e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d",
+  "sourceFiles": [
+    {
+      "path": "intro.html",
+      "size": 39892,
+      "sha256": "e2e0201c052440c3bcc9c55df44e6bbb49e6b8b20da8d79c6333d3e45ef6871f"
+    },
+    {
+      "path": "rooms.html",
+      "size": 15027,
+      "sha256": "2e202bbd7ad964cdb52e5dec400dc7e3d2607c98ec3272c29fd7bf1534cf4d4e"
+    },
+    {
+      "path": "replays.html",
+      "size": 17747,
+      "sha256": "9a20e3c07272b70f0d5a1615280040242d118bcc823e7778698d4a2d05c1ec89"
+    },
+    {
+      "path": "ladder.html",
+      "size": 19970,
+      "sha256": "27a0760a155aa89cc7c0f39133385c96830745c9980929e5c384c9c22b6d3b89"
+    },
+    {
+      "path": "deck-stats.html",
+      "size": 12359,
+      "sha256": "f9373884a05e308574ee237a5d60c54766a733a40bf1752f236b78f910f5d867"
+    },
+    {
+      "path": "player-stats.html",
+      "size": 20468,
+      "sha256": "d3a2664d51c59c795a2c7f8b8cc3a58e54f59884554ec831950987d338736195"
+    },
+    {
+      "path": "usage-stats.html",
+      "size": 31490,
+      "sha256": "7a9052fd7403384ab8dacb3c00be68acd4f3820e49d01ae57b191ea3ee1ff2ee"
+    },
+    {
+      "path": "deck-detail.html",
+      "size": 14150,
+      "sha256": "d766a0076c8915ec28a398b16a40be2374d6bc0f34948ea742e9d6bf2bcf8e92"
+    },
+    {
+      "path": "assets/common.css",
+      "size": 16365,
+      "sha256": "97d8a4b08d6de0f664bdbd1802c0411101080dd064459a76ad3588ab0404774c"
+    },
+    {
+      "path": "assets/site-shell.js",
+      "size": 28673,
+      "sha256": "1665af75834110fa17491680e8036be90d09f88dde47d45a43ab3f85bc3ab5bc"
+    },
+    {
+      "path": "assets/stats-export.js",
+      "size": 16882,
+      "sha256": "381b75bbf2e95f659933c0c7285162e7d9b539e1053f676023a12d5eec718502"
+    },
+    {
+      "path": "assets/stats-workbook.js",
+      "size": 8739,
+      "sha256": "689db8d31479c855c1f65b293f00043b10994570e7b436a0aa51c6f625eb4f2f"
+    },
+    {
+      "path": "assets/exceljs-4.4.0.min.js",
+      "size": 947702,
+      "sha256": "7e49da68588e250dbb8bba190d2caa8ab3787cc0284bda1d8b2f805c4df742c9"
+    },
+    {
+      "path": "assets/player-duel-stats.js",
+      "size": 11816,
+      "sha256": "32c7795fecc909530f95d5aeea98d77a916c083fc146ee7f98ea3f8635fa7707"
+    },
+    {
+      "path": "assets/deck-card-usage.js",
+      "size": 14160,
+      "sha256": "b58f48d81da703894a93233efbcba52d9d98505cbbe0333dcace983a2ebb4d3c"
+    },
+    {
+      "path": "assets/rating-rules.js",
+      "size": 3751,
+      "sha256": "9fa92379cc40b4a3dfc64e037ae0ffa6f6396dcd80c0fc45a0716b84bb00cd26"
+    },
+    {
+      "path": "assets/card-images.js",
+      "size": 6955,
+      "sha256": "259dc484b11ef71a1e936d1eefb1569675d1743832a77b38257a5bec3d13884d"
+    }
+  ],
+  "generatedFiles": [
+    {
+      "path": "intro.html",
+      "size": 39006,
+      "sha256": "3495681a89021e6267ef89707c44d2faa567dffb0110417ea3413432c8e9ac8e"
+    },
+    {
+      "path": "rooms.html",
+      "size": 14964,
+      "sha256": "74af771c4ac2b7b1e46108a72ab32ca88131bc08af7cb002da87b1ae8914bf23"
+    },
+    {
+      "path": "replays.html",
+      "size": 16641,
+      "sha256": "72e68fee24a2d2c8e9eb42a55f51e077c51185691fc0824c6e6be9a4a6fde293"
+    },
+    {
+      "path": "ladder.html",
+      "size": 19919,
+      "sha256": "23616c67d0b7010f96972b22fe7abb5c33811dc2b12d1a61dc27b8e08f25b3ab"
+    },
+    {
+      "path": "deck-stats.html",
+      "size": 12281,
+      "sha256": "16fa8fc8b9f2749e1ac39344336d9cf9409da7a94dbc59245a76ad8f1a1dd026"
+    },
+    {
+      "path": "player-stats.html",
+      "size": 19247,
+      "sha256": "6db736236cf37f5b5e684e0876396d12f64657a13dae920650901aeb99a815cd"
+    },
+    {
+      "path": "usage-stats.html",
+      "size": 31427,
+      "sha256": "0f68b64f582ddb67a75320790b03a259b581951de6c9b4b7752da13b833fd369"
+    },
+    {
+      "path": "deck-detail.html",
+      "size": 13602,
+      "sha256": "c7d4daf9d56b52d16e0cdef7c172c785a5446b070ead571f1fe0276535f268d1"
+    },
+    {
+      "path": "common.css",
+      "size": 16664,
+      "sha256": "5a659a0a4f5809af2c58af8fca5f27d73e48fd19ae95f6ba0c0f27225aa014e6"
+    },
+    {
+      "path": "site-shell.js",
+      "size": 28988,
+      "sha256": "258837fda71d59e38cca82954a24f5103bdda0be2bb07ab02da01bcc5cbaa102"
+    },
+    {
+      "path": "stats-export.js",
+      "size": 16882,
+      "sha256": "381b75bbf2e95f659933c0c7285162e7d9b539e1053f676023a12d5eec718502"
+    },
+    {
+      "path": "stats-workbook.js",
+      "size": 8739,
+      "sha256": "689db8d31479c855c1f65b293f00043b10994570e7b436a0aa51c6f625eb4f2f"
+    },
+    {
+      "path": "exceljs-4.4.0.min.js",
+      "size": 947702,
+      "sha256": "7e49da68588e250dbb8bba190d2caa8ab3787cc0284bda1d8b2f805c4df742c9"
+    },
+    {
+      "path": "player-duel-stats.js",
+      "size": 11816,
+      "sha256": "32c7795fecc909530f95d5aeea98d77a916c083fc146ee7f98ea3f8635fa7707"
+    },
+    {
+      "path": "deck-card-usage.js",
+      "size": 14160,
+      "sha256": "b58f48d81da703894a93233efbcba52d9d98505cbbe0333dcace983a2ebb4d3c"
+    },
+    {
+      "path": "rating-rules.js",
+      "size": 3751,
+      "sha256": "9fa92379cc40b4a3dfc64e037ae0ffa6f6396dcd80c0fc45a0716b84bb00cd26"
+    },
+    {
+      "path": "card-images.js",
+      "size": 6955,
+      "sha256": "259dc484b11ef71a1e936d1eefb1569675d1743832a77b38257a5bec3d13884d"
+    }
+  ]
+}

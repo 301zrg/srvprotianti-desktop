@@ -12,14 +12,6 @@
     if(!raw.split('$')[0].trim()){global.alert(t('missing'));return null;}
     return raw;
   }
-  async function query(){
-    var raw=await savedName();if(raw===null)return;
-    if(location.pathname.endsWith('/ladder.html')){
-      document.getElementById('searchInput').value=raw.split('$')[0].trim();global.doSearch();
-    }else{
-      document.getElementById('playerInput').value=raw;global.parseInput();
-    }
-  }
   function open(page){
     return savedName().then(function(raw){
       if(raw===null)return;
@@ -27,22 +19,16 @@
     });
   }
   function init(){
-    var isSettings=location.pathname.endsWith('/settings.html'), path=location.pathname;
-    if(!isSettings&&!/\/(ladder|player-stats)\.html$/.test(path))return;
-    var host=isSettings?document.getElementById('save').parentElement:document.querySelector('.search-row,.web-controls');
-    var settingsAnchor=isSettings?document.getElementById('showName').nextSibling:null;
-    function append(node){if(isSettings)host.insertBefore(node,settingsAnchor);else host.appendChild(node);}
+    if(!location.pathname.endsWith('/settings.html'))return;
+    var host=document.getElementById('save').parentElement;
+    var settingsAnchor=document.getElementById('showName').nextSibling;
+    function append(node){host.insertBefore(node,settingsAnchor);}
     function button(key,callback){var node=document.createElement('button');node.type='button';node.dataset.selfQuery=key;node.onclick=function(){void callback().catch(function(){global.alert(t('missing'));});};append(node);return node;}
     var nodes=[];
-    if(isSettings){nodes.push([button('ranking',function(){return open('ladder');}),'ranking'],[button('stats',function(){return open('player-stats');}),'stats']);}
-    else nodes.push([button('self',query),'self']);
-    var help=document.createElement(isSettings?'p':'span');help.className='muted';append(help);
+    nodes.push([button('ranking',function(){return open('ladder');}),'ranking'],[button('stats',function(){return open('player-stats');}),'stats']);
+    var help=document.createElement('p');help.className='muted';append(help);
     function labels(){nodes.forEach(function(pair){pair[0].textContent=t(pair[1]);});help.textContent=t('help');}
     labels();document.addEventListener('srvpro-language-change',labels);
-    if(!isSettings&&new URLSearchParams(location.search).get('self')==='1'){
-      var url=new URL(location.href);url.searchParams.delete('self');history.replaceState(null,'',url);
-      void query().catch(function(){global.alert(t('missing'));});
-    }
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);

@@ -2,7 +2,7 @@ name: Windows desktop
 
 on:
   push:
-    branches: ['**']
+    branches: ['**', '!page-updates', '!page-candidates/**']
     tags: ['v*']
   pull_request:
   workflow_dispatch:
@@ -37,25 +37,36 @@ jobs:
       - name: Create Windows ZIP
         shell: pwsh
         run: Compress-Archive -Path release-portable/* -DestinationPath srvprotianti-desktop-windows-x64.zip -Force
+      - name: Create application version manifest
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: node scripts/desktop-release.mjs manifest --archive srvprotianti-desktop-windows-x64.zip --out desktop-update.json --commit $env:SOURCE_COMMIT
       - uses: actions/upload-artifact@v4
         with:
           name: srvprotianti-desktop-windows-x64
-          path: srvprotianti-desktop-windows-x64.zip
+          path: |
+            srvprotianti-desktop-windows-x64.zip
+            desktop-update.json
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/v')
     needs: build
     runs-on: windows-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Check tag matches application version
         shell: pwsh
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           $tauriVersion = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
           $cargoVersion = (Select-String -Path src-tauri/Cargo.toml -Pattern '^version = "([^"]+)"' | Select-Object -First 1).Matches.Groups[1].Value
-          if ($env:GITHUB_REF_NAME -ne "v$version" -or $version -ne $tauriVersion -or $version -ne $cargoVersion) { throw "Tag and application versions differ" }
+          $releaseTag = $env:GITHUB_REF_NAME -replace '^release/', ''
+          if ($releaseTag -ne "v$version" -or $version -ne $tauriVersion -or $version -ne $cargoVersion) { throw "Tag and application versions differ" }
+          "RELEASE_TAG=$releaseTag" >> $env:GITHUB_ENV
       - uses: actions/download-artifact@v4
         with:
           name: srvprotianti-desktop-windows-x64
@@ -63,4 +74,17 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create $env:GITHUB_REF_NAME srvprotianti-desktop-windows-x64.zip --title $env:GITHUB_REF_NAME --generate-notes --verify-tag
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $reference = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:RELEASE_TAG" 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            $tagFile = Join-Path $env:RUNNER_TEMP 'desktop-release-tag.json'
+            @{ref="refs/tags/$env:RELEASE_TAG";sha=$env:GITHUB_SHA} | ConvertTo-Json | Set-Content -Encoding utf8 $tagFile
+            gh api --method POST "repos/$env:GITHUB_REPOSITORY/git/refs" --input $tagFile
+            $reference = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:RELEASE_TAG"
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag could not be confirmed' }
+          $tag = $reference | ConvertFrom-Json
+          if ($tag.object.type -ne 'commit' -or $tag.object.sha -ne $env:GITHUB_SHA) { throw 'Release tag points to another commit' }
+          node scripts/desktop-release.mjs publish --archive srvprotianti-desktop-windows-x64.zip --manifest desktop-update.json --tag $env:RELEASE_TAG --commit $env:GITHUB_SHA
+          if ($LASTEXITCODE -ne 0) { throw 'Release was not confirmed; inspect existing tag and assets before retrying' }

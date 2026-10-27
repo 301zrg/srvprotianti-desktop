@@ -364,7 +364,19 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 5. 实现 706 更新清单、暂存、备份、冲突处理及恢复，验证实际旧裁定。
 6. 完成验收、便携包与使用说明，再交付可运行版本。
 
-首版不包含桌面程序自身自动安装升级、整套游戏下载/升级、多账号管理、云录像或服务端统计改造。设置页可手动检查 GitHub 最新正式版及 Windows ZIP 是否存在，发现新版后交给系统浏览器下载；软件仍由用户手动替换，保留用户覆盖配置和下载内容。1103 环境资源随桌面 ZIP 更新，不单独在线获取。维护者确认版本并推送对应 `v<版本>` 标签后，Windows CI 才发布 GitHub Release 的固定名称 ZIP。
+首版不包含桌面程序自身自动安装升级、整套游戏下载/升级、多账号管理、云录像或服务端统计改造。设置页可手动检查正式版，发现新版后交给系统浏览器下载；软件仍由用户手动替换，保留用户覆盖配置和下载内容。1103 环境资源随桌面 ZIP 更新，不单独在线获取。
+
+### 12.1 助手版本清单（2026-10-26 v0.2.1）
+
+助手读取固定 HTTPS 地址 `https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/desktop-update.json`，不调用 `api.github.com` 查询最新版本。重定向仅允许该仓库的版本清单和既有 GitHub Release 附件域名，限制跳转次数、超时和响应大小，不改变业务 API 的禁止重定向规则。
+
+清单 schema 1 包含稳定规范版本 `version`、一致的 `tag=v<version>`、40 位小写十六进制 `sourceCommit`，以及 `asset` 的固定 ZIP 名称、正整数大小和 64 位小写 SHA-256。拒绝未知字段、预发布版本、不一致标签及非法散列。客户端下载地址由可信仓库和已验证 tag 构造，不从清单接受任意 URL。当前仍为浏览器手动下载；清单散列不表示客户端已经下载校验 ZIP，也不代替发行者签名。
+
+成功结果在单次助手进程内共享并缓存 600 秒；互斥保护合并并发检查。失败至少冷却 30 秒，参考受限的 Retry-After/恢复时间；不自动循环重试。失败保留上次成功版本与检查时间，但明确显示其为旧结果，不能据此宣称当前已是最新版。无成功记录时显示检查不可用。四语提示区分网络、访问受限、限流、缺失/无效清单及服务异常，官方下载页入口始终可用。页面适配兼容旧 exe 的原返回值和手动下载接口，但旧 exe 的检查来源只有替换 exe 才能改变。
+
+检查失败通过 IPC 的结构化拒绝结果返回，上次版本与时间仍在拒绝数据中；新版页面可继续展示，旧缓存页面则进入原有失败分支，不能将 `updateAvailable=false` 误判为已是最新版。
+
+维护者确认未使用的新版本并同步版本文件后，Windows CI 生成 ZIP 与精确对应的清单，再通过草稿 Release 上传两份附件，核对标签指向、大小、服务端 SHA-256，最后公开并确认 latest。草稿先从已认证的 Release 列表取得唯一 ID，再按 ID 核对；按标签查询的接口只返回正式发布，不能用于草稿验收。公开后才回读标签与 latest。已有或发布状态不明确时停止复核，不覆盖旧附件。签名页面包使用独立版本协议，仍不得成为应用 latest。v0.2.1 已正式发布；其原标签构建通过，但发布任务在草稿标签查询时返回 404，人工核对原 ZIP/JSON 后公开同一草稿并回读验收，没有移动标签或重传制品。
 
 ## 13. 调研依据与尚未执行的验证
 
@@ -372,13 +384,13 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 
 主要本地依据：
 
-- [桌面调研背景](../srvprotianti/docs/DESKTOP_CLIENT_RESEARCH.md)
-- [网页模块入口](../srvprotianti/plugins/ladder-web/README.md)
-- [八页交互契约](../srvprotianti/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)
-- [公开 API 与统计契约](../srvprotianti/docs/WEB_AND_ANALYTICS_SPEC.md)
-- [公开房间模块](../srvprotianti/plugins/public-room-web/README.md)
-- [公开录像模块](../srvprotianti/plugins/public-replay-web/README.md)
-- [当前 TT 具体房名进房规则](../srvprotianti/plugins/ladder-core/index.js)
+- [桌面调研背景](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/docs/DESKTOP_CLIENT_RESEARCH.md)
+- [网页模块入口](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/ladder-web/README.md)
+- [八页交互契约](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)
+- [公开 API 与统计契约](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/docs/WEB_AND_ANALYTICS_SPEC.md)
+- [公开房间模块](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/public-room-web/README.md)
+- [公开录像模块](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/public-replay-web/README.md)
+- [当前 TT 具体房名进房规则](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/ladder-core/index.js)
 
 本地 KoishiPro 参考目录为 F:\MyCardLibrary\koishipro\KoishiPro-master-win32-zh-CN。原版 YGOPro 参考目录为 F:\MyCardLibrary\ygopro 与用户截图中的 F:\MyCardLibrary\ygopro_old；这些目录仅用于只读核对，开发与测试不改玩家游戏文件。
 
@@ -399,3 +411,9 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 服务器网页和桌面介绍页同样提供四行下载：原版 YGOPro 的 [网盘](https://ygopro.ysepan.com/) 或 [MyCard](https://mycard.moe/)（推荐）、[KoishiPro 官方](https://koishi.pro/download/)、暂沿用的 [整合包](https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp)、以及 [桌面最新 Windows ZIP](https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip)。整合包标注“整合好的KoishiPro，下载即玩”；桌面一行说明匹配、录像／卡组打开、卡池恢复和旧裁定脚本。Release 仅由维护者确认后推送版本标签触发；普通 CI artifact 用于测试，不作为稳定下载入口。
 
 桌面端所有页面标题栏显示一键匹配、启动游戏、卡组编辑、查看录像四个入口；前两项复用介绍页联机行为，后两项分别传无文件名的 `-d`、`-r`。胜率与胜负配色沿用网页语义；桌面构建生成静态色阶样式并使用类名显示，避免运行时内联颜色在 WebView 中失效，50% 保持中性色。
+
+## 15. 独立页面更新与共享源码
+
+维护者已批准“HTTP 业务 API＋独立 HTTPS 签名页面渠道＋本地缓存”。官网业务页从受控源和明确提交同步，平台差异集中在生成器及桌面桥接；页面包可以更新展示和已有能力范围内的交互，不能增加 Rust 命令、API 权限或游戏/脚本/卡库资源。首次启用需要新版 exe，之后页面与 exe 分别发布。
+
+用户先看到本地已验证页面，再在后台检查更新；成功下载于下次启动启用，失败保留当前版本。候选启动无 ready 或异常退出则隔离并恢复上一可用版/内置版；原生恢复入口不依赖业务页面。设置中的页面版本、检查/恢复文案、签名/兼容/缓存和发布约定统一维护在 [页面包约定](docs/PAGE_PACKAGE_UPDATE_PLAN.md)，模块与流程见 [当前架构](docs/ARCHITECTURE.md)。独立页面更新已随 v0.2.0 正式发布；后续源码归并遵守 [开发流程](docs/DEVELOPMENT_WORKFLOW.md)，正式发布和真实游戏验收分别留证。

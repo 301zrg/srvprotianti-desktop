@@ -1,6 +1,6 @@
 [package]
 name = "srvprotianti-desktop"
-version = "0.1.4"
+version = "0.2.2"
 edition = "2021"
 build = "build.rs"
 
@@ -25,6 +25,8 @@ open = "5"
 sysinfo = "0.39"
 tauri-plugin-clipboard-manager = "2"
 zip = { version = "0.6.6", default-features = false, features = ["deflate"] }
+ring = "0.17"
+time = { version = "0.3", features = ["parsing"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_UI_Controls_Dialogs", "Win32_UI_WindowsAndMessaging"] }

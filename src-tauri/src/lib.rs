@@ -1,9 +1,14 @@
 mod api;
+mod card_images;
 mod downloads;
 mod environment;
 mod game;
 #[cfg(windows)]
 mod instance;
+mod pages_cache;
+mod pages_package;
+mod pages_runtime;
+mod release_http;
 mod reports;
 mod scripts;
 mod settings;
@@ -24,6 +29,7 @@ struct AppState {
     config_lock: Mutex<()>,
     file_lock: Mutex<()>,
     script_lock: Mutex<()>,
+    updater: updater::Updater,
 }
 
 fn game_root() -> PathBuf {
@@ -135,6 +141,17 @@ fn api_request(
     body: String,
 ) -> Result<ApiResponse, String> {
     api::request(&state.root, &state.client, &method, &route, &body)
+}
+
+#[tauri::command]
+async fn read_card_images(
+    state: State<'_, AppState>,
+    card_id: u32,
+) -> Result<Vec<card_images::CardImage>, String> {
+    let root = state.root.clone();
+    tauri::async_runtime::spawn_blocking(move || card_images::read(&root, card_id))
+        .await
+        .map_err(|_| "Could not read local card images".to_string())
 }
 
 #[tauri::command]
@@ -258,8 +275,33 @@ fn open_external(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn check_desktop_update(state: State<'_, AppState>) -> Result<updater::UpdateView, String> {
-    updater::check(&state.client)
+fn check_desktop_update(
+    state: State<'_, AppState>,
+) -> Result<updater::UpdateView, updater::CheckError> {
+    state.updater.check()
+}
+
+#[tauri::command]
+fn page_update_status(
+    state: State<'_, pages_runtime::Pages>,
+) -> Result<pages_runtime::View, String> {
+    state.status()
+}
+#[tauri::command]
+async fn check_page_update(app: AppHandle) -> Result<pages_runtime::View, String> {
+    tauri::async_runtime::spawn_blocking(move || pages_runtime::check(&app))
+        .await
+        .map_err(|_| "page_update_unavailable")?
+}
+#[tauri::command]
+fn page_ready(app: AppHandle, state: State<'_, pages_runtime::Pages>) -> Result<(), String> {
+    state.ready(&app)
+}
+#[tauri::command]
+fn recover_builtin_pages(
+    state: State<'_, pages_runtime::Pages>,
+) -> Result<pages_runtime::View, String> {
+    state.recover()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -270,20 +312,28 @@ pub fn run() {
     }
     let root = game_root();
     #[cfg(windows)]
-    let (_instance_guard, window_title) = match instance::acquire(&root) {
+    let (instance_guard, window_title) = match instance::acquire(&root) {
         Ok(Some(value)) => value,
         Ok(None) => return,
         Err(error) => panic!("Cannot protect game directory against duplicate clients: {error}"),
     };
+    #[cfg(windows)]
+    let mut instance_guard = Some(instance_guard);
+    let pages = pages_runtime::Pages::new(&root);
     let state = AppState {
         root,
         client: api::client().expect("Cannot create HTTP client"),
         config_lock: Mutex::new(()),
         file_lock: Mutex::new(()),
         script_lock: Mutex::new(()),
+        updater: updater::Updater::default(),
     };
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        .register_uri_scheme_protocol("tauri", |context, request| {
+            pages_runtime::serve(context.app_handle(), request)
+        })
         .plugin(tauri_plugin_clipboard_manager::init())
+        .manage(pages)
         .manage(state)
         .setup(move |app| {
             #[cfg(windows)]
@@ -292,6 +342,7 @@ pub fn run() {
             }
             let state = app.state::<AppState>();
             settings::initialise(&state.root).map_err(std::io::Error::other)?;
+            pages_runtime::setup(app.handle())?;
             if let Err(error) = scripts::recover_pending(&state.root) {
                 eprintln!("Script recovery requires attention: {error}");
             }
@@ -303,6 +354,7 @@ pub fn run() {
             reset_settings,
             set_language,
             api_request,
+            read_card_images,
             save_csv,
             save_xlsx,
             launch_game,
@@ -315,8 +367,20 @@ pub fn run() {
             install_environment,
             restore_environment,
             check_desktop_update,
+            page_update_status,
+            check_page_update,
+            page_ready,
+            recover_builtin_pages,
             open_external
         ])
-        .run(tauri::generate_context!())
+        .build(tauri::generate_context!())
         .expect("Tauri application error");
+    app.run(move |_handle, event| {
+        #[cfg(windows)]
+        if matches!(event, tauri::RunEvent::Exit) {
+            // Tauri spawns the replacement before process exit. Release the old directory guard
+            // in its Exit callback so the successor cannot mistake recovery for a duplicate launch.
+            drop(instance_guard.take());
+        }
+    });
 }

@@ -4,21 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>游戏王OCG201103天梯服务器 使用介绍</title>
-<link rel="stylesheet" href="/assets/common.css?v=20261019-review2">
+<link rel="stylesheet" href="/assets/common.css?v=20261024-entry">
+
 <style>
   .deck-section { margin-top: 28px; }
-  .deck-group { margin: 18px 0; }
+  #deckGroups { display: flex; flex-direction: column; gap: 12px; }
+  .deck-group { margin: 0; }
   .deck-group h3 { color: #9db8d0; font-size: 15px; margin: 0 0 8px; }
-  .deck-list { display: flex; flex-wrap: wrap; gap: 8px 12px; }
-  .deck-list a { color: #7ec4ff; background: #1d2a38; border: 1px solid #2c3e50; padding: 7px 10px; text-decoration: none; }
-  .deck-list a:hover { background: #2f5c86; color: #fff; }
   .notice-box { color: #f0c27a; background: #1e2a3a; padding: 10px 14px 10px 34px; border-radius: 4px; border-left: 3px solid #f0c27a; }
   .notice-box li { margin: 7px 0; }
   .notice-box a { color: #ffd875; }
   .copyright-notice { margin: 18px 0 24px; padding: 13px 16px; color: #ffe5b4; background: #352719; border: 1px solid #b88a42; border-left: 5px solid #f0c27a; border-radius: 4px; font-weight: 600; line-height: 1.65; }
-  .connection-field { display: inline-block; margin: 9px 12px 2px 0; white-space: nowrap; }
-  [data-copy-connection], [data-copy-value] { background: #273f55; color: #d5edff; padding: 4px 8px; }
-  .desktop-launch-button { background: #2f76ae; color: #fff; font-weight: 600; padding: 7px 12px; margin-top: 9px; }
 </style>
 </head>
 <body>
@@ -31,7 +27,7 @@
     <p data-i18n="server_intro_ladder">天梯模式由<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>在srvpro的基础上开发，源码位于<a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a></p>
     <p data-i18n="server_intro_ai">本服务器代码开发过程中大量使用AI，非中文内容均由AI翻译</p>
     <p data-i18n="server_intro_reconnect">本服务器现在支持掉线重连但不支持云录像</p>
-    <p data-i18n="server_intro_qq">服务器QQ群：<button type="button" onclick="copyContent('749717894')">749717894</button>（点击群号复制）。点击<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>加入。</p>
+    <p data-i18n="server_intro_qq">服务器QQ群：<button type="button" data-copy-content="749717894">749717894</button>（点击群号复制）。点击<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>加入。</p>
     <p data-i18n="server_intro_discord">服务器Discord群：点击<a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>加入。</p>
     <h2 data-i18n="title0">下载地址：</h2>
     <p data-i18n="download_ygopro">原版 YGOPro：<a href="https://ygopro.ysepan.com/" target="_blank" rel="noopener">网盘下载</a>，或者<a href="https://mycard.moe/" target="_blank" rel="noopener">使用 MyCard 下载（推荐）</a>。</p>
@@ -47,9 +43,11 @@
     </ul>
     <h2 data-i18n="title1">连接方式：</h2>
     <h3 data-i18n="title3">常规联机模式：</h3>
-    <p data-i18n="content1">点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent('121.4.34.71')">121.4.34.71</button>，第二个填<button onclick="copyContent('7911')">7911</button>，一个输入框填<button onclick="copyContent('121.4.34.71:7911')">121.4.34.71:7911</button>->昵称输入用户名->房间密码含义参考：<a href="https://ygo233.com/usage" target="_blank">点击这里</a>->点加入游戏，不要点建立主机</p>
+
+    <p data-i18n="content1">点击联机模式按钮->主机信息：两个输入框则第一个填<button data-copy-content="121.4.34.71">121.4.34.71</button>，第二个填<button data-copy-content="7911">7911</button>，一个输入框填<button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button>->昵称输入用户名->房间密码含义参考：<a href="https://ygo233.com/usage" target="_blank">点击这里</a>->点加入游戏，不要点建立主机</p>
     <h3 data-i18n="title4">天梯模式：</h3>
-    <p data-i18n="content2">点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent('121.4.34.71')">121.4.34.71</button>，第二个填<button onclick="copyContent('7911')">7911</button>，一个输入框填<button onclick="copyContent('121.4.34.71:7911')">121.4.34.71:7911</button>->昵称输入用户名$密码，若该用户名未注册则自动注册且密码自动设置为本次输入的密码，若已注册则密码正确可连接，否则不能连接->房间密码只输入<button onclick="copyContent('TT')">TT</button>，可参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">点击这里</a> ->点加入游戏，不要点建立主机</p>
+
+    <p data-i18n="content2">点击联机模式按钮->主机信息：两个输入框则第一个填<button data-copy-content="121.4.34.71">121.4.34.71</button>，第二个填<button data-copy-content="7911">7911</button>，一个输入框填<button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button>->昵称输入用户名$密码，若该用户名未注册则自动注册且密码自动设置为本次输入的密码，若已注册则密码正确可连接，否则不能连接->房间密码只输入<button data-copy-content="TT">TT</button>，可参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">点击这里</a> ->点加入游戏，不要点建立主机</p>
     <p data-i18n="content_ladder_tip">在聊天框内输入/tip获得提示，输入/zh切换为中文，此方法也可判断你是否疑似掉线</p>
     <p class="rating-rules" data-rating-rules hidden></p>
     <p data-i18n="content3">天梯模式目前按总等级分排序</p>
@@ -58,10 +56,12 @@
   <h2 id="deckTitle" data-i18n="deck_title">示例卡组</h2>
   <div id="deckGroups"></div>
 </section>
-<script src="/assets/site-shell.js?v=20261019"></script><script src="/assets/rating-rules.js?v=20261019"></script>
+<script src="/assets/site-shell.js?v=20261024-entry"></script><script src="/assets/rating-rules.js?v=20261019"></script>
+
 <script>
 var I18N = {
   zh: {
+    copied: '已复制：', copy_fail: '复制失败，请手动复制',
     title: '游戏王OCG201103天梯服务器 使用介绍',
     copyright_notice: '版权声明：本网页及其桌面助手均为开源、非盈利项目。若相关版权方提出要求，相关内容可能随时下架，敬请理解。',
     server_intro_title: '服务器介绍：', notice_title: '注意事项：',
@@ -71,7 +71,7 @@ var I18N = {
     server_intro_ladder: '天梯模式由<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>在srvpro的基础上开发，源码位于<a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>',
     server_intro_ai: '本服务器代码开发过程中大量使用AI，非中文内容均由AI翻译',
     server_intro_reconnect: '本服务器现在支持掉线重连但不支持云录像',
-    server_intro_qq: '服务器QQ群：<button type="button" onclick="copyContent(\'749717894\')">749717894</button>（点击群号复制）。点击<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>加入。',
+    server_intro_qq: '服务器QQ群：<button type="button" data-copy-content="749717894">749717894</button>（点击群号复制）。点击<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>加入。',
     server_intro_discord: '服务器Discord群：点击<a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>加入。',
     ads_notice: 'ads gateball server使用的ads客户端版本过于老旧，本服务器已经不再支持，请下载一个最新版本的ads客户端或者使用上面的下载链接',
     password_notice: '本服务器功能目前较为简陋，账号可以随意注册且不修改用户名的情况下ygopro会保存你的密码，因此注册时不要使用你其他账号平时常用的密码，使用简单密码即可',
@@ -81,12 +81,13 @@ var I18N = {
     download_koishi: 'KoishiPro：<a href="https://koishi.pro/download/" target="_blank" rel="noopener">官网下载</a>。',
     download_bundle: '整合压缩包：<a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">网盘下载</a>（整合好的KoishiPro，下载即玩）。',
     download_desktop: '706 天梯桌面助手：<a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">下载最新 Windows ZIP</a>，解压到游戏根目录。支持一键匹配、一键下载录像或卡组并打开、一键下载卡池并还原、一键下载旧裁定脚本。 本项目为开源项目，源码：<a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>.',
-    content1: '点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>，第二个填<button onclick="copyContent(\'7911\')">7911</button>，一个输入框填<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>->昵称输入用户名->房间密码含义参考：<a href="https://ygo233.com/usage" target="_blank">点击这里</a>->点加入游戏，不要点建立主机',
-    content2: '点击联机模式按钮->主机信息：两个输入框则第一个填<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>，第二个填<button onclick="copyContent(\'7911\')">7911</button>，一个输入框填<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>->昵称输入用户名$密码，若该用户名未注册则自动注册且密码自动设置为本次输入的密码，若已注册则密码正确可连接，否则不能连接->房间密码只输入<button onclick="copyContent(\'TT\')">TT</button>，可参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">点击这里</a> ->点加入游戏，不要点建立主机',
+    content1: '点击联机模式按钮->主机信息：两个输入框则第一个填<button data-copy-content="121.4.34.71">121.4.34.71</button>，第二个填<button data-copy-content="7911">7911</button>，一个输入框填<button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button>->昵称输入用户名->房间密码含义参考：<a href="https://ygo233.com/usage" target="_blank">点击这里</a>->点加入游戏，不要点建立主机',
+    content2: '点击联机模式按钮->主机信息：两个输入框则第一个填<button data-copy-content="121.4.34.71">121.4.34.71</button>，第二个填<button data-copy-content="7911">7911</button>，一个输入框填<button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button>->昵称输入用户名$密码，若该用户名未注册则自动注册且密码自动设置为本次输入的密码，若已注册则密码正确可连接，否则不能连接->房间密码只输入<button data-copy-content="TT">TT</button>，可参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">点击这里</a> ->点加入游戏，不要点建立主机',
     content_ladder_tip: '在聊天框内输入/tip获得提示，输入/zh切换为中文，此方法也可判断你是否疑似掉线',
     content3: '天梯模式目前按等级分排序', content3_points: '天梯模式目前按等级分排序', content3_wins: '天梯模式目前按纯胜场排序', content3_diff: '天梯模式目前按胜负差（胜场减去负场）排序', content3_winRate: '天梯模式目前按胜率排序', deck_download: '下载'
   },
   ja: {
+    copied: 'コピーしました：', copy_fail: 'コピーできませんでした。手動でコピーしてください。',
     title: '遊戯王OCG 201103 ランキングサーバー 使用紹介',
     copyright_notice: '著作権に関するお知らせ：本ウェブサイトとデスクトップアシスタントは、オープンソースの非営利プロジェクトです。権利者から要請があった場合、関連コンテンツの公開をいつでも終了する可能性があります。ご理解ください。',
     server_intro_title: 'サーバー紹介：', notice_title: '注意事項：',
@@ -96,7 +97,7 @@ var I18N = {
     server_intro_ladder: 'ランキングモードは<a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>がsrvproをもとに開発しました。ソースコードは<a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>にあります。',
     server_intro_ai: '本サーバーのコード開発ではAIを多用しており、中国語以外の内容はすべてAIによる翻訳です。',
     server_intro_reconnect: '本サーバーは現在、切断後の再接続に対応していますが、クラウドリプレイには対応していません。',
-    server_intro_qq: 'サーバーのQQグループ：<button type="button" onclick="copyContent(\'749717894\')">749717894</button>（番号をクリックするとコピーできます）。<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>から参加できます。',
+    server_intro_qq: 'サーバーのQQグループ：<button type="button" data-copy-content="749717894">749717894</button>（番号をクリックするとコピーできます）。<a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>から参加できます。',
     server_intro_discord: 'サーバーのDiscordグループ：<a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>から参加できます。',
     ads_notice: 'ads gateball serverで使用されているADSクライアントは古すぎるため、本サーバーではサポートしていません。最新版のADSクライアント、または上記のダウンロードリンクをご利用ください。',
     password_notice: '本サーバーの機能はまだ簡素で、アカウントは自由に登録できます。また、ユーザー名を変更しない限りygoproがパスワードを保存します。登録時はほかのアカウントで普段使用しているパスワードを避け、簡単な専用パスワードを使用してください。',
@@ -106,12 +107,13 @@ var I18N = {
     download_koishi: 'KoishiPro：<a href="https://koishi.pro/download/" target="_blank" rel="noopener">公式サイトからダウンロード</a>。',
     download_bundle: '統合 ZIP：<a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">配布リンク</a>（設定済みの KoishiPro。ダウンロード後すぐにプレイできます）。',
     download_desktop: '706 ラダー デスクトップアシスタント：<a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">最新の Windows ZIP をダウンロード</a>し、ゲームのルートに展開してください。ワンクリックでマッチング、リプレイやデッキのダウンロードと起動、カードプールの導入と復元、旧裁定スクリプトのダウンロードができます。 本プロジェクトはオープンソースです。ソース：<a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>.',
-    content1: 'オンラインモードボタンをクリック->ホスト情報：2つの入力ボックスがある場合、1つ目に<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>、2つ目に<button onclick="copyContent(\'7911\')">7911</button>を入力。1つの入力ボックスの場合は<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>を入力->ニックネームにユーザー名を入力->ルームパスワードの意味は<a href="https://ygo233.com/usage" target="_blank">こちら</a>を参照->「ゲームに参加」をクリック。「ホストを作成」はクリックしないでください',
-    content2: 'オンラインモードボタンをクリック->ホスト情報：2つの入力ボックスがある場合、1つ目に<button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>、2つ目に<button onclick="copyContent(\'7911\')">7911</button>を入力。1つの入力ボックスの場合は<button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>を入力->ニックネームに「ユーザー名$パスワード」を入力。ユーザー名が未登録の場合は自動登録され、今回入力したパスワードが設定されます。既に登録されている場合はパスワードが正しい場合のみ接続可能->ルームパスワードは<button onclick="copyContent(\'TT\')">TT</button>のみを入力。参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">こちら</a> ->「ゲームに参加」をクリック。「ホストを作成」はクリックしないでください',
+    content1: 'オンラインモードボタンをクリック->ホスト情報：2つの入力ボックスがある場合、1つ目に<button data-copy-content="121.4.34.71">121.4.34.71</button>、2つ目に<button data-copy-content="7911">7911</button>を入力。1つの入力ボックスの場合は<button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button>を入力->ニックネームにユーザー名を入力->ルームパスワードの意味は<a href="https://ygo233.com/usage" target="_blank">こちら</a>を参照->「ゲームに参加」をクリック。「ホストを作成」はクリックしないでください',
+    content2: 'オンラインモードボタンをクリック->ホスト情報：2つの入力ボックスがある場合、1つ目に<button data-copy-content="121.4.34.71">121.4.34.71</button>、2つ目に<button data-copy-content="7911">7911</button>を入力。1つの入力ボックスの場合は<button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button>を入力->ニックネームに「ユーザー名$パスワード」を入力。ユーザー名が未登録の場合は自動登録され、今回入力したパスワードが設定されます。既に登録されている場合はパスワードが正しい場合のみ接続可能->ルームパスワードは<button data-copy-content="TT">TT</button>のみを入力。参考：<a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">こちら</a> ->「ゲームに参加」をクリック。「ホストを作成」はクリックしないでください',
     content_ladder_tip: 'チャット欄に/tipと入力するとヒントを表示し、/jaと入力すると日本語に切り替わります。これらのコマンドへの応答は、切断している可能性がないか判断する目安にもなります。',
     content3: 'ランキングモードの順位はレートによって決定されます', content3_points: 'ランキングモードの順位はレートによって決定されます', content3_wins: 'ランキングモードの順位は勝利数によって決定されます', content3_diff: 'ランキングモードの順位は勝利数から敗北数を引いた値によって決定されます', content3_winRate: 'ランキングモードの順位は勝率によって決定されます', deck_download: 'ダウンロード'
   },
   en: {
+    copied: 'Copied: ', copy_fail: 'Copy failed. Please copy manually.',
     title: 'Yu-Gi-Oh! OCG 201103 Ladder Server User Guide',
     copyright_notice: 'Copyright notice: This website and its desktop assistant are open-source, non-profit projects. If a rights holder requests it, related content may be taken down at any time. Thank you for your understanding.',
     server_intro_title: 'Server Introduction:', notice_title: 'Important Notes:',
@@ -121,7 +123,7 @@ var I18N = {
     server_intro_ladder: 'The ladder mode was developed by <a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a> on top of srvpro. Its source code is available at <a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>.',
     server_intro_ai: 'AI was used extensively while developing this server. All non-Chinese content was translated by AI.',
     server_intro_reconnect: 'This server now supports reconnection after a disconnect, but does not support cloud replays.',
-    server_intro_qq: 'Server QQ group: <button type="button" onclick="copyContent(\'749717894\')">749717894</button> (click the number to copy it). Join <a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>.',
+    server_intro_qq: 'Server QQ group: <button type="button" data-copy-content="749717894">749717894</button> (click the number to copy it). Join <a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>.',
     server_intro_discord: 'Server Discord group: Join <a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>.',
     ads_notice: 'The ADS client used by ads gateball server is too old and is no longer supported. Please use a current ADS client or the download link above.',
     password_notice: 'This server currently provides only basic account features, and accounts can be registered freely. Ygopro also saves your password unless you change the username. Do not reuse a password from another account; use a simple password dedicated to this server.',
@@ -131,12 +133,13 @@ var I18N = {
     download_koishi: 'KoishiPro: <a href="https://koishi.pro/download/" target="_blank" rel="noopener">official download</a>.',
     download_bundle: 'Integrated ZIP: <a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">download</a> (ready-to-play KoishiPro).',
     download_desktop: '706 Ladder Desktop Assistant: <a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">download the latest Windows ZIP</a> and extract it into the game root. Supports one-click matchmaking, downloading and opening replays or decks, installing and restoring the card pool, and downloading old-ruling scripts. This project is open source. Source: <a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>.',
-    content1: 'Click the online mode button -> Host Information: If there are two input boxes, enter <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button> in the first and <button onclick="copyContent(\'7911\')">7911</button> in the second. If there is one input box, enter <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button> -> Enter your username as nickname -> For room password meaning, refer to: <a href="https://ygo233.com/usage" target="_blank">Click here</a> -> Click "Join Game", do not click "Create Host"',
-    content2: 'Click the online mode button -> Host Information: If there are two input boxes, enter <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button> in the first and <button onclick="copyContent(\'7911\')">7911</button> in the second. If there is one input box, enter <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button> -> Enter "username$password" as nickname. If the username is not registered, it will be automatically registered with the password you entered. If already registered, you can only connect if the password is correct -> Enter only <button onclick="copyContent(\'TT\')">TT</button> as the room password. Reference: <a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">Click here</a> -> Click "Join Game", do not click "Create Host"',
+    content1: 'Click the online mode button -> Host Information: If there are two input boxes, enter <button data-copy-content="121.4.34.71">121.4.34.71</button> in the first and <button data-copy-content="7911">7911</button> in the second. If there is one input box, enter <button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button> -> Enter your username as nickname -> For room password meaning, refer to: <a href="https://ygo233.com/usage" target="_blank">Click here</a> -> Click "Join Game", do not click "Create Host"',
+    content2: 'Click the online mode button -> Host Information: If there are two input boxes, enter <button data-copy-content="121.4.34.71">121.4.34.71</button> in the first and <button data-copy-content="7911">7911</button> in the second. If there is one input box, enter <button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button> -> Enter "username$password" as nickname. If the username is not registered, it will be automatically registered with the password you entered. If already registered, you can only connect if the password is correct -> Enter only <button data-copy-content="TT">TT</button> as the room password. Reference: <a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">Click here</a> -> Click "Join Game", do not click "Create Host"',
     content_ladder_tip: 'Enter /tip in the chat box to get a tip, or enter /en to switch to English. A response to either command can also help you tell whether you may have disconnected.',
     content3: 'The ladder ranking is currently determined by rating points', content3_points: 'The ladder ranking is currently determined by rating points', content3_wins: 'The ladder ranking is currently determined by wins', content3_diff: 'The ladder ranking is currently determined by wins minus losses', content3_winRate: 'The ladder ranking is currently determined by win rate', deck_download: 'Download'
   },
   ko: {
+    copied: '복사했습니다: ', copy_fail: '복사하지 못했습니다. 직접 복사하세요.',
     title: '유희왕 OCG 201103 랭킹 서버 사용 가이드',
     copyright_notice: '저작권 안내: 이 웹사이트와 데스크톱 도우미는 오픈 소스 비영리 프로젝트입니다. 관련 권리자의 요청이 있을 경우 관련 콘텐츠가 언제든지 내려갈 수 있습니다. 양해 부탁드립니다.',
     server_intro_title: '서버 소개：', notice_title: '주의 사항：',
@@ -146,7 +149,7 @@ var I18N = {
     server_intro_ladder: '랭킹 모드는 <a href="https://space.bilibili.com/873437" target="_blank" rel="noopener">XC星魂(LREIMU12P)</a>/<a href="https://space.bilibili.com/1864180" target="_blank" rel="noopener">蛇与乌龟(soexcellent)</a>가 srvpro를 기반으로 개발했습니다. 소스 코드는 <a href="https://github.com/301zrg/srvprotianti" target="_blank" rel="noopener">srvprotianti</a>에 있습니다.',
     server_intro_ai: '본 서버의 코드 개발 과정에서 AI를 많이 사용했으며, 중국어 이외의 내용은 모두 AI로 번역했습니다.',
     server_intro_reconnect: '본 서버는 현재 접속 종료 후 재접속을 지원하지만 클라우드 리플레이는 지원하지 않습니다.',
-    server_intro_qq: '서버 QQ 그룹: <button type="button" onclick="copyContent(\'749717894\')">749717894</button> (번호를 클릭하면 복사됩니다). <a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>에 가입하세요.',
+    server_intro_qq: '서버 QQ 그룹: <button type="button" data-copy-content="749717894">749717894</button> (번호를 클릭하면 복사됩니다). <a href="https://qm.qq.com/cgi-bin/qm/qr?k=dEDsbpCxEZEAEH2SRomwIoBw178PUNb_&amp;jump_from=webapi&amp;authKey=iHSzC+EHA6+Sm0AEtYfSJmWvsrO+g4kR/C95KLtrtqQe3O0hO0QUzXN3mmQoWP4C" target="_blank" rel="noopener">游戏王YGO怀旧服（11.3.1）</a>에 가입하세요.',
     server_intro_discord: '서버 Discord 그룹: <a href="https://discord.gg/mkRz8mWRdq" target="_blank" rel="noopener">OCG 1103 Nexus 706 Server</a>에 가입하세요.',
     ads_notice: 'ads gateball server에서 사용하는 ADS 클라이언트는 너무 오래되어 본 서버에서 지원하지 않습니다. 최신 ADS 클라이언트 또는 위의 다운로드 링크를 이용하세요.',
     password_notice: '본 서버의 계정 기능은 아직 단순하고 계정은 자유롭게 등록할 수 있습니다. 또한 사용자명을 바꾸지 않으면 ygopro가 비밀번호를 저장합니다. 다른 계정에서 평소 사용하는 비밀번호를 재사용하지 말고, 이 서버 전용의 간단한 비밀번호를 사용하세요.',
@@ -156,8 +159,8 @@ var I18N = {
     download_koishi: 'KoishiPro: <a href="https://koishi.pro/download/" target="_blank" rel="noopener">공식 다운로드</a>.',
     download_bundle: '통합 ZIP: <a href="https://drive.google.com/file/d/1rtQvQIHV1MHiBhEj804peNyFQs4x5TGp" target="_blank" rel="noopener">다운로드</a> (설정이 완료된 KoishiPro, 다운로드 후 바로 플레이할 수 있습니다).',
     download_desktop: '706 래더 데스크톱 도우미: <a href="https://github.com/301zrg/srvprotianti-desktop/releases/latest/download/srvprotianti-desktop-windows-x64.zip" target="_blank" rel="noopener">최신 Windows ZIP 다운로드</a> 후 게임 루트에 압축을 푸세요. 원클릭 매칭, 리플레이 또는 덱 다운로드 후 열기, 카드 풀 설치 및 복원, 옛 재정 스크립트 다운로드를 지원합니다. 이 프로젝트는 오픈 소스입니다. 소스: <a href="https://github.com/301zrg/srvprotianti-desktop" target="_blank" rel="noopener">srvprotianti-desktop</a>.',
-    content1: '온라인 모드 버튼 클릭 -> 호스트 정보: 입력창이 두 개인 경우 첫 번째에 <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>을, 두 번째에 <button onclick="copyContent(\'7911\')">7911</button>을 입력. 입력창이 하나인 경우 <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>을 입력 -> 닉네임에 사용자명 입력 -> 방 비밀번호 의미는 <a href="https://ygo233.com/usage" target="_blank">여기</a> 참조 -> "게임 참가" 클릭. "호스트 만들기"는 클릭하지 마세요',
-    content2: '온라인 모드 버튼 클릭 -> 호스트 정보: 입력창이 두 개인 경우 첫 번째에 <button onclick="copyContent(\'121.4.34.71\')">121.4.34.71</button>을, 두 번째에 <button onclick="copyContent(\'7911\')">7911</button>을 입력. 입력창이 하나인 경우 <button onclick="copyContent(\'121.4.34.71:7911\')">121.4.34.71:7911</button>을 입력 -> 닉네임에 "사용자명$비밀번호"를 입력. 사용자명이 미등록인 경우 자동 등록되며 이번에 입력한 비밀번호가 설정됩니다. 이미 등록된 경우 비밀번호가 맞아야만 연결 가능 -> 방 비밀번호는 <button onclick="copyContent(\'TT\')">TT</button>만 입력. 참고: <a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">여기</a> -> "게임 참가" 클릭. "호스트 만들기"는 클릭하지 마세요',
+    content1: '온라인 모드 버튼 클릭 -> 호스트 정보: 입력창이 두 개인 경우 첫 번째에 <button data-copy-content="121.4.34.71">121.4.34.71</button>을, 두 번째에 <button data-copy-content="7911">7911</button>을 입력. 입력창이 하나인 경우 <button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button>을 입력 -> 닉네임에 사용자명 입력 -> 방 비밀번호 의미는 <a href="https://ygo233.com/usage" target="_blank">여기</a> 참조 -> "게임 참가" 클릭. "호스트 만들기"는 클릭하지 마세요',
+    content2: '온라인 모드 버튼 클릭 -> 호스트 정보: 입력창이 두 개인 경우 첫 번째에 <button data-copy-content="121.4.34.71">121.4.34.71</button>을, 두 번째에 <button data-copy-content="7911">7911</button>을 입력. 입력창이 하나인 경우 <button data-copy-content="121.4.34.71:7911">121.4.34.71:7911</button>을 입력 -> 닉네임에 "사용자명$비밀번호"를 입력. 사용자명이 미등록인 경우 자동 등록되며 이번에 입력한 비밀번호가 설정됩니다. 이미 등록된 경우 비밀번호가 맞아야만 연결 가능 -> 방 비밀번호는 <button data-copy-content="TT">TT</button>만 입력. 참고: <a href="https://www.bilibili.com/opus/1242727870611062788" target="_blank">여기</a> -> "게임 참가" 클릭. "호스트 만들기"는 클릭하지 마세요',
     content_ladder_tip: '채팅창에 /tip을 입력하면 도움말을 볼 수 있고, /ko를 입력하면 한국어로 전환됩니다. 이 명령에 응답이 오는지를 통해 접속이 끊어진 것으로 의심되는지 판단할 수도 있습니다.',
     content3: '랭킹 모드의 순위는 레이팅 점수에 따라 결정됩니다', content3_points: '랭킹 모드의 순위는 레이팅 점수에 따라 결정됩니다', content3_wins: '랭킹 모드의 순위는 승수에 따라 결정됩니다', content3_diff: '랭킹 모드의 순위는 승리 수에서 패배 수를 뺀 값에 따라 결정됩니다', content3_winRate: '랭킹 모드의 순위는 승률에 따라 결정됩니다', deck_download: '다운로드'
   }
@@ -204,7 +207,10 @@ function renderDecks() {
       link.download = localizedName + '.ydk';
       link.textContent = localizedName;
       link.title = t('deck_download');
-      list.appendChild(link);
+      var actions = document.createElement('div');
+      actions.className = 'deck-actions deck-example';
+      actions.appendChild(link);
+      list.appendChild(actions);
     });
     wrapper.appendChild(list);
     container.appendChild(wrapper);
@@ -224,7 +230,7 @@ async function loadExampleDecks() {
 function copyContent(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(
-      function() { alert('已复制: ' + text); },
+      function() { alert(t('copied') + text); },
       function(err) {
         // clipboard API 失败时使用 fallback
         fallbackCopy(text);
@@ -247,18 +253,23 @@ function fallbackCopy(text) {
   try {
     var successful = document.execCommand('copy');
     if (successful) {
-      alert('已复制: ' + text);
+      alert(t('copied') + text);
     } else {
-      alert('复制失败，请手动复制');
+      alert(t('copy_fail'));
     }
   } catch (err) {
-    alert('复制失败，请手动复制');
+    alert(t('copy_fail'));
   }
   document.body.removeChild(textarea);
 }
+document.addEventListener('click', function (event) {
+  var button = event.target.closest('[data-copy-content]');
+  if (button) copyContent(button.getAttribute('data-copy-content'));
+});
+
 SrvproWeb.init({
   translations: I18N,
-  htmlKeys: ['server_intro_pool', 'server_intro_srvpro', 'server_intro_ladder', 'server_intro_qq', 'server_intro_discord', 'script_notice', 'offering_notice', 'download_ygopro', 'download_koishi', 'download_bundle', 'download_desktop', 'content1', 'content2'],
+  htmlKeys: ['download_web', 'server_intro_pool', 'server_intro_srvpro', 'server_intro_ladder', 'server_intro_qq', 'server_intro_discord', 'script_notice', 'offering_notice', 'download_ygopro', 'download_koishi', 'download_bundle', 'download_desktop', 'content1', 'content2'],
   onLanguageChange: function (code) {
     lang = code;
     renderDecks();

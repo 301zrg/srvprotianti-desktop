@@ -1,0 +1,82 @@
+name: Signed desktop pages
+
+on:
+  push:
+    branches: ['page-candidates/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-pages-stable
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Read candidate manifest
+        uses: actions/checkout@v4
+        with:
+          path: candidate
+          persist-credentials: false
+      - name: Read reviewed verifier and trusted public key
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: trusted/package-lock.json
+      - name: Authenticate exact desktop and website source commits
+        id: metadata
+        # Bootstrap verifier uses only Node built-ins and needs no dependency install.
+        run: |
+          $sourceCommit = & node trusted/scripts/rebuild-page-package.mjs metadata --manifest candidate/.page-release/stable.json --public-key trusted/src-tauri/page-update-public-key.json
+          if ($LASTEXITCODE -ne 0) { throw 'Signed page manifest validation failed' }
+          if ($sourceCommit -isnot [string] -or $sourceCommit -cnotmatch '^[a-f0-9]{40}$') { throw 'Invalid authenticated source commit' }
+          $websiteCommit = & node trusted/scripts/rebuild-page-package.mjs metadata --manifest candidate/.page-release/stable.json --public-key trusted/src-tauri/page-update-public-key.json --field website
+          if ($LASTEXITCODE -ne 0) { throw 'Signed website source validation failed' }
+          if ($websiteCommit -isnot [string] -or $websiteCommit -cnotmatch '^[a-f0-9]{40}$') { throw 'Invalid authenticated website commit' }
+          "sourceCommit=$sourceCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "websiteCommit=$websiteCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+      - name: Read authenticated source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.metadata.outputs.sourceCommit }}
+          path: source
+          persist-credentials: false
+      - name: Read authenticated website source
+        uses: actions/checkout@v4
+        with:
+          repository: 301zrg/srvprotianti
+          ref: ${{ steps.metadata.outputs.websiteCommit }}
+          path: website
+          persist-credentials: false
+      - name: Verify website Git blobs and synchronized desktop source
+        working-directory: source
+        env:
+          PAGE_WEBSITE_COMMIT: ${{ steps.metadata.outputs.websiteCommit }}
+        run: node scripts/sync-web-source.mjs --website-root ../website/plugins/ladder-web/web --website-commit $env:PAGE_WEBSITE_COMMIT --verify-only
+      - name: Install source dependencies
+        working-directory: source
+        run: npm ci
+      - name: Check and build source pages
+        working-directory: source
+        run: npm run check
+      - name: Reconstruct and verify signed ZIP
+        run: node source/scripts/rebuild-page-package.mjs rebuild --dist source/dist --manifest candidate/.page-release/stable.json --public-key source/src-tauri/page-update-public-key.json --out page-artifact
+      - name: Publish immutable release then signed stable index
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGE_SOURCE_COMMIT: ${{ steps.metadata.outputs.sourceCommit }}
+        run: node source/scripts/publish-page-package.mjs --manifest candidate/.page-release/stable.json --archive page-artifact/srvprotianti-desktop-pages.zip --public-key source/src-tauri/page-update-public-key.json --commit $env:PAGE_SOURCE_COMMIT --website-root website/plugins/ladder-web/web --source-directory source/web-source
