@@ -1,6 +1,6 @@
 # 桌面助手当前实现架构
 
-更新日期：2026-10-25。应用候选版本 `0.2.0`，签名页面更新与共享页面适配已完成本地构建和 WebView 演练，尚未正式发布；当前生产下载不据此改变。原有游戏/脚本与环境模块职责保持现有实现。构建、WebView 验证与用户实际游戏验收分别记录。
+更新日期：2026-10-28。本文描述应用 `0.2.2` 源码；签名页面更新已自 v0.2.0 正式提供，原生读图已随 v0.2.2 发布。页面包可以独立迭代，实际生产版本以正式 Release、签名索引与发布回执为准。原有游戏/脚本与环境模块职责保持现有实现；构建、WebView 验证与用户实际游戏验收分别记录。
 
 ## 1. 文档分工与架构结论
 
@@ -9,6 +9,7 @@
 | [README](../README.md) | 用户入口、开发命令、便携版使用和发布说明 |
 | [DESIGN](../DESIGN.md) | 产品需求、技术取舍、行为契约和验收标准；包含目标项，不能全部当作已完成 |
 | 本文 | 当前模块、调用与数据流、文件所有权、构建发布，以及实现与设计的边界 |
+| [开发流程](DEVELOPMENT_WORKFLOW.md) | 分支职责、主线归并、本地同步、归档清理与任务完成定义 |
 
 当前架构由本地可信页面、Rust 文件/进程操作与服务端统计/认证组成。页面既可来自 exe 内置资源，也可来自独立 HTTPS 发布并通过本机公钥验证的缓存包；同一次运行固定版本和本地 origin。源码按配置、API、下载、启动、脚本更新、环境资源和页面更新组织，更新器分别拥有自己的清单与恢复流程。
 
@@ -129,7 +130,7 @@ flowchart TB
 
 页面更新只增加 `page_update_status`、`check_page_update`、`page_ready`、`recover_builtin_pages`。这些命令管理页面缓存，不接受任意更新地址、文件路径或新本地权限；页面业务仍沿用已有 Rust 能力和 API 白名单。
 
-v0.2.2 候选为使用率及卡组详情单卡投入率的图片模式增加 `read_card_images`，由 `desktop-bridge.cardImages` 调用；共享 `card-images.js` 完成网格渲染、显示偏好、本地候选解码、语言图源与英文回退。原生文件读取在线程池中执行。外部图片以 HTTPS `img` 加载，本地内容使用已允许的 data URL，不扩大通用文件访问或任意网络 API 权限。页面包最低应用版本取构建源码的应用版本，新增能力本轮要求至少 v0.2.2；本地实现和发布验收仍分别记录。
+v0.2.2 为使用率及卡组详情单卡投入率的图片模式增加 `read_card_images`，由 `desktop-bridge.cardImages` 调用；共享 `card-images.js` 完成网格渲染、显示偏好、本地候选解码、语言图源与英文回退。原生文件读取在线程池中执行。外部图片以 HTTPS `img` 加载，本地内容使用已允许的 data URL，不扩大通用文件访问或任意网络 API 权限。页面包最低应用版本取构建源码的应用版本，新增能力要求至少 v0.2.2；本地实现和发布验收仍分别记录。
 
 本地页面只通过这些命令使用本地能力。Rust 不提供任意 shell 命令、任意文件路径写入或任意 API 路由入口。外部 HTTP/HTTPS 链接交给系统浏览器。权限配置见 [capabilities/default.json](../src-tauri/capabilities/default.json)，实际 CSP 见 [tauri.conf.json](../src-tauri/tauri.conf.json)。当前 CSP 的 `script-src` 和 `style-src` 含 `unsafe-inline`；构建器另行拒绝 HTML 和 HTML 字符串中的内联事件属性，因此不能把“构建时禁止内联事件”描述成“运行时 CSP 禁止全部内联脚本”。
 
@@ -315,6 +316,7 @@ flowchart TB
     Vite --> Sign["本机页面包构建 / Ed25519 签名"]
     Sign --> Candidate["候选签名清单：绑定源码提交 A"]
     Candidate --> PageCI["desktop-pages.yml<br/>可信默认分支验签 / A 构建 / 精确重建"]
+    Main["main 唯一源码主线<br/>已审核的校验器与公钥"] --> PageCI
     PageCI --> PageRelease["不可变 pages-v Release<br/>make_latest=false"]
     PageRelease --> Index["page-updates 稳定索引"]
     Rust[src-tauri Rust 模块] --> Tauri
@@ -336,6 +338,8 @@ flowchart TB
 命令定义见 [package.json](../package.json)：`npm run check` 包括 TypeScript、页面构建、色阶/房间/统计以及同步和页面包回归；Rust 测试独立运行。Windows [EXE 工作流](../.github/workflows/windows-desktop.yml) 使用 Node 22，执行前端检查、Rust 格式/测试、编译与便携打包。普通分支只上传 artifact，版本标签或显式 `release/v<版本>` 分支通过三处版本核对后发布 EXE。
 
 [页面工作流](../.github/workflows/desktop-pages.yml) 接受 `page-candidates/**` 的公开签名清单，先用默认分支的可信校验器/公钥确认来源提交 A，再检出 A、构建并按签名清单精确重建 ZIP。私钥只在本机使用，不进入 CI；页面资源先发布成功，再更新单独的稳定索引，不占用 EXE 的 latest。未固定来源提交的本地快照可以验证，但不能冒充对应正式来源发布。
+
+源码统一归并到 `main`，稳定索引仍由独立的 `page-updates` 历史承载。候选签名前先确认源码及所需可信工具已进入主线；分支保护、本地同步与候选清理规则见 [开发流程](DEVELOPMENT_WORKFLOW.md)。
 
 便携包的环境资源实际路径为 `release-portable/srvprotianti-desktop-data/resources/1103-201103-v1/`。可选 NSIS 构建没有通过 Tauri bundle 配置携带这批环境文件；若使用安装器，须另外保持这个相对游戏根目录的数据目录结构。
 

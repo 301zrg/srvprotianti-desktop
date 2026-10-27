@@ -384,13 +384,13 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 
 主要本地依据：
 
-- [桌面调研背景](../srvprotianti/docs/DESKTOP_CLIENT_RESEARCH.md)
-- [网页模块入口](../srvprotianti/plugins/ladder-web/README.md)
-- [八页交互契约](../srvprotianti/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)
-- [公开 API 与统计契约](../srvprotianti/docs/WEB_AND_ANALYTICS_SPEC.md)
-- [公开房间模块](../srvprotianti/plugins/public-room-web/README.md)
-- [公开录像模块](../srvprotianti/plugins/public-replay-web/README.md)
-- [当前 TT 具体房名进房规则](../srvprotianti/plugins/ladder-core/index.js)
+- [桌面调研背景](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/docs/DESKTOP_CLIENT_RESEARCH.md)
+- [网页模块入口](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/ladder-web/README.md)
+- [八页交互契约](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)
+- [公开 API 与统计契约](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/docs/WEB_AND_ANALYTICS_SPEC.md)
+- [公开房间模块](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/public-room-web/README.md)
+- [公开录像模块](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/public-replay-web/README.md)
+- [当前 TT 具体房名进房规则](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/plugins/ladder-core/index.js)
 
 本地 KoishiPro 参考目录为 F:\MyCardLibrary\koishipro\KoishiPro-master-win32-zh-CN。原版 YGOPro 参考目录为 F:\MyCardLibrary\ygopro 与用户截图中的 F:\MyCardLibrary\ygopro_old；这些目录仅用于只读核对，开发与测试不改玩家游戏文件。
 
@@ -416,4 +416,4 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 
 维护者已批准“HTTP 业务 API＋独立 HTTPS 签名页面渠道＋本地缓存”。官网业务页从受控源和明确提交同步，平台差异集中在生成器及桌面桥接；页面包可以更新展示和已有能力范围内的交互，不能增加 Rust 命令、API 权限或游戏/脚本/卡库资源。首次启用需要新版 exe，之后页面与 exe 分别发布。
 
-用户先看到本地已验证页面，再在后台检查更新；成功下载于下次启动启用，失败保留当前版本。候选启动无 ready 或异常退出则隔离并恢复上一可用版/内置版；原生恢复入口不依赖业务页面。设置中的页面版本、检查/恢复文案、签名/兼容/缓存和发布约定统一维护在 [页面包约定](docs/PAGE_PACKAGE_UPDATE_PLAN.md)，模块与流程见 [当前架构](docs/ARCHITECTURE.md)。本轮已完成本地实现与演练；2026-10-25 最新指令已授权准备新固定批次并重启原 cmd，待空闲维护门禁通过后发布。
+用户先看到本地已验证页面，再在后台检查更新；成功下载于下次启动启用，失败保留当前版本。候选启动无 ready 或异常退出则隔离并恢复上一可用版/内置版；原生恢复入口不依赖业务页面。设置中的页面版本、检查/恢复文案、签名/兼容/缓存和发布约定统一维护在 [页面包约定](docs/PAGE_PACKAGE_UPDATE_PLAN.md)，模块与流程见 [当前架构](docs/ARCHITECTURE.md)。独立页面更新已随 v0.2.0 正式发布；后续源码归并遵守 [开发流程](docs/DEVELOPMENT_WORKFLOW.md)，正式发布和真实游戏验收分别留证。

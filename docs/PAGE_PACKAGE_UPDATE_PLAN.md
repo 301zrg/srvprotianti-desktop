@@ -1,8 +1,8 @@
 # 页面包独立更新设计与实施约定
 
-更新日期：2026-10-25。
+更新日期：2026-10-28。
 
-**状态：维护者已批准完整官网功能、现有仓库的独立 HTTPS 页面渠道、本机签名及首次迁移版本；隔离工作区的本地实现、构建与 WebView 演练已完成。2026-10-25 最新指令撤销暂缓上线，要求准备新固定批次并启动原 cmd，待服务器满足空闲维护门禁后发布此前已批准的全部内容。原已回滚批次与回执保留，不重放。正式发布结果仍需独立留证。**
+**状态：独立签名页面更新已随 v0.2.0 正式发布，页面渠道继续独立迭代。本文保留设计、信任边界与历史迁移约定；当前发布状态以正式 Release、签名稳定索引和批次回执为准，后文的历史执行指令不作为重放批次的授权。分支及源码归并规则见 [开发流程](DEVELOPMENT_WORKFLOW.md)。**
 
 本文件保存功能、信任边界和发布约定；实现地图见 [当前架构](ARCHITECTURE.md)，本轮任务及验收见 [实施计划](superpowers/plans/2026-10-24-web-and-page-packages.md)。本地检查通过、真实游戏验收与正式发布分别记录。
 
@@ -14,7 +14,7 @@
 - 保留 Tauri/Rust、游戏启动、配置、卡组/录像保存、706 脚本与环境资源管理的现有职责。
 - 逐步统一网页与桌面共用的页面业务源码，把平台差异集中在适配层。
 
-服务器本期保持 HTTP 直连，不为本项工作安装 Caddy/Tailscale 或调整端口、防火墙。背景见服务端 [HTTPS 部署草案](../../srvprotianti/docs/CADDY_HTTPS_DEPLOYMENT.md) 和 [当前交接](../../srvprotianti/docs/PROJECT_HANDOFF.md)。本方案不解决现有 HTTP API 的传输加密问题。
+服务器本期保持 HTTP 直连，不为本项工作安装 Caddy/Tailscale 或调整端口、防火墙。背景见服务端 [HTTPS 部署草案](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/docs/CADDY_HTTPS_DEPLOYMENT.md) 和 [当前交接](https://github.com/301zrg/srvprotianti/blob/e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d/docs/PROJECT_HANDOFF.md)。本方案不解决现有 HTTP API 的传输加密问题。
 
 ## 2. 改造前基线与入口
 

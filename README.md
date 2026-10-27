@@ -1,6 +1,6 @@
 # 706 天梯助手
 
-放在 YGOPro 或 KoishiPro 根目录的 Windows 桌面客户端。v0.2.0 和首个独立签名页面包已于 2026-10-25 发布。需求与验收范围见 [DESIGN.md](DESIGN.md)。
+放在 YGOPro 或 KoishiPro 根目录的 Windows 桌面客户端。独立签名页面更新自 v0.2.0 起提供，正式版本见 [Releases](https://github.com/301zrg/srvprotianti-desktop/releases)。需求与验收范围见 [DESIGN.md](DESIGN.md)。
 
 维护者从 [当前实现架构](docs/ARCHITECTURE.md) 查看模块、调用流程、文件归属和构建发布关系；该文档区分已实现行为、设计目标与尚待游戏实测的项目。
 每次改动按 [架构维护规范](docs/ARCHITECTURE.md#9-架构影响与图文同步) 判断影响；关系变化时同步对应图和说明，现有图文准确且已覆盖时保留。
@@ -11,17 +11,19 @@
 
 每页标题栏提供一键匹配、启动游戏、卡组编辑、查看录像四个快捷按钮。后两项分别以无文件名的 `-d`、`-r` 启动游戏，不要求填写昵称。设置页可手动检查正式版，并用系统浏览器下载 Windows ZIP，由玩家关闭游戏和助手再解压覆盖。
 
-v0.2.1 候选将助手版本检查改为读取 Release 附带的 `desktop-update.json`，不再请求 GitHub REST API。成功结果在本次助手进程内缓存 10 分钟；检查失败保留并明确标注上次结果和时间，始终提供官方下载页。该行为需要替换新版 exe；当前线上 v0.2.0 不会因源码提交或排队自动改变，实际发布以正式 Release 为准。详细实施和发布验证见 [实施记录](docs/superpowers/plans/2026-10-26-desktop-update-manifest.md)。
+自 v0.2.1 起，助手版本检查读取 Release 附带的 `desktop-update.json`，不再请求 GitHub REST API。成功结果在本次助手进程内缓存 10 分钟；检查失败保留并明确标注上次结果和时间，始终提供官方下载页。该行为需要替换支持此能力的 exe，源码提交或排队本身不改变玩家安装。详细实施和发布验证见 [实施记录](docs/superpowers/plans/2026-10-26-desktop-update-manifest.md)。
 
 首次使用独立页面更新需覆盖一次支持该功能的新版助手。此后兼容现有 Rust 命令/API 的页面改动可只发布页面包：启动使用已验证的本地页面，后台从独立 HTTPS 渠道检查和下载，下次启动应用。设置中显示页面版本与检查入口，原生“页面恢复”菜单及 `Ctrl+Shift+R` 可指定下次使用内置页面；普通 API 断网继续保留本地页面。新增本地能力或安全边界变化仍需更新 exe。设计、签名和发布边界见 [页面包约定](docs/PAGE_PACKAGE_UPDATE_PLAN.md)。
 
 卡组详情的单卡投入率独立展开、分页及导出 XLSX/CSV（五个分区）。它以单独请求调用既有 `GET /api/ladder/deck-detail?view=card-usage`，兼容 v0.2.0 的原生 API 权限，可通过页面包更新。真实星号昵称按可见性决定链接，不再按名字字符判断是否匿名。
 
-v0.2.2 候选为使用率及卡组详情的单卡投入率新增“列表模式 / 图片模式”，共用紧凑网格和显示偏好，保留所有数值、分页、详情链接和导出。图片先读助手同级游戏目录的 `pics/<卡号>.jpg/.jpeg/.png/.webp`，逐一解码；失败后请求 momobako 的语言缩略图（中文 sc、英文 en、日文/韩文 jp），再失败尝试英文，最终保留密码和卡名。补图只用于展示，不写入玩家目录。新增本地读取能力需要更新 exe，页面包最低应用版本取构建源码中的 `package.json` 版本；本候选尚未发布。
+自 v0.2.2 起，使用率及卡组详情的单卡投入率支持“列表模式 / 图片模式”，共用紧凑网格和显示偏好，保留所有数值、分页、详情链接和导出。图片先读助手同级游戏目录的 `pics/<卡号>.jpg/.jpeg/.png/.webp`，逐一解码；失败后请求 momobako 的语言缩略图（中文 sc、英文 en、日文/韩文 jp），再失败尝试英文，最终保留密码和卡名。补图只用于展示，不写入玩家目录。新增本地读取能力需要更新 exe，页面包最低应用版本取构建源码中的 `package.json` 版本。
 
 统计页默认 XLSX 另存为，也可选择 CSV：卡组月份矩阵十二指标、所选时期使用率/卡组详情，以及带密码验证后的玩家详细统计（月份/全部）。XLSX 分别有 12/6/4/4 张工作表，文件生成和压缩均在本地，不增加服务器导出任务；ExcelJS 4.4.0 随包提供，采用 [MIT 许可证](third-party/exceljs-LICENSE.txt)。排行默认当月；排行、战绩和设置页提供查询自己的入口。新版接口尚未部署时，玩家录像与私有统计显示临时占位，计分规则缺少生效参数时隐藏。
 
 ## 开发
+
+先阅读 [分支与开发流程](docs/DEVELOPMENT_WORKFLOW.md)：唯一源码主线为 `main`，`page-updates` 专供更新索引；每项任务从最新主线创建短期分支，合并后同步常用本地目录并清理。合入主线与正式发布分别验收。
 
 需要 Node.js、Rust stable 的 Windows MSVC 工具链、Microsoft C++ Build Tools、WebView2。Tauri 的 [Windows 前置条件](https://v2.tauri.app/start/prerequisites/) 有安装说明。
 
