@@ -29,7 +29,7 @@
       toggle.setAttribute('aria-expanded',String(expanded));toggle.setAttribute('aria-controls','deckCardUsageBody');heading.append(element('h2',t.title),toggle);root.append(heading);
       toggle.onclick=function(){expanded=!expanded;render();if(expanded&&(!data||Date.now()-loadedAt>=30000)&&!loading&&!error)load();root.querySelector('[data-card-expand]').focus();};
       var body=element('div');body.id='deckCardUsageBody';body.hidden=!expanded;root.append(body);if(!expanded)return;
-      body.append(element('p',t.hint,'muted'));
+      body.append(element('p',t.hint,'muted'),element('p',api.t('shareHint',lang),'muted'));
       if(loading){var progress=element('p',t.loading,'muted');progress.setAttribute('role','status');body.append(progress);return;}
       if(error){var failure=element('p',t[error]||t.failed,'muted'),retry=element('button',t.retry,'web-button');failure.setAttribute('role','status');retry.dataset.cardRetry='';retry.type='button';retry.onclick=load;body.append(failure,retry);return;}
       if(!data)return;
@@ -55,7 +55,7 @@
       }else{
       var wrap=element('div',null,'table-wrap'),table=element('table'),thead=element('thead'),header=element('tr'),tbody=element('tbody');table.dataset.cardTable='';wrap.tabIndex=0;wrap.setAttribute('role','region');wrap.setAttribute('aria-label',t.zones[ZONES.indexOf(zone)]);
       ['rank','cardId','name','adoptionCount','adoptionRate','one','two','three'].forEach(function(name){var th=element('th',api.t(name,lang));th.scope='col';header.append(th);});thead.append(header);
-      cards.slice((page-1)*50,page*50).forEach(function(card){var row=element('tr');[card.rank,card.cardId,card.name,card.deckCount,(Number(card.usageRate||0)*100).toFixed(2)+'%',card.copies1,card.copies2,card.copies3].forEach(function(value,index){var cell=element('td');if((index===1||index===2)&&Number.isSafeInteger(Number(card.cardId))&&Number(card.cardId)>0){var link=element('a',value,'inline-link');link.href='https://ygocdb.com/card/'+Number(card.cardId);link.target='_blank';link.rel='noopener';cell.append(link);}else cell.textContent=value;row.append(cell);});tbody.append(row);});
+      cards.slice((page-1)*50,page*50).forEach(function(card){var row=element('tr');[card.rank,card.cardId,card.name,card.deckCount,(Number(card.usageRate||0)*100).toFixed(2)+'%',card.copies1,card.copies2,card.copies3].forEach(function(value,index){var cell=element('td');if((index===1||index===2)&&Number.isSafeInteger(Number(card.cardId))&&Number(card.cardId)>0){var link=element('a',value,'inline-link');link.href='https://ygocdb.com/card/'+Number(card.cardId);link.target='_blank';link.rel='noopener';cell.append(link);}else cell.textContent=value;if(index>=5){cell.className='copy-cell';cell.append(element('small',api.shareText(api.copyShare(card,index-4)),'usage-copy-share'));}row.append(cell);});tbody.append(row);});
       table.append(thead,tbody);wrap.append(table);body.append(wrap);
       }
       var pagination=element('div',null,'web-pagination deck-card-toolbar'),previous=element('button',t.prev),next=element('button',t.next);previous.type=next.type='button';previous.dataset.cardPrev='';next.dataset.cardNext='';previous.disabled=page<=1;next.disabled=page>=pages;

@@ -12,36 +12,48 @@
       preparing:'正在准备表格…',empty:'暂无可导出的数据。',failed:'导出失败，请重试。',saved:'表格已保存：',
       limit:'卡片使用率每类最多导出前200名；卡组使用率导出全部类型。',all:'总计',allDecks:'全部卡组',
       period:'时期',month:'月份',metric:'指标',deck:'使用卡组',opponent:'对手卡组',wins:'胜场数',samples:'样本数',rate:'胜率',
-      rank:'排名',cardId:'卡片密码',name:'名称',count:'使用数',denominator:'统计分母',usageRate:'使用率',one:'投入1张',two:'投入2张',three:'投入3张',
+      rank:'排名',cardId:'卡片密码',name:'名称',count:'使用数',denominator:'统计分母',usageRate:'使用率',one:'投入1张',two:'投入2张',three:'投入3张',oneShare:'投入1张占比',twoShare:'投入2张占比',threeShare:'投入3张占比',
+      shareHint:'投入张数下方的百分比＝按该张数投入的卡组数 ÷ 使用该卡的卡组数，三者合计100%。',
+      splitDownload:'下载卡组分布',cardId2:'卡片密码',deckTypeId:'卡组类型ID',share:'占比',deckUses:'投入卡组数',deckValid:'该卡组有效样本',inDeck:'卡组内投入率',deckName:'卡组种类',
       metrics:['Match综合','Match先攻','Match后攻','单局综合','单局先攻','单局后攻','主牌局综合','主牌局先攻','主牌局后攻','备牌局综合','备牌局先攻','备牌局后攻']},
     ja: {matrix:'選択月の全指標を保存（CSV）',usage:'選択期間の全使用率を保存（CSV）',detail:'選択期間の勝率統計を保存',
       zone:'区分',deckId:'デッキタイプID',allSamples:'全標本',validSamples:'有効カード標本',startDay:'開始日',endDay:'終了日（含まない）',adoptionCount:'採用デッキ数',adoptionRate:'採用率',
       preparing:'表を準備中…',empty:'保存できるデータがありません。',failed:'保存に失敗しました。再試行してください。',saved:'表を保存しました：',
       limit:'カードは各区分の上位200件まで、デッキタイプは全件を保存します。',all:'合計',allDecks:'全デッキ',
       period:'期間',month:'月',metric:'指標',deck:'使用デッキ',opponent:'対戦デッキ',wins:'勝利数',samples:'標本数',rate:'勝率',
-      rank:'順位',cardId:'カードID',name:'名前',count:'使用数',denominator:'分母',usageRate:'使用率',one:'1枚採用',two:'2枚採用',three:'3枚採用',
+      rank:'順位',cardId:'カードID',name:'名前',count:'使用数',denominator:'分母',usageRate:'使用率',one:'1枚採用',two:'2枚採用',three:'3枚採用',oneShare:'1枚採用の割合',twoShare:'2枚採用の割合',threeShare:'3枚採用の割合',
+      shareHint:'採用枚数の下の割合＝その枚数で採用したデッキ数 ÷ このカードを採用したデッキ数（3つの合計は100%）。',
+      splitDownload:'デッキ内訳を保存',cardId2:'カードID',deckTypeId:'デッキタイプID',share:'割合',deckUses:'採用デッキ数',deckValid:'そのデッキの有効標本',inDeck:'デッキ内採用率',deckName:'デッキタイプ',
       metrics:['マッチ総合','マッチ先攻','マッチ後攻','ゲーム総合','ゲーム先攻','ゲーム後攻','メイン総合','メイン先攻','メイン後攻','サイド総合','サイド先攻','サイド後攻']},
     en: {matrix:'Download selected month: all metrics (CSV)',usage:'Download selected period: all usage (CSV)',detail:'Download selected period win-rate statistics',
       zone:'Zone',deckId:'Deck type ID',allSamples:'All samples',validSamples:'Valid card samples',startDay:'Start day',endDay:'End day (exclusive)',adoptionCount:'Decks using card',adoptionRate:'Adoption rate',
       preparing:'Preparing table…',empty:'No data to export.',failed:'Export failed. Please retry.',saved:'Table saved: ',
       limit:'Exports up to the top 200 cards per category and all deck types.',all:'Overall',allDecks:'All decks',
       period:'Period',month:'Month',metric:'Metric',deck:'Player deck',opponent:'Opponent deck',wins:'Wins',samples:'Samples',rate:'Win rate',
-      rank:'Rank',cardId:'Card ID',name:'Name',count:'Uses',denominator:'Denominator',usageRate:'Usage rate',one:'At 1',two:'At 2',three:'At 3',
+      rank:'Rank',cardId:'Card ID',name:'Name',count:'Uses',denominator:'Denominator',usageRate:'Usage rate',one:'At 1',two:'At 2',three:'At 3',oneShare:'At 1 share',twoShare:'At 2 share',threeShare:'At 3 share',
+      shareHint:'The percentage under each copy count = decks playing that many copies ÷ all decks playing the card (the three add up to 100%).',
+      splitDownload:'Download deck split',cardId2:'Card ID',deckTypeId:'Deck type ID',share:'Share',deckUses:'Decks',deckValid:'Valid samples of this type',inDeck:'In-deck rate',deckName:'Deck type',
       metrics:['Match overall','Match first','Match second','Game overall','Game first','Game second','Main overall','Main first','Main second','Side overall','Side first','Side second']},
     ko: {matrix:'선택 월 전체 지표 저장(CSV)',usage:'선택 기간 전체 사용률 저장(CSV)',detail:'선택 기간 승률 통계 저장',
       zone:'구역',deckId:'덱 종류 ID',allSamples:'전체 표본',validSamples:'유효 카드 표본',startDay:'시작일',endDay:'종료일(제외)',adoptionCount:'채택 덱 수',adoptionRate:'채택률',
       preparing:'표 준비 중…',empty:'내보낼 데이터가 없습니다.',failed:'내보내기에 실패했습니다. 다시 시도하세요.',saved:'표 저장됨: ',
       limit:'카드는 분류별 상위 200개까지, 덱 종류는 전체를 저장합니다.',all:'전체',allDecks:'모든 덱',
       period:'기간',month:'월',metric:'지표',deck:'사용 덱',opponent:'상대 덱',wins:'승수',samples:'표본 수',rate:'승률',
-      rank:'순위',cardId:'카드 ID',name:'이름',count:'사용 수',denominator:'집계 분모',usageRate:'사용률',one:'1장 투입',two:'2장 투입',three:'3장 투입',
+      rank:'순위',cardId:'카드 ID',name:'이름',count:'사용 수',denominator:'집계 분모',usageRate:'사용률',one:'1장 투입',two:'2장 투입',three:'3장 투입',oneShare:'1장 투입 비율',twoShare:'2장 투입 비율',threeShare:'3장 투입 비율',
+      shareHint:'투입 장수 아래의 비율 = 해당 장수로 넣은 덱 수 ÷ 이 카드를 넣은 덱 수 (세 값의 합은 100%).',
+      splitDownload:'덱 분포 저장',cardId2:'카드 ID',deckTypeId:'덱 종류 ID',share:'비율',deckUses:'투입 덱 수',deckValid:'해당 덱 유효 표본',inDeck:'덱 내 투입률',deckName:'덱 종류',
       metrics:['매치 종합','매치 선공','매치 후공','단판 종합','단판 선공','단판 후공','메인 종합','메인 선공','메인 후공','사이드 종합','사이드 선공','사이드 후공']}
   };
   function language() { return global.SrvproWeb.getLanguage(); }
   var FORMAT={zh:'导出格式',ja:'保存形式',en:'Export format',ko:'내보내기 형식'};
+  Object.keys(FORMAT).forEach(function(code){TEXT[code].format=FORMAT[code];});
   var workbookLoading=null;
   function t(key, lang) { return (TEXT[lang || language()] || TEXT.zh)[key]; }
   function local(names, lang) { return names && (names[lang || language()] || names.zh) || '—'; }
   function percent(value) { return (Number(value || 0) * 100).toFixed(4) + '%'; }
+  // Share of the decks playing a card that run exactly n copies (n = 1..3).
+  function copyShare(card, n) { var total=Number(card&&card.deckCount||0); return total>0?Number(card['copies'+n]||0)/total:0; }
+  function shareText(value) { return (Number(value || 0) * 100).toFixed(1) + '%'; }
   function cell(value) {
     var text = value == null ? '' : String(value);
     // Names are text, never spreadsheet formulas; numeric counters stay numeric.
@@ -79,7 +91,7 @@
   async function saveWorkbook(filename,kind,data,lang) {
     if(!workbookLoading)workbookLoading=Promise.all([
       script('/assets/exceljs-4.4.0.min.js',function(){return !!global.ExcelJS;}),
-      script('/assets/stats-workbook.js?v=20261025-deck-card',function(){return !!global.SrvproWorkbook;})
+      script('/assets/stats-workbook.js?v=20261031-copy-share',function(){return !!global.SrvproWorkbook;})
     ]).catch(function(error){workbookLoading=null;throw error;});
     await workbookLoading;
     var bytes=await global.SrvproWorkbook.bytes(kind,data,lang);
@@ -122,11 +134,11 @@
   var CARD_ZONES=['monster','spell','trap','extra','side'];
   function deckCardRows(data,lang) {
     if(!data||!data.selected||!data.coverage||!data.coverage.validCardDecks)return [];
-    var rows=[statHeader(lang,['period','month','deck','deckId','startDay','endDay','allSamples','validSamples','zone','rank','cardId','name','adoptionCount','denominator','adoptionRate','one','two','three'])];
+    var rows=[statHeader(lang,['period','month','deck','deckId','startDay','endDay','allSamples','validSamples','zone','rank','cardId','name','adoptionCount','denominator','adoptionRate','one','oneShare','two','twoShare','three','threeShare'])];
     CARD_ZONES.forEach(function(zone){(data.cards&&data.cards[zone]||[]).slice(0,200).forEach(function(item){
       rows.push([data.period,data.month||'',local(data.selected.names,lang),data.selected.id,data.startDay||'',data.endDay||'',
         data.coverage.allDecks,data.coverage.validCardDecks,zone,item.rank,item.cardId,item.name,item.deckCount,
-        data.coverage.validCardDecks,percent(item.usageRate),item.copies1,item.copies2,item.copies3]);
+        data.coverage.validCardDecks,percent(item.usageRate),item.copies1,percent(copyShare(item,1)),item.copies2,percent(copyShare(item,2)),item.copies3,percent(copyShare(item,3))]);
     });});
     return rows.length>1?rows:[];
   }
@@ -138,7 +150,7 @@
     return data;
   }
   async function usageRows(state, lang) {
-    var rows = [statHeader(lang,['period','month','metric','rank','cardId','name','count','denominator','usageRate','one','two','three'])];
+    var rows = [statHeader(lang,['period','month','metric','rank','cardId','name','count','denominator','usageRate','one','oneShare','two','twoShare','three','threeShare'])];
     var metrics = ['monster','spell','trap','extra','side','deck'];
     var day = null;
     // One request at a time: exporting six categories must not create a burst
@@ -158,7 +170,9 @@
           rows.push([data.period,data.month || '',metric,item.rank,metric === 'deck' ? '' : item.cardId,
             metric === 'deck' ? local(item.names,lang) : item.name,metric === 'deck' ? item.count : item.deckCount,
             metric === 'deck' ? coverage.allDecks : coverage.validCardDecks,percent(item.usageRate),
-            metric === 'deck' ? '' : item.copies1,metric === 'deck' ? '' : item.copies2,metric === 'deck' ? '' : item.copies3]);
+            metric === 'deck' ? '' : item.copies1,metric === 'deck' ? '' : percent(copyShare(item,1)),
+            metric === 'deck' ? '' : item.copies2,metric === 'deck' ? '' : percent(copyShare(item,2)),
+            metric === 'deck' ? '' : item.copies3,metric === 'deck' ? '' : percent(copyShare(item,3))]);
         });
         pages = metric === 'deck' ? 1 : Math.max(1,Math.ceil(Number(data.total || 0) / Number(data.pageSize || 50)));
         if (pages > 200) throw Error('page limit');
@@ -166,6 +180,16 @@
       } while (page <= pages);
     }
     return rows.length > 1 ? rows : [];
+  }
+  // One card's deck split (usage page dialog); every listed deck type, no paging.
+  function splitRows(data, lang) {
+    if (!data || !data.card || !data.decks || !data.decks.length) return [];
+    var rows = [statHeader(lang,['period','month','metric','cardId2','name','count','usageRate','rank','deckTypeId','deckName','share','deckUses','deckValid','inDeck'])];
+    data.decks.forEach(function (deck) {
+      rows.push([data.period,data.month || '',data.card.zone || '',data.card.cardId,data.card.name || '',data.deckCount,percent(data.usageRate),
+        deck.rank,deck.deckTypeId,local(deck.names,lang),percent(deck.share),deck.deckCount,deck.validDecks,percent(deck.adoptionRate)]);
+    });
+    return rows;
   }
   function playerRows(data, lang) {
     var rows = [statHeader(lang)];
@@ -214,5 +238,6 @@
     });
   }
   global.SrvproStatsExport={metrics:METRICS,t:t,local:local,percent:percent,csv:csv,save:save,appendStats:appendStats,
-    matrixRows:matrixRows,detailRows:detailRows,deckCardRows:deckCardRows,usageRows:usageRows,playerRows:playerRows,mount:mount,formatPicker:formatPicker,saveWorkbook:saveWorkbook};
+    matrixRows:matrixRows,detailRows:detailRows,deckCardRows:deckCardRows,usageRows:usageRows,splitRows:splitRows,playerRows:playerRows,mount:mount,formatPicker:formatPicker,saveWorkbook:saveWorkbook,
+    copyShare:copyShare,shareText:shareText};
 })(window);
