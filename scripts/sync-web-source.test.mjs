@@ -9,7 +9,7 @@ import {mkdtemp,mkdir,readFile,rm,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
-async function gitFixture(run) {
+async function gitFixture(run,{shell}={}) {
   const temporary=await mkdtemp(path.join(tmpdir(),'srvpro-source-provenance-'));
   const repository=path.join(temporary,'repo'),website=path.join(repository,'plugins/ladder-web/web');
   await mkdir(path.join(website,'assets'),{recursive:true});
@@ -17,6 +17,7 @@ async function gitFixture(run) {
   for(const name of names)await writeFile(path.join(website,name+'.html'),'<p>'+name+' fixture</p>\n');
   for(const name of ['common.css','stats-export.js','stats-workbook.js','exceljs-4.4.0.min.js','player-duel-stats.js','deck-card-usage.js','rating-rules.js','card-images.js'])await writeFile(path.join(website,'assets',name),'/* fixture */\n');
   await writeFile(path.join(website,'assets/site-shell.js'),"(function(global){\n  'use strict';\n  function rateColor() {}\n  function openSettings() {}\n  function renderShell() {\n    var settings = document.createElement('button');\n    settings.type = 'button'; settings.className = 'site-settings-button'; settings.textContent = entryText('settings'); settings.setAttribute('data-site-settings', '');\n    settings.addEventListener('click', openSettings); root.appendChild(settings);\n  }\n  global.SrvproWeb = Object.freeze({\n    rateColor: rateColor,\n  });\n})(window);\n");
+  if(shell!==undefined)await writeFile(path.join(website,'assets/site-shell.js'),shell);
   const git=(...args)=>execFileSync('git',['-c','core.autocrlf=false','-c','core.safecrlf=false','-c','commit.gpgsign=false','-c','user.name=Source Fixture','-c','user.email=source@example.invalid','-C',repository,...args],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
   try {
     git('init','--template=');git('add','.');git('commit','-m','fixture');
@@ -164,4 +165,43 @@ test('read-only provenance regeneration rejects forged source lists and rehashed
     await writeFile(manifestPath,JSON.stringify(manifest));
     await assert.rejects(api.verifyWebsiteProvenance({websiteRoot:website,sourceDirectory,websiteCommit:commit}),/generated|provenance/i);
   });
+});
+
+// Layout of site-shell.js on the website since common-nav-settings-20261026: the settings button ends the navigation.
+const navigationShell=[
+  "(function(global){",
+  "  'use strict';",
+  "  function rateColor() {}",
+  "  function openSettings() {}",
+  "  function renderShell() {",
+  "    var navigation = document.createElement('nav');",
+  "    navigation.className = 'nav';",
+  "    var settings = document.createElement('button');",
+  "    settings.type = 'button'; settings.className = 'site-settings-button'; settings.textContent = entryText('settings'); settings.setAttribute('data-site-settings', '');",
+  "    settings.addEventListener('click', openSettings); navigation.appendChild(settings);",
+  "    root.appendChild(navigation);",
+  "  }",
+  "  global.SrvproWeb = Object.freeze({",
+  "    rateColor: rateColor,",
+  "  });",
+  "})(window);"
+].join('\n')+'\n';
+
+test('the settings button inside the navigation is removed while the navigation itself stays',async()=>{
+  const {syncWebsite}=await import('./sync-web-source.mjs');
+  await gitFixture(async({temporary,website,commit})=>{
+    const outputRoot=path.join(temporary,'snapshot');
+    await syncWebsite({websiteRoot:website,websiteCommit:commit,outputRoot});
+    const shell=await readFile(path.join(outputRoot,'site-shell.js'),'utf8');
+    assert.ok(!shell.includes('site-settings-button'));
+    assert.ok(shell.includes('root.appendChild(navigation);'));
+    assert.ok(shell.includes('rateClass: rateClass,'));
+  },{shell:navigationShell});
+});
+
+test('an unreviewed settings button layout is still rejected',async()=>{
+  const {syncWebsite}=await import('./sync-web-source.mjs');
+  await gitFixture(async({temporary,website,commit})=>{
+    await assert.rejects(syncWebsite({websiteRoot:website,websiteCommit:commit,outputRoot:path.join(temporary,'snapshot')}),/settings button contract changed/);
+  },{shell:navigationShell.replace('navigation.appendChild(settings);','document.body.appendChild(settings);')});
 });

@@ -68,7 +68,8 @@ export function adaptPage(page,html) {
 function adaptShell(code) {
   const marker='  global.SrvproWeb = Object.freeze({';
   if(!code.includes(marker))throw Error('Shared shell export contract changed');
-  const settingsButton=/    var settings = document\.createElement\('button'\);\r?\n    settings\.type = 'button'; settings\.className = 'site-settings-button'; settings\.textContent = entryText\('settings'\); settings\.setAttribute\('data-site-settings', ''\);\r?\n    settings\.addEventListener\('click', openSettings\); root\.appendChild\(settings\);\r?\n/;
+  // Reviewed layouts: the button directly in the shell root (before 2026-10-26) or at the end of its navigation.
+  const settingsButton=/    var settings = document\.createElement\('button'\);\r?\n    settings\.type = 'button'; settings\.className = 'site-settings-button'; settings\.textContent = entryText\('settings'\); settings\.setAttribute\('data-site-settings', ''\);\r?\n    settings\.addEventListener\('click', openSettings\); (?:root|navigation)\.appendChild\(settings\);\r?\n/;
   if(!settingsButton.test(code))throw Error('Shared shell settings button contract changed');
   const helpers=`  function rateClass(rate) {
     var value=Number(rate);
