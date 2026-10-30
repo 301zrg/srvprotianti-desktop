@@ -205,3 +205,14 @@ test('an unreviewed settings button layout is still rejected',async()=>{
     await assert.rejects(syncWebsite({websiteRoot:website,websiteCommit:commit,outputRoot:path.join(temporary,'snapshot')}),/settings button contract changed/);
   },{shell:navigationShell.replace('navigation.appendChild(settings);','document.body.appendChild(settings);')});
 });
+
+test('example decks keep a framed grid after the web-client stylesheet is dropped',async()=>{
+  const {syncWebsite}=await import('./sync-web-source.mjs');
+  await gitFixture(async({temporary,website,commit})=>{
+    const outputRoot=path.join(temporary,'snapshot');
+    await syncWebsite({websiteRoot:website,websiteCommit:commit,outputRoot});
+    const css=await readFile(path.join(outputRoot,'common.css'),'utf8');
+    assert.match(css,/\.deck-list\{display:grid;/);
+    assert.match(css,/\.deck-list \.deck-example\{display:flex;[^}]*border:1px solid #33495e/);
+  },{shell:navigationShell});
+});

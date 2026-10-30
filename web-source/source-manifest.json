@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "generatorVersion": 1,
-  "websiteCommit": "e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d",
-  "websiteBaseCommit": "e6ae5173485ca9f2f8732b7cd3ceba0470e3a35d",
+  "websiteCommit": "794c68f0d05c2d13351c1eb642c3cece50d9daf0",
+  "websiteBaseCommit": "794c68f0d05c2d13351c1eb642c3cece50d9daf0",
   "sourceFiles": [
     {
       "path": "intro.html",
@@ -36,33 +36,33 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 31490,
-      "sha256": "7a9052fd7403384ab8dacb3c00be68acd4f3820e49d01ae57b191ea3ee1ff2ee"
+      "size": 33914,
+      "sha256": "8b8f109f38c3c7e7d24903d44d9b4944fc8ea3a65026e333dcaee38ef13e5bd9"
     },
     {
       "path": "deck-detail.html",
-      "size": 14150,
-      "sha256": "d766a0076c8915ec28a398b16a40be2374d6bc0f34948ea742e9d6bf2bcf8e92"
+      "size": 14155,
+      "sha256": "7902ccc40676aa025e9d55019b8c9d9abe0ff4b4e6953ecc6d63b15cc9c17063"
     },
     {
       "path": "assets/common.css",
-      "size": 16365,
-      "sha256": "97d8a4b08d6de0f664bdbd1802c0411101080dd064459a76ad3588ab0404774c"
+      "size": 17540,
+      "sha256": "49a5556aa56c4c637a7b09a3368c969533cdca0c83e6a6773a2ea45e69bafaa5"
     },
     {
       "path": "assets/site-shell.js",
-      "size": 28673,
-      "sha256": "1665af75834110fa17491680e8036be90d09f88dde47d45a43ab3f85bc3ab5bc"
+      "size": 28679,
+      "sha256": "21550a2d3b20a52d61af8831e467e80198ad83aa08425e99e3a7dd838c377a37"
     },
     {
       "path": "assets/stats-export.js",
-      "size": 16882,
-      "sha256": "381b75bbf2e95f659933c0c7285162e7d9b539e1053f676023a12d5eec718502"
+      "size": 20186,
+      "sha256": "deedce81d40d4dbfec4493c9992f063b9208ce45f295387d869517ca7aa5c8e5"
     },
     {
       "path": "assets/stats-workbook.js",
-      "size": 8739,
-      "sha256": "689db8d31479c855c1f65b293f00043b10994570e7b436a0aa51c6f625eb4f2f"
+      "size": 10455,
+      "sha256": "31f90e3a035a0bd3ac8a666579a473e7a3377133cffc18f9ee971b5bf1447fba"
     },
     {
       "path": "assets/exceljs-4.4.0.min.js",
@@ -76,8 +76,8 @@
     },
     {
       "path": "assets/deck-card-usage.js",
-      "size": 14160,
-      "sha256": "b58f48d81da703894a93233efbcba52d9d98505cbbe0333dcace983a2ebb4d3c"
+      "size": 14338,
+      "sha256": "fcfb16291e49a95c83688dee07c7f3634c2b8d1778fb141c57606c77e96a5688"
     },
     {
       "path": "assets/rating-rules.js",
@@ -86,8 +86,8 @@
     },
     {
       "path": "assets/card-images.js",
-      "size": 6955,
-      "sha256": "259dc484b11ef71a1e936d1eefb1569675d1743832a77b38257a5bec3d13884d"
+      "size": 7654,
+      "sha256": "f5483f201926c87c39662565a29487b9371cdc19f1d25416c0c0bea57f56e13e"
     }
   ],
   "generatedFiles": [
@@ -123,18 +123,18 @@
     },
     {
       "path": "usage-stats.html",
-      "size": 31427,
-      "sha256": "0f68b64f582ddb67a75320790b03a259b581951de6c9b4b7752da13b833fd369"
+      "size": 33851,
+      "sha256": "cd3f36f85e46c2634eea08d4ae9b4baa9e584576fb86553e093c2a993c91bbfd"
     },
     {
       "path": "deck-detail.html",
-      "size": 13602,
-      "sha256": "c7d4daf9d56b52d16e0cdef7c172c785a5446b070ead571f1fe0276535f268d1"
+      "size": 13607,
+      "sha256": "7f4630ac0d3c4ed2385f69d2f0cbd882e5d2902cdb00c3a268f3491c31eb78ea"
     },
     {
       "path": "common.css",
-      "size": 16664,
-      "sha256": "5a659a0a4f5809af2c58af8fca5f27d73e48fd19ae95f6ba0c0f27225aa014e6"
+      "size": 18388,
+      "sha256": "ff14f31e8adbab4617c02be9d134d9b56ee4f6f3a641331730bb1cfb3961d18e"
     },
     {
       "path": "site-shell.js",
@@ -143,13 +143,13 @@
     },
     {
       "path": "stats-export.js",
-      "size": 16882,
-      "sha256": "381b75bbf2e95f659933c0c7285162e7d9b539e1053f676023a12d5eec718502"
+      "size": 20186,
+      "sha256": "deedce81d40d4dbfec4493c9992f063b9208ce45f295387d869517ca7aa5c8e5"
     },
     {
       "path": "stats-workbook.js",
-      "size": 8739,
-      "sha256": "689db8d31479c855c1f65b293f00043b10994570e7b436a0aa51c6f625eb4f2f"
+      "size": 10455,
+      "sha256": "31f90e3a035a0bd3ac8a666579a473e7a3377133cffc18f9ee971b5bf1447fba"
     },
     {
       "path": "exceljs-4.4.0.min.js",
@@ -163,8 +163,8 @@
     },
     {
       "path": "deck-card-usage.js",
-      "size": 14160,
-      "sha256": "b58f48d81da703894a93233efbcba52d9d98505cbbe0333dcace983a2ebb4d3c"
+      "size": 14338,
+      "sha256": "fcfb16291e49a95c83688dee07c7f3634c2b8d1778fb141c57606c77e96a5688"
     },
     {
       "path": "rating-rules.js",
@@ -173,8 +173,8 @@
     },
     {
       "path": "card-images.js",
-      "size": 6955,
-      "sha256": "259dc484b11ef71a1e936d1eefb1569675d1743832a77b38257a5bec3d13884d"
+      "size": 7654,
+      "sha256": "f5483f201926c87c39662565a29487b9371cdc19f1d25416c0c0bea57f56e13e"
     }
   ]
 }
