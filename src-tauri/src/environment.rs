@@ -816,8 +816,7 @@ mod tests {
             "706 Ladder|example.test:7911\n"
         );
         assert_eq!(
-            with_ladder_server(b"Other|a:1\n706 Ladder|old:1\nMore|b:2", "new.test", 7912)
-                .unwrap(),
+            with_ladder_server(b"Other|a:1\n706 Ladder|old:1\nMore|b:2", "new.test", 7912).unwrap(),
             "Other|a:1\nMore|b:2\n706 Ladder|new.test:7912\n"
         );
         assert!(with_ladder_server(&[0xff], "x", 1).is_err());
