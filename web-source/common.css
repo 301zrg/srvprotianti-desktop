@@ -237,6 +237,19 @@ th {
 .usage-card-counts dt { min-width:0; color:#b2c5d8; font-size:10px; overflow-wrap:anywhere; }
 .usage-card-counts dd { margin:3px 0 0; font-size:13px; font-variant-numeric:tabular-nums; }
 .usage-card-counts .usage-card-decks { grid-column:1/-1; display:flex; align-items:baseline; justify-content:space-between; gap:4px; padding-bottom:6px; border-bottom:1px solid #34485d; }
+/* Copy-count share: the percentage of decks playing the card at 1/2/3 copies. */
+.usage-copy-share { display:block; margin-top:1px; color:#9db8d0; font-size:10px; font-variant-numeric:tabular-nums; }
+/* Each copy count carries the colour of its segment in the bar below. */
+.usage-copy-1 { --copy-color:#7ec4ff; }
+.usage-copy-2 { --copy-color:#73d6a3; }
+.usage-copy-3 { --copy-color:#f0c27a; }
+.usage-card-counts .usage-copy-1, .usage-card-counts .usage-copy-2, .usage-card-counts .usage-copy-3 { padding-top:3px; border-top:2px solid var(--copy-color); }
+.usage-card-counts dt { white-space:nowrap; }
+.usage-copy-bar span { background:var(--copy-color); }
+.usage-copy-bar { display:flex; height:5px; margin-top:7px; overflow:hidden; border-radius:3px; background:#2b3b4d; }
+.usage-copy-bar span { display:block; min-width:0; }
+.copy-cell { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.copy-cell .usage-copy-share { font-size:11px; }
 @media (max-width:640px) {
   .usage-views { margin-left:0; }
   .usage-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
@@ -249,6 +262,8 @@ th {
   .usage-card-counts { grid-template-columns:minmax(0,1fr); gap:4px; text-align:left; }
   .usage-card-counts > div { display:flex; align-items:baseline; justify-content:space-between; gap:3px; }
   .usage-card-counts dd { flex-shrink:0; margin:0; font-size:12px; }
+  .usage-card-counts .usage-copy-1, .usage-card-counts .usage-copy-2, .usage-card-counts .usage-copy-3 { padding:0 0 0 4px; border-top:0; border-left:2px solid var(--copy-color); }
+  .usage-card-counts dd { text-align:right; }
 }
 .site-play-link:focus-visible, .site-settings-button:focus-visible, .site-settings-dialog :focus-visible { outline:2px solid #ffd875; outline-offset:3px; }
 @media (max-width:640px) {
@@ -342,3 +357,4 @@ th {
 
 /* Native platform actions share the website layout. */
 .deck-actions,.replay-actions{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap}.desktop-room-action{margin-left:8px;padding:4px 8px;background:#2f5c86;color:#fff;border-radius:4px}.nav a[data-desktop-settings]{margin-left:4px}
+.deck-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px}.deck-list .deck-example{display:flex;width:100%;background:#1d2a38;border:1px solid #33495e;border-radius:6px}.deck-list .deck-example>a{display:flex;align-items:center;flex:1;min-width:0;min-height:36px;padding:6px 10px;border-radius:5px;color:#7ec4ff;text-decoration:none;overflow-wrap:anywhere}.deck-list .deck-example>a:hover{background:#243447;color:#fff}.deck-list .deck-example>a:focus-visible{outline:2px solid #ffd875;outline-offset:-2px}

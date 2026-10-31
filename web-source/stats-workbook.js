@@ -15,6 +15,7 @@
     cell.value=total>0?wins/total:null;cell.numFmt='0.00%';
     cell.font={name:'Calibri',size:11,color:{argb:total>0?color(wins/total,saturated):'FFDCE6F0'}};
   }
+  function share(cell,value) { cell.value=Number(value||0);cell.numFmt='0.0%'; }
   function init(workbook,name,title,period,month,widths,labels) {
     var sheet=workbook.addWorksheet(text(name).replace(/[\\/?*\[\]:]/g,' ').slice(0,31),{views:[{state:'frozen',xSplit:1,ySplit:4,showGridLines:false}]});
     sheet.columns=widths.map(function(width){return {width:width};});
@@ -84,29 +85,43 @@
     }else if(kind==='deck-card'){
       if(!data||!data.selected||!data.coverage||!data.coverage.validCardDecks)throw Error('empty');
       ['monster','spell','trap','extra','side'].forEach(function(zone,index){
-        var keys=['rank','cardId','name','adoptionCount','denominator','adoptionRate','one','two','three'];
+        var keys=['rank','cardId','name','adoptionCount','denominator','adoptionRate','one','oneShare','two','twoShare','three','threeShare'];
         var sheet=init(workbook,labels.usage[index],local(data.selected.names)+' · '+labels.usage[index],data.period,data.month,keys.map(function(key){return key==='name'?34:16;}),t);
         sheet.getCell('E2').value=t('validSamples');sheet.getCell('F2').value=data.coverage.validCardDecks;
         sheet.getCell('G2').value=t('allSamples');sheet.getCell('H2').value=data.coverage.allDecks;
         [t('startDay'),text(data.startDay),t('endDay'),text(data.endDay),t('deckId'),data.selected.id].forEach(function(value,col){sheet.getCell(3,col+1).value=value;});
         keys.forEach(function(key,col){sheet.getCell(4,col+1).value=t(key);});
         (data.cards&&data.cards[zone]||[]).slice(0,200).forEach(function(item,row){
-          [item.rank,item.cardId,text(item.name),item.deckCount,data.coverage.validCardDecks,null,item.copies1,item.copies2,item.copies3].forEach(function(value,col){sheet.getCell(row+5,col+1).value=value;});
+          [item.rank,item.cardId,text(item.name),item.deckCount,data.coverage.validCardDecks,null,item.copies1,null,item.copies2,null,item.copies3,null].forEach(function(value,col){sheet.getCell(row+5,col+1).value=value;});
           rate(sheet.getCell(row+5,6),Number(item.deckCount||0),Number(data.coverage.validCardDecks||0),false);
+          [1,2,3].forEach(function(n){share(sheet.getCell(row+5,6+n*2),api.copyShare(item,n));});
         });style(sheet,keys.length);
       });
     }else if(kind==='usage'){
       var rows=data&&data.rows;if(!rows||rows.length<2)throw Error('empty');
       ['monster','spell','trap','extra','side','deck'].forEach(function(metric,index){
-        var deck=metric==='deck',keys=deck?['rank','name','count','denominator','usageRate']:['rank','cardId','name','count','denominator','usageRate','one','two','three'];
+        var deck=metric==='deck',keys=deck?['rank','name','count','denominator','usageRate']:['rank','cardId','name','count','denominator','usageRate','one','oneShare','two','twoShare','three','threeShare'];
         var sheet=init(workbook,labels.usage[index],labels.usage[index],rows[1][0],rows[1][1],keys.map(function(key){return key==='name'?32:16;}),t);
         keys.forEach(function(key,col){sheet.getCell(4,col+1).value=t(key);});
         rows.slice(1).filter(function(row){return row[2]===metric;}).forEach(function(item,index){
-          var values=deck?[item[3],text(item[5]),item[6],item[7],null]:[item[3],item[4],text(item[5]),item[6],item[7],null,item[9],item[10],item[11]];
+          // usageRows: counts at 9/11/13, shares (already rendered as text) at 10/12/14.
+          var values=deck?[item[3],text(item[5]),item[6],item[7],null]:[item[3],item[4],text(item[5]),item[6],item[7],null,item[9],null,item[11],null,item[13],null];
           values.forEach(function(value,col){sheet.getCell(index+5,col+1).value=value==null?null:value;});
           rate(sheet.getCell(index+5,deck?5:6),Number(item[6]||0),Number(item[7]||0),false);
+          if(!deck)[1,2,3].forEach(function(n){share(sheet.getCell(index+5,6+n*2),Number(item[6])>0?Number(item[7+n*2]||0)/Number(item[6]):0);});
         });style(sheet,keys.length);
       });
+    }else if(kind==='split'){
+      if(!data||!data.card||!data.decks||!data.decks.length)throw Error('empty');
+      var splitKeys=['rank','deckName','deckTypeId','share','deckUses','deckValid','inDeck'];
+      var split=init(workbook,text(data.card.name),text(data.card.name)+' ('+data.card.cardId+')',data.period,data.month,splitKeys.map(function(key){return key==='deckName'?34:16;}),t);
+      split.getCell('E2').value=t('count');split.getCell('F2').value=data.deckCount;split.getCell('G2').value=t('usageRate');rate(split.getCell('H2'),Number(data.usageRate||0),1,false);
+      split.getCell('A3').value=t('cardId2');split.getCell('B3').value=data.card.cardId;split.getCell('C3').value=t('metric');split.getCell('D3').value=text(data.card.zone);
+      splitKeys.forEach(function(key,col){split.getCell(4,col+1).value=t(key);});
+      data.decks.forEach(function(deck,row){
+        [deck.rank,local(deck.names),deck.deckTypeId,null,deck.deckCount,deck.validDecks,null].forEach(function(value,col){split.getCell(row+5,col+1).value=value;});
+        share(split.getCell(row+5,4),deck.share);rate(split.getCell(row+5,7),Number(deck.adoptionRate||0),1,false);
+      });style(split,splitKeys.length);
     }else throw Error('unknown workbook');
     return workbook;
   }

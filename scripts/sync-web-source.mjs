@@ -68,7 +68,8 @@ export function adaptPage(page,html) {
 function adaptShell(code) {
   const marker='  global.SrvproWeb = Object.freeze({';
   if(!code.includes(marker))throw Error('Shared shell export contract changed');
-  const settingsButton=/    var settings = document\.createElement\('button'\);\r?\n    settings\.type = 'button'; settings\.className = 'site-settings-button'; settings\.textContent = entryText\('settings'\); settings\.setAttribute\('data-site-settings', ''\);\r?\n    settings\.addEventListener\('click', openSettings\); root\.appendChild\(settings\);\r?\n/;
+  // Reviewed layouts: the button directly in the shell root (before 2026-10-26) or at the end of its navigation.
+  const settingsButton=/    var settings = document\.createElement\('button'\);\r?\n    settings\.type = 'button'; settings\.className = 'site-settings-button'; settings\.textContent = entryText\('settings'\); settings\.setAttribute\('data-site-settings', ''\);\r?\n    settings\.addEventListener\('click', openSettings\); (?:root|navigation)\.appendChild\(settings\);\r?\n/;
   if(!settingsButton.test(code))throw Error('Shared shell settings button contract changed');
   const helpers=`  function rateClass(rate) {
     var value=Number(rate);
@@ -134,7 +135,10 @@ async function websiteSnapshot({websiteRoot,websiteCommit=null}={}) {
     let contents=bytes.toString('utf8');
     if(input.endsWith('.html'))contents=adaptPage(input.slice(0,-5),contents);
     if(destination==='site-shell.js')contents=adaptShell(contents);
-    if(destination==='common.css')contents+='\n/* Native platform actions share the website layout. */\n.deck-actions,.replay-actions{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap}.desktop-room-action{margin-left:8px;padding:4px 8px;background:#2f5c86;color:#fff;border-radius:4px}.nav a[data-desktop-settings]{margin-left:4px}\n';
+    if(destination==='common.css')contents+='\n/* Native platform actions share the website layout. */\n.deck-actions,.replay-actions{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap}.desktop-room-action{margin-left:8px;padding:4px 8px;background:#2f5c86;color:#fff;border-radius:4px}.nav a[data-desktop-settings]{margin-left:4px}\n'+
+      // The website frames example decks in deck-web-open.css, which is dropped with the web-client controls;
+      // keep the same grid and one frame per deck around the native save-and-open link.
+      '.deck-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px}.deck-list .deck-example{display:flex;width:100%;background:#1d2a38;border:1px solid #33495e;border-radius:6px}.deck-list .deck-example>a{display:flex;align-items:center;flex:1;min-width:0;min-height:36px;padding:6px 10px;border-radius:5px;color:#7ec4ff;text-decoration:none;overflow-wrap:anywhere}.deck-list .deck-example>a:hover{background:#243447;color:#fff}.deck-list .deck-example>a:focus-visible{outline:2px solid #ffd875;outline-offset:-2px}\n';
     const output=Buffer.from(contents);generatedFiles.push({path:destination,size:output.length,sha256:sha256(output)});pending.push([destination,output]);
   }
   const manifest={schemaVersion:1,generatorVersion:1,websiteCommit,websiteBaseCommit:baseCommit,sourceFiles,generatedFiles};

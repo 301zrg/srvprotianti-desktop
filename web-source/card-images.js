@@ -152,13 +152,25 @@
       var fallback = element('span', null, 'card-image-fallback');
       fallback.append(element('strong', card.name), element('span', card.cardId));
       link.append(fallback);
-      var counts = element('dl', null, 'usage-card-counts');
+      var counts = element('dl', null, 'usage-card-counts'), total = Number(card.deckCount || 0);
+      var bar = element('div', null, 'usage-copy-bar');
+      bar.setAttribute('aria-hidden', 'true');
       [['decks', 'deckCount'], ['one', 'copies1'], ['two', 'copies2'], ['three', 'copies3']].forEach(function(pair, index) {
-        var item = element('div', null, index === 0 ? 'usage-card-decks' : '');
-        item.append(element('dt', labels[pair[0]]), element('dd', card[pair[1]]));
+        var item = element('div', null, index === 0 ? 'usage-card-decks' : 'usage-copy-' + index);
+        var value = element('dd');
+        value.append(element('span', card[pair[1]], 'usage-copy-count'));
+        if (index) {
+          // Share of the decks playing this card that run exactly this many copies.
+          var share = total > 0 ? Number(card[pair[1]] || 0) / total : 0;
+          value.append(element('small', (share * 100).toFixed(1) + '%', 'usage-copy-share'));
+          var segment = element('span', null, 'usage-copy-' + index);
+          segment.style.width = (share * 100).toFixed(2) + '%';
+          bar.append(segment);
+        }
+        item.append(element('dt', labels[pair[0]]), value);
         counts.append(item);
       });
-      article.append(heading, link, counts);
+      article.append(heading, link, counts, bar);
       grid.append(article);
       disposers.push(mount(link, {cardId:id, language:options.language}));
     });
