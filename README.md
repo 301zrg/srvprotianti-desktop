@@ -58,7 +58,7 @@ Windows CI 每次构建提供用于检查的 ZIP 和版本清单 artifact。维�
 
 公共业务源码归服务端 `plugins/ladder-web/web/`。维护者先运行 `node scripts/sync-web-source.mjs --website-root <受控web目录> --website-commit <已审核40位提交>`，同步八页和固定公共 assets 清单，记录源及生成文件 SHA。`web-source/source-manifest.json` 中来源提交必须对应实际功能，不能把底稿提交当作未提交功能的来源。构建不自动下载相邻仓库或远程 HTML。
 
-这批生成快照的改动应回到官网源码或同步规则；原生动作归 `src/desktop-bridge.ts`，`self-query.js`、`page-updates.js` 和根目录设置页保留为平台适配。`prepare-pages.mjs` 先校验快照散列，再提取页面脚本和生成介绍页适配；人工改动快照会被拒绝。同步时需核对 [页面契约](https://github.com/301zrg/srvprotianti/blob/restructure2/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)，并逐页检查搜索、筛选、翻页、刷新、下载、启动和语言切换。HTML 及生成字符串中禁止内联 onclick/onchange 等事件属性；使用 addEventListener 或元素事件属性绑定。
+这批生成快照的改动应回到官网源码或同步规则；原生动作归 `src/desktop-bridge.ts`，`self-query.js`、`page-updates.js` 和根目录设置页保留为平台适配。`prepare-pages.mjs` 先校验快照散列，再提取页面脚本和生成介绍页适配；人工改动快照会被拒绝。同步时需核对 [页面契约](https://github.com/301zrg/srvprotianti/blob/main/plugins/ladder-web/WEB_PAGE_DEVELOPMENT_SPEC.md)，并逐页检查搜索、筛选、翻页、刷新、下载、启动和语言切换。HTML 及生成字符串中禁止内联 onclick/onchange 等事件属性；使用 addEventListener 或元素事件属性绑定。
 
 桌面构建还会按网页端胜率色阶生成静态 CSS；统计页用类名呈现红／中性／绿渐变，避免运行时内联颜色受 WebView 样式策略影响。
 
