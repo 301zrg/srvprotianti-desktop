@@ -15,7 +15,7 @@
     "package:pages": "node scripts/page-package.mjs",
     "test:pages": "node --test scripts/page-package.test.mjs scripts/rebuild-page-package.test.mjs scripts/publish-page-package.test.mjs scripts/sync-web-source.test.mjs",
     "test:platform": "node scripts/platform-ui.test.mjs",
-    "check": "tsc --noEmit && npm run build:web && node --test scripts/color.test.mjs scripts/rooms.test.mjs scripts/stats.test.mjs scripts/workbook.test.mjs scripts/page-package.test.mjs scripts/rebuild-page-package.test.mjs scripts/publish-page-package.test.mjs scripts/sync-web-source.test.mjs scripts/page-updates-ui.test.mjs scripts/desktop-release.test.mjs scripts/desktop-updates-ui.test.mjs",
+    "check": "tsc --noEmit && npm run build:web && node --test scripts/color.test.mjs scripts/rooms.test.mjs scripts/stats.test.mjs scripts/workbook.test.mjs scripts/page-package.test.mjs scripts/rebuild-page-package.test.mjs scripts/publish-page-package.test.mjs scripts/sync-web-source.test.mjs scripts/csp-consistency.test.mjs scripts/page-updates-ui.test.mjs scripts/desktop-release.test.mjs scripts/desktop-updates-ui.test.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

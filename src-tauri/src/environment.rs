@@ -110,6 +110,21 @@ fn checked_path(root: &Path, relative: &str) -> Result<PathBuf, String> {
     Ok(path)
 }
 
+/// Returns a server list with exactly one 706 Ladder entry for the configured game address.
+fn with_ladder_server(original: &[u8], host: &str, port: u16) -> Result<String, String> {
+    let text = std::str::from_utf8(original).map_err(|_| "servers.conf is not UTF-8")?;
+    let mut updated = text
+        .lines()
+        .filter(|line| !line.starts_with("706 Ladder|"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    if !updated.is_empty() {
+        updated.push('\n');
+    }
+    updated.push_str(&format!("706 Ladder|{host}:{port}\n"));
+    Ok(updated)
+}
+
 fn read_if_exists(path: &Path) -> Result<Option<Vec<u8>>, String> {
     match fs::read(path) {
         Ok(bytes) => Ok(Some(bytes)),
@@ -530,19 +545,8 @@ fn install_koishi(
         )?;
         let server_file = format!("{target}/servers.conf");
         let original = read_if_exists(&checked_path(root, &server_file)?)?.unwrap_or_default();
-        let text = std::str::from_utf8(&original).map_err(|_| "servers.conf is not UTF-8")?;
-        let mut updated = text
-            .lines()
-            .filter(|line| !line.starts_with("706 Ladder|"))
-            .collect::<Vec<_>>()
-            .join("\n");
-        if !updated.is_empty() {
-            updated.push('\n');
-        }
-        updated.push_str(&format!(
-            "706 Ladder|{}:{}\n",
-            config.server.game_host, config.server.game_port
-        ));
+        let updated =
+            with_ladder_server(&original, &config.server.game_host, config.server.game_port)?;
         put(root, state, &server_file, updated.as_bytes())?;
     }
     Ok(())
@@ -756,19 +760,8 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
         for (_, locale) in LANGUAGES {
             let relative = format!("locales/1103_{locale}/servers.conf");
             let old = read_if_exists(&checked_path(root, &relative)?)?.unwrap_or_default();
-            let text = std::str::from_utf8(&old).map_err(|_| "servers.conf is not UTF-8")?;
-            let mut expected = text
-                .lines()
-                .filter(|line| !line.starts_with("706 Ladder|"))
-                .collect::<Vec<_>>()
-                .join("\n");
-            if !expected.is_empty() {
-                expected.push('\n');
-            }
-            expected.push_str(&format!(
-                "706 Ladder|{}:{}\n",
-                config.server.game_host, config.server.game_port
-            ));
+            let expected =
+                with_ladder_server(&old, &config.server.game_host, config.server.game_port)?;
             if expected.as_bytes() != old.as_slice() {
                 needs_sync = true;
             }
@@ -791,19 +784,8 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
             for (_, locale) in LANGUAGES {
                 let relative = format!("locales/1103_{locale}/servers.conf");
                 let old = read_if_exists(&checked_path(root, &relative)?)?.unwrap_or_default();
-                let text = std::str::from_utf8(&old).map_err(|_| "servers.conf is not UTF-8")?;
-                let mut result = text
-                    .lines()
-                    .filter(|line| !line.starts_with("706 Ladder|"))
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                if !result.is_empty() {
-                    result.push('\n');
-                }
-                result.push_str(&format!(
-                    "706 Ladder|{}:{}\n",
-                    config.server.game_host, config.server.game_port
-                ));
+                let result =
+                    with_ladder_server(&old, &config.server.game_host, config.server.game_port)?;
                 put(root, &mut state, &relative, result.as_bytes())?;
             }
         }
@@ -826,6 +808,19 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn server_list_keeps_other_entries_and_replaces_the_ladder_address() {
+        assert_eq!(
+            with_ladder_server(b"", "example.test", 7911).unwrap(),
+            "706 Ladder|example.test:7911\n"
+        );
+        assert_eq!(
+            with_ladder_server(b"Other|a:1\n706 Ladder|old:1\nMore|b:2", "new.test", 7912).unwrap(),
+            "Other|a:1\nMore|b:2\n706 Ladder|new.test:7912\n"
+        );
+        assert!(with_ladder_server(&[0xff], "x", 1).is_err());
+    }
 
     #[test]
     fn config_keys_are_replaced_without_erasing_other_settings() {
