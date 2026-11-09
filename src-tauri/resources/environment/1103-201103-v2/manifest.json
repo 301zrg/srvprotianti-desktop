@@ -1,6 +1,6 @@
 {
   "environment": "1103-706",
-  "revision": "1103-201103-v1",
+  "revision": "1103-201103-v2",
   "poolCutoff": "2011-08-31",
   "banlist": "2011.3.1",
   "banlistProtocolHash": "0x73ec4051",
@@ -14,13 +14,14 @@
   "locales": {
     "zh-CN": {
       "cards": "./zh-CN/cards.cdb",
-      "cardsSha256": "74d86a08815739ae2f5be0a0cd0a208f748129409e462fbdfc93a9f7704b749f",
+      "cardsSha256": "1312428d46115a71ac09d35a304a7f7452592a08c2d454e0179d9d25452e245d",
       "cardsBytes": 1425408,
       "strings": "./zh-CN/strings.conf",
       "stringsSha256": "f387fb5904f9e2c6977470f1240bf2ef68bf1d453b9cffa4b4f7711767a08191",
       "recoveredAlternativeArtTextCount": 0,
       "removedSearchSuffixCount": 5267,
-      "correctedBulletCount": 0
+      "correctedBulletCount": 0,
+      "correctedTextCount": 1
     },
     "en-US": {
       "cards": "./en-US/cards.cdb",
@@ -30,7 +31,8 @@
       "stringsSha256": "726f9467495e8ed271035d712f2584b6e981539690cbf4237f50229d9b0bc823",
       "recoveredAlternativeArtTextCount": 27,
       "removedSearchSuffixCount": 5267,
-      "correctedBulletCount": 13
+      "correctedBulletCount": 13,
+      "correctedTextCount": 0
     },
     "ja-JP": {
       "cards": "./ja-JP/cards.cdb",
@@ -40,7 +42,8 @@
       "stringsSha256": "54718ad6eb701f2bbe1ec07fb0a52c09c4378a050a877857af555a1a1c77ef67",
       "recoveredAlternativeArtTextCount": 0,
       "removedSearchSuffixCount": 0,
-      "correctedBulletCount": 0
+      "correctedBulletCount": 0,
+      "correctedTextCount": 0
     },
     "ko-KR": {
       "cards": "./ko-KR/cards.cdb",
@@ -50,7 +53,8 @@
       "stringsSha256": "2e7f725d7a6ba9db978a70cb738559a47de6a6f8e7bad11cc33fc9e1bfa2cf44",
       "recoveredAlternativeArtTextCount": 0,
       "removedSearchSuffixCount": 0,
-      "correctedBulletCount": 0
+      "correctedBulletCount": 0,
+      "correctedTextCount": 0
     }
   },
   "banlistSha256": "ea375c0874c8674aac515e6020aa7db85b372608eebeb15e6896fc108143a1cc"
