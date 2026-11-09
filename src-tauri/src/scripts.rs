@@ -117,6 +117,25 @@ struct ManagedFile {
     blob_sha: String,
     installed_sha256: String,
     original_backup: Option<String>,
+    /// The original backup held exactly the bytes first installed over it, i.e. an
+    /// earlier copy of the same 706 script rather than the player's own file.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    original_matches_install: bool,
+}
+
+/// An unmanaged local file that already equals the remote blob loses nothing when
+/// it is taken over, so it is not a conflict (utility.lua has no real blob id).
+fn adoptable(path: &str, local: &[u8], remote_blob: &str) -> bool {
+    path != "utility.lua" && git_blob_sha(local) == remote_blob
+}
+
+/// What a file removed from the 706 set becomes. The player's own original comes
+/// back; an original that was only an earlier copy of the 706 script is dropped,
+/// otherwise a stale override would outlive its removal. The backup file stays.
+fn removal_result(managed: &ManagedFile, original: Option<Vec<u8>>) -> Option<Vec<u8>> {
+    original.filter(|bytes| {
+        !managed.original_matches_install && sha256(bytes) != managed.installed_sha256
+    })
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -836,10 +855,15 @@ pub fn update(
             continue;
         }
         let target = target_path(root, &entry.path)?;
-        let current_hash = file_hash(&target)?;
-        if current_hash.is_some() {
-            conflicts.push(entry.path.clone());
-        }
+        let current_hash = if target.exists() {
+            let local = fs::read(&target).map_err(|error| error.to_string())?;
+            if !adoptable(&entry.path, &local, &entry.sha) {
+                conflicts.push(entry.path.clone());
+            }
+            Some(sha256(&local))
+        } else {
+            None
+        };
         observed.insert(entry.path.clone(), current_hash);
     }
     if !conflicts.is_empty() && !overwrite_conflicts {
@@ -923,15 +947,18 @@ pub fn update(
             })?
         };
         let installed_sha256 = sha256(&bytes);
-        let original_backup = match prior {
-            Some(prior) => prior.original_backup.clone(),
+        let (original_backup, original_matches_install) = match prior {
+            Some(prior) => (
+                prior.original_backup.clone(),
+                prior.original_matches_install,
+            ),
             None if target.exists() => {
                 let relative = format!("backups/original/{}.bak", Uuid::new_v4());
                 let original = fs::read(&target).map_err(|error| error.to_string())?;
                 atomic_write(&settings::data_dir(root).join(&relative), &original)?;
-                Some(relative)
+                (Some(relative), sha256(&original) == installed_sha256)
             }
-            None => None,
+            None => (None, false),
         };
         next.files.insert(
             entry.path.clone(),
@@ -939,6 +966,7 @@ pub fn update(
                 blob_sha: entry.sha.clone(),
                 installed_sha256,
                 original_backup,
+                original_matches_install,
             },
         );
         planned.push(PlannedFile {
@@ -951,11 +979,12 @@ pub fn update(
         if remote_paths.contains(path.as_str()) {
             continue;
         }
-        let after = managed
+        let original = managed
             .original_backup
             .as_ref()
             .map(|name| read_original(root, name))
             .transpose()?;
+        let after = removal_result(managed, original);
         planned.push(PlannedFile {
             path: path.clone(),
             after,
@@ -1173,6 +1202,52 @@ mod tests {
             Ok(Some(list)) => assert!(!list.environments.is_empty() && valid_sha(&list.master)),
             Err(error) => panic!("environment table lookup failed: {error}"),
         }
+    }
+
+    #[test]
+    fn identical_unmanaged_files_are_adopted_without_conflict() {
+        let bytes = b"--old ruling\r\nlocal s,id=GetID()\r\n";
+        assert!(adoptable("c10032958.lua", bytes, &git_blob_sha(bytes)));
+        // One changed byte (here only the line ending) is still a conflict.
+        assert!(!adoptable(
+            "c10032958.lua",
+            b"--old ruling\nlocal s,id=GetID()\n",
+            &git_blob_sha(bytes)
+        ));
+        // utility.lua carries a synthetic id and is never adopted silently.
+        assert!(!adoptable("utility.lua", bytes, &git_blob_sha(bytes)));
+    }
+
+    #[test]
+    fn removed_scripts_drop_originals_that_were_706_copies() {
+        let installed = b"706 copy".to_vec();
+        let own = b"player's own script".to_vec();
+        let managed = |matches| ManagedFile {
+            blob_sha: git_blob_sha(&installed),
+            installed_sha256: sha256(&installed),
+            original_backup: Some("backups/original/x.bak".into()),
+            original_matches_install: matches,
+        };
+        // The player's own file comes back.
+        assert_eq!(
+            removal_result(&managed(false), Some(own.clone())),
+            Some(own.clone())
+        );
+        // An original equal to the installed copy is removed with it.
+        assert_eq!(
+            removal_result(&managed(false), Some(installed.clone())),
+            None
+        );
+        // Recorded at takeover: removed even after the 706 copy changed since.
+        assert_eq!(removal_result(&managed(true), Some(own)), None);
+        assert_eq!(removal_result(&managed(false), None), None);
+        // Older state files without the flag still read.
+        let old = r#"{"blobSha":"a","installedSha256":"b","originalBackup":null}"#;
+        let file: ManagedFile = serde_json::from_str(old).unwrap();
+        assert!(!file.original_matches_install);
+        assert!(!serde_json::to_string(&file)
+            .unwrap()
+            .contains("originalMatchesInstall"));
     }
 
     #[test]

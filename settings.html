@@ -10,11 +10,13 @@
   .settings-card { background:#1d2a38; border:1px solid #2f4559; border-radius:8px; padding:18px; }
   .settings-card h2 { margin-top:0; }
   .settings-card label { display:block; margin:12px 0; }
-  .settings-card input { display:block; box-sizing:border-box; width:100%; margin-top:5px; padding:9px; background:#243447; color:#dce6f0; border:1px solid #47627d; border-radius:4px; }
+  .settings-card input, .settings-card select { display:block; box-sizing:border-box; width:100%; max-width:100%; margin-top:5px; padding:9px; background:#243447; color:#dce6f0; border:1px solid #47627d; border-radius:4px; }
+  .settings-card label.check { display:flex; gap:8px; align-items:flex-start; }
+  .settings-card label.check input { width:auto; flex:none; margin:5px 0 0; padding:0; }
   .settings-card button { margin:5px 8px 5px 0; padding:8px 13px; background:#2f5c86; color:white; border:0; border-radius:4px; cursor:pointer; }
   .settings-card button:disabled { opacity:.55; cursor:default; }
   .settings-card p { line-height:1.6; color:#a9bed0; }
-  .status { min-height:1.5em; white-space:pre-wrap; }
+  .status { min-height:1.5em; white-space:pre-wrap; overflow-wrap:anywhere; }
   .error { color:#ff9b97; }
   .success { color:#91dfb3; }
 </style>
