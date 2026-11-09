@@ -110,7 +110,33 @@ try{
   assert.ok(r.launched&&!r.update,'unique tree match is treated as installed');
   r=await run(browser,{...base,installed:null,tree:'d'.repeat(40)},click('cancel'));
   assert.ok(!r.launched,'unknown installed version still asks');
-  console.log('Save and play: prompt off/no table/unreadable/no time/same version play; switch/play/cancel/don\'t-ask; conflict and failed switch never launch; legacy tree match');
+  // Plan 04 §1.2: the settings page dates the Mind Master note from the first dated
+  // environment, and hides it while no table is published.
+  for(const [language,word] of [['en','Mind Master'],['zh','精神脑魔'],['ja','メンタルマスター'],['ko','멘탈마스터']])for(const published of [true,false]){
+    const context=await browser.newContext();
+    await context.addInitScript(f=>{
+      window.__TAURI_INTERNALS__={transformCallback:()=>1,invoke:async command=>{
+        if(command==='get_settings')return {player:{launchName:'P'},server:{gameHost:'h',gamePort:7911,apiBaseUrl:'http://api.fixture'},game:{executable:'ygopro.exe'},ui:{language:f.language,replayEnvironmentPrompt:true}};
+        if(command==='script_environments')return f.published?f.envs:null;
+        if(command==='script_state')return {commit:'x',canRestore:false,updatedAt:null,tree:null,environmentChoice:null,installedEnvironment:null};
+        if(command==='environment_state')return {installed:false,needsRecovery:false};
+        return null;
+      }};
+    },{envs:table,language,published});
+    const page=await context.newPage();
+    const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.goto('http://127.0.0.1:'+server.address().port+'/settings.html?L='+language);
+    const note=page.locator('#mindMasterNote');
+    await expect(page.locator('#scriptEnvironment option')).toHaveCount(published?3:1);
+    if(published){
+      const date=await page.evaluate(s=>new Date(s*1000).toLocaleDateString(),table.environments[1].effectiveFromUnix);
+      await expect(note).toBeVisible();await expect(note).toContainText(word);await expect(note).toContainText(date);
+      assert.ok(!(await note.textContent()).includes('{date}'));
+    }else await expect(note).toBeHidden();
+    await context.close();
+    assert.deepEqual(errors,[],language);
+  }
+  console.log('Save and play: prompt off/no table/unreadable/no time/same version play; switch/play/cancel/don\'t-ask; conflict and failed switch never launch; legacy tree match; settings Mind Master note in 4 languages');
 }finally{
   await browser?.close();server.close();
 }
