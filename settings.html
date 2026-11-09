@@ -50,6 +50,12 @@
     <p data-i18n="scriptHelp">从 301zrg/specials 的 706 目录更新脚本到 expansions/script。游戏运行时先退出游戏，再应用更新。此操作不会改游戏设置或根目录 script。</p>
     <p data-i18n="scriptPriority">若旧裁定仍未生效，请在游戏设置中检查“优先扩展脚本”。脚本更新不能保证所有旧录像都可播放。</p>
     <p id="scriptVersion" class="status"></p>
+    <label for="scriptEnvironment"><span data-i18n="envLabel">规则版本</span>
+      <select id="scriptEnvironment"><option value="latest" data-i18n="envLatest">跟随最新</option></select>
+    </label>
+    <p id="scriptEnvironmentInfo" class="status"></p>
+    <p data-i18n="envLayerNote">只切换旧裁定覆盖脚本；游戏自带的基础脚本和程序不归助手管理，所以不保证与服务器完全一致。</p>
+    <label class="check"><input id="replayEnvironmentPrompt" type="checkbox" checked> <span data-i18n="promptToggle">通过“保存并播放”打开官网录像时，如果规则版本与本地不同，先提示我</span></label>
     <button id="updateScripts" type="button" data-i18n="update">检查并更新</button>
     <button id="restoreScripts" type="button" data-i18n="restore">恢复上次更新</button>
     <p id="scriptStatus" class="status" role="status"></p>
@@ -88,6 +94,7 @@ const I18N = {
     scriptPriority: '若旧裁定仍未生效，请在游戏设置中检查“优先扩展脚本”。脚本更新不能保证所有旧录像都可播放。',
     update: '检查并更新', restore: '恢复上次更新', updating: '正在检查并更新……',
     restoring: '正在恢复……', none: '尚未安装旧裁定脚本', version: '已安装版本：', updatedAt: '上次更新：',
+    envLabel: '规则版本', envLatest: '跟随最新', envInstalled: '当前安装：', envUndetermined: '未确定（与多个版本的覆盖脚本相同）', envUnknown: '未知（旧版助手安装）', envTableMissing: '规则版本表尚未发布，按最新脚本更新。', envLayerNote: '只切换旧裁定覆盖脚本；游戏自带的基础脚本和程序不归助手管理，所以不保证与服务器完全一致。', envFrom: ' 起', envEarliest: '更早的录像（兼容版本）', envTableFailed: '读取规则版本表失败：', promptToggle: '通过“保存并播放”打开官网录像时，如果规则版本与本地不同，先提示我',
     updated: '脚本更新完成。', current: '已是最新，已校验本地文件。', restored: '已恢复上次更新。',
     conflict: '发现同名本地脚本或已修改的脚本。是否先备份这些文件，再使用仓库版本覆盖？',
     failed: '操作失败：'
@@ -103,6 +110,7 @@ const I18N = {
     scriptPriority: '旧裁定が反映されない場合、ゲームの「拡張スクリプト優先」を確認してください。すべての古いリプレイの再生は保証されません。',
     update: '確認して更新', restore: '前回の更新を元に戻す', updating: '確認・更新中…',
     restoring: '復元中…', none: '旧裁定スクリプトは未導入', version: '導入済み：', updatedAt: '前回の更新：',
+    envLabel: 'ルールバージョン', envLatest: '最新に追従', envInstalled: '導入中：', envUndetermined: '未確定（複数のバージョンと上書きスクリプトが同じ）', envUnknown: '不明（旧版アシスタントで導入）', envTableMissing: 'ルールバージョン一覧はまだ公開されていないため、最新のスクリプトで更新します。', envLayerNote: '旧裁定の上書きスクリプトだけを切り替えます。ゲーム本体の基本スクリプトとプログラムは管理しないため、サーバーと完全に一致するとは限りません。', envFrom: ' から', envEarliest: 'それ以前のリプレイ（互換版）', envTableFailed: 'ルールバージョン一覧の読み込みに失敗：', promptToggle: '「保存して再生」で公式サイトのリプレイを開くとき、ルールバージョンが手元と違えば先に確認する',
     updated: '更新しました。', current: '最新版です。ローカルファイルも確認しました。', restored: '前回の更新を復元しました。',
     conflict: '同名のローカルスクリプト、または変更済みのスクリプトがあります。バックアップして上書きしますか？',
     failed: '失敗：'
@@ -118,6 +126,7 @@ const I18N = {
     scriptPriority: 'If old rulings do not take effect, check “prefer expansion scripts” in the game. Updating scripts cannot guarantee playback of every old replay.',
     update: 'Check and update', restore: 'Undo last update', updating: 'Checking and updating…',
     restoring: 'Restoring…', none: 'Old ruling scripts are not installed', version: 'Installed version: ', updatedAt: 'Last update: ',
+    envLabel: 'Rule version', envLatest: 'Follow the newest', envInstalled: 'Installed: ', envUndetermined: 'undetermined (same override scripts as several versions)', envUnknown: 'unknown (installed by an older assistant)', envTableMissing: 'The rule version list is not published yet; updating to the newest scripts.', envLayerNote: 'Only the old-ruling override scripts are switched. The game’s own base scripts and program are not managed by the assistant, so an exact match with the server is not guaranteed.', envFrom: ' from', envEarliest: 'older replays (compatibility version)', envTableFailed: 'Could not read the rule version list: ', promptToggle: 'Ask me first when "Save and play" opens a site replay whose rule version differs from the installed one',
     updated: 'Scripts updated.', current: 'Already current; local files verified.', restored: 'Last update restored.',
     conflict: 'Same-name local scripts or edited scripts exist. Back them up and overwrite with the repository version?',
     failed: 'Operation failed: '
@@ -133,6 +142,7 @@ const I18N = {
     scriptPriority: '옛 재정이 적용되지 않으면 게임의 “확장 스크립트 우선” 옵션을 확인하세요. 모든 오래된 리플레이 재생은 보장되지 않습니다.',
     update: '확인 및 업데이트', restore: '마지막 업데이트 복원', updating: '확인 및 업데이트 중…',
     restoring: '복원 중…', none: '옛 재정 스크립트가 설치되지 않았습니다', version: '설치 버전: ', updatedAt: '마지막 업데이트: ',
+    envLabel: '규칙 버전', envLatest: '최신 버전 따르기', envInstalled: '설치됨: ', envUndetermined: '확인 불가(여러 버전과 덮어쓰기 스크립트가 같음)', envUnknown: '알 수 없음(이전 도우미로 설치)', envTableMissing: '규칙 버전 목록이 아직 공개되지 않아 최신 스크립트로 업데이트합니다.', envLayerNote: '옛 재정 덮어쓰기 스크립트만 바꿉니다. 게임 자체의 기본 스크립트와 프로그램은 도우미가 관리하지 않으므로 서버와 완전히 같다고 보장하지 않습니다.', envFrom: '부터', envEarliest: '이전 리플레이(호환 버전)', envTableFailed: '규칙 버전 목록을 읽지 못했습니다: ', promptToggle: '"저장 후 재생"으로 공식 사이트 리플레이를 열 때 규칙 버전이 설치된 것과 다르면 먼저 묻기',
     updated: '스크립트를 업데이트했습니다.', current: '최신 버전이며 로컬 파일도 확인했습니다.', restored: '마지막 업데이트를 복원했습니다.',
     conflict: '이름이 같은 로컬 스크립트나 수정된 스크립트가 있습니다. 백업한 뒤 저장소 버전으로 덮어쓸까요?',
     failed: '작업 실패: '
@@ -187,6 +197,7 @@ function fill(config) {
   document.getElementById('gamePort').value = config.server.gamePort;
   document.getElementById('apiBaseUrl').value = config.server.apiBaseUrl;
   document.getElementById('executable').value = config.game.executable;
+  document.getElementById('replayEnvironmentPrompt').checked = config.ui.replayEnvironmentPrompt !== false;
 }
 async function refreshState() {
   const state = await desktop.scriptState();
@@ -194,7 +205,46 @@ async function refreshState() {
     ? t('version') + state.commit + (state.updatedAt ? '\n' + t('updatedAt') + new Date(state.updatedAt * 1000).toLocaleString() : '')
     : t('none');
   document.getElementById('restoreScripts').disabled = !state.canRestore || busy;
+  await refreshScriptEnvironments(state);
 }
+// Rule environments (plan 02 §4.1): the saved choice decides; the 706 subtree only
+// checks the local scripts and can never pick one of several identical environments.
+let environmentList = null;
+function describeInstalled(state, list) {
+  if (state.installedEnvironment) return state.installedEnvironment;
+  if (!list || !state.tree) return t('envUnknown');
+  const same = list.environments.filter(e => e.specials.tree706 === state.tree);
+  return same.length === 1 ? same[0].id : same.length > 1 ? t('envUndetermined') : t('envUnknown');
+}
+async function refreshScriptEnvironments(state) {
+  const select = document.getElementById('scriptEnvironment');
+  const info = document.getElementById('scriptEnvironmentInfo');
+  try {
+    environmentList = await desktop.scriptEnvironments();
+  } catch (error) {
+    environmentList = null;
+    info.textContent = t('envTableFailed') + error;
+    return;
+  }
+  const chosen = state.environmentChoice || 'latest';
+  select.replaceChildren(new Option(t('envLatest'), 'latest'));
+  for (const e of [...(environmentList?.environments || [])].reverse()) {
+    const when = e.effectiveFromUnix === null ? t('envEarliest') : new Date(e.effectiveFromUnix * 1000).toLocaleString() + t('envFrom');
+    select.add(new Option(e.id + ' · ' + when, e.id));
+  }
+  select.value = [...select.options].some(o => o.value === chosen) ? chosen : 'latest';
+  info.textContent = environmentList
+    ? state.commit ? t('envInstalled') + describeInstalled(state, environmentList) : ''
+    : t('envTableMissing');
+}
+document.getElementById('replayEnvironmentPrompt').onchange = async function () {
+  try {
+    const config = structuredClone(await desktop.settings());
+    config.ui.replayEnvironmentPrompt = this.checked;
+    fill(await desktop.saveSettings(config));
+    setStatus(configStatus, t('saved'));
+  } catch (error) { setStatus(configStatus, t('failed') + error, true); }
+};
 async function refreshEnvironment() {
   const state = await desktop.environmentState();
   document.getElementById('environmentVersion').textContent = state.needsRecovery ? e('recovery')
@@ -216,14 +266,15 @@ async function runScriptOperation(operation) {
   document.getElementById('restoreScripts').disabled = true;
   setStatus(scriptStatus, t(operation === 'update' ? 'updating' : 'restoring'));
   try {
+    const environmentId = document.getElementById('scriptEnvironment').value;
     let result = operation === 'update'
-      ? await desktop.updateScripts(false)
+      ? await desktop.updateScripts(false, environmentId)
       : await desktop.restoreScripts();
     let overwriteApproved = false;
     if (result.status === 'conflict') {
       if (confirm(t('conflict') + '\n' + result.files.join('\n'))) {
         overwriteApproved = true;
-        result = await desktop.updateScripts(true);
+        result = await desktop.updateScripts(true, environmentId);
       }
     }
     if (result.status === 'conflict') {

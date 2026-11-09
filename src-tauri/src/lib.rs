@@ -178,6 +178,7 @@ fn save_and_open(
     filename: String,
     route: Option<String>,
     bytes_base64: Option<String>,
+    launch: Option<bool>,
 ) -> Result<downloads::SaveOutcome, String> {
     let _guard = state
         .file_lock
@@ -190,6 +191,8 @@ fn save_and_open(
         &filename,
         route.as_deref(),
         bytes_base64.as_deref(),
+        // Older pages omit it and keep save-then-launch.
+        launch.unwrap_or(true),
     )
 }
 
@@ -215,18 +218,26 @@ fn update_scripts(
     state: State<'_, AppState>,
     app: AppHandle,
     overwrite_conflicts: bool,
+    environment_id: Option<String>,
 ) -> Result<scripts::UpdateResult, String> {
     let _guard = state
         .script_lock
         .lock()
         .map_err(|_| "Script updater is unavailable")?;
+    // Older pages omit environmentId and keep the saved choice (02 §4.1).
     scripts::update(
         &state.root,
         &state.client,
         &state.file_lock,
         &app,
         overwrite_conflicts,
+        environment_id.as_deref(),
     )
+}
+
+#[tauri::command]
+fn script_environments() -> Result<Option<scripts::EnvironmentList>, String> {
+    scripts::environments()
 }
 
 #[tauri::command]
@@ -362,6 +373,7 @@ pub fn run() {
             open_saved,
             script_state,
             update_scripts,
+            script_environments,
             restore_scripts,
             environment_state,
             install_environment,

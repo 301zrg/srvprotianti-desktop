@@ -12,6 +12,7 @@
     "executable": "ygopro.exe"
   },
   "ui": {
-    "language": "zh"
+    "language": "zh",
+    "replayEnvironmentPrompt": true
   }
 }
