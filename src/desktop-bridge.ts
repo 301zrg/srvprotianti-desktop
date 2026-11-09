@@ -76,7 +76,7 @@ const messages: Record<Language, Record<string, string>> = {
     copied: '已复制：',
     savedDeck: '卡组已保存并在游戏中打开', savedReplay: '录像已保存并在游戏中播放',
     savedNotOpened: '文件已保存，但游戏未能启动', retryOpen: '重试打开',
-    envPrompt: '这份录像开局时，服务器的规则版本是 {target}；你本地装的旧裁定脚本是 {installed}。版本不同可能导致录像播放出错。', envSwitchPlay: '切换后播放', envPlayAnyway: '直接播放', envCancel: '取消', envDontAsk: '以后不再提示（可在设置中重新打开）', envSwitching: '正在切换规则版本…', envSwitchFailed: '规则版本切换失败，未启动游戏', envConflict: '本地脚本有改动，未切换也未启动。请到设置页处理后再试', envTableUnreadable: '读不到规则版本表，按当前脚本直接播放', envNoTime: '录像里没有开局时间，判断不了规则版本，按当前脚本直接播放', envSavedOnly: '已保存录像，未启动游戏', envUnknownInstalled: '未知',
+    envPrompt: '这份录像开局时，服务器的规则版本是 {target}；你本地装的旧裁定脚本是 {installed}。版本不同可能导致录像播放出错。', envSwitchPlay: '切换后播放', envPlayAnyway: '直接播放', envCancel: '取消', envDontAsk: '以后不再提示（可在设置中重新打开）', envSwitching: '正在切换规则版本…', envSwitchFailed: '规则版本切换失败，未启动游戏', envRateLimited: 'GitHub 暂时限制了访问次数（同一网络每小时 60 次），可在 {time} 之后重试。', envConflict: '本地脚本有改动，未切换也未启动。请到设置页处理后再试', envTableUnreadable: '读不到规则版本表，按当前脚本直接播放', envNoTime: '录像里没有开局时间，判断不了规则版本，按当前脚本直接播放', envSavedOnly: '已保存录像，未启动游戏', envUnknownInstalled: '未知',
     failed: '操作失败', setName: '请先在设置中填写游戏昵称', openDeck: '保存并编辑',
     openReplay: '保存并播放', update: '更新旧裁定脚本', checking: '正在处理……',
     roomGone: '房间已关闭或状态已变化，请刷新后重试', roomLocked: '该房间暂不能直接加入或观战',
@@ -87,7 +87,7 @@ const messages: Record<Language, Record<string, string>> = {
     copied: 'コピーしました：',
     savedDeck: 'デッキを保存してゲームで開きました', savedReplay: 'リプレイを保存してゲームで再生しました',
     savedNotOpened: 'ファイルは保存されましたが、ゲームを起動できませんでした', retryOpen: 'もう一度開く',
-    envPrompt: 'このリプレイの開始時、サーバーのルールバージョンは {target} でした。手元の旧裁定スクリプトは {installed} です。バージョンが違うと正しく再生できない場合があります。', envSwitchPlay: '切り替えて再生', envPlayAnyway: 'そのまま再生', envCancel: 'キャンセル', envDontAsk: '今後は確認しない（設定で戻せます）', envSwitching: 'ルールバージョンを切り替え中…', envSwitchFailed: 'ルールバージョンを切り替えられなかったため、ゲームを起動していません', envConflict: '手元のスクリプトが変更されているため、切り替えも起動もしていません。設定画面で対処してから再試行してください', envTableUnreadable: 'ルールバージョン一覧を読み込めないため、現在のスクリプトで再生します', envNoTime: 'リプレイに開始時刻がなくバージョンを判断できないため、現在のスクリプトで再生します', envSavedOnly: 'リプレイを保存しました。ゲームは起動していません', envUnknownInstalled: '不明',
+    envPrompt: 'このリプレイの開始時、サーバーのルールバージョンは {target} でした。手元の旧裁定スクリプトは {installed} です。バージョンが違うと正しく再生できない場合があります。', envSwitchPlay: '切り替えて再生', envPlayAnyway: 'そのまま再生', envCancel: 'キャンセル', envDontAsk: '今後は確認しない（設定で戻せます）', envSwitching: 'ルールバージョンを切り替え中…', envSwitchFailed: 'ルールバージョンを切り替えられなかったため、ゲームを起動していません', envRateLimited: 'GitHub のアクセス回数制限（同じネットワークで 1 時間 60 回）に達しました。{time} 以降に再試行してください。', envConflict: '手元のスクリプトが変更されているため、切り替えも起動もしていません。設定画面で対処してから再試行してください', envTableUnreadable: 'ルールバージョン一覧を読み込めないため、現在のスクリプトで再生します', envNoTime: 'リプレイに開始時刻がなくバージョンを判断できないため、現在のスクリプトで再生します', envSavedOnly: 'リプレイを保存しました。ゲームは起動していません', envUnknownInstalled: '不明',
     failed: '失敗', setName: '設定でゲーム名を入力してください', openDeck: '保存して編集',
     openReplay: '保存して再生', update: '旧裁定を更新', checking: '処理中…',
     roomGone: 'ルームが終了または変更されました。更新してください', roomLocked: 'このルームには直接参加・観戦できません',
@@ -98,7 +98,7 @@ const messages: Record<Language, Record<string, string>> = {
     copied: 'Copied: ',
     savedDeck: 'Deck saved and opened in the game', savedReplay: 'Replay saved and opened in the game',
     savedNotOpened: 'File saved, but the game could not start', retryOpen: 'Retry opening',
-    envPrompt: 'When this replay started, the server used rule version {target}; your installed old-ruling scripts are {installed}. A different version may make the replay play incorrectly.', envSwitchPlay: 'Switch and play', envPlayAnyway: 'Play anyway', envCancel: 'Cancel', envDontAsk: "Don't ask again (can be turned back on in Settings)", envSwitching: 'Switching rule version…', envSwitchFailed: 'Could not switch the rule version; the game was not started', envConflict: 'Local scripts were changed, so nothing was switched or started. Resolve it in Settings and try again', envTableUnreadable: 'Could not read the rule version list; playing with the current scripts', envNoTime: 'The replay has no start time, so its rule version is unknown; playing with the current scripts', envSavedOnly: 'Replay saved; the game was not started', envUnknownInstalled: 'unknown',
+    envPrompt: 'When this replay started, the server used rule version {target}; your installed old-ruling scripts are {installed}. A different version may make the replay play incorrectly.', envSwitchPlay: 'Switch and play', envPlayAnyway: 'Play anyway', envCancel: 'Cancel', envDontAsk: "Don't ask again (can be turned back on in Settings)", envSwitching: 'Switching rule version…', envSwitchFailed: 'Could not switch the rule version; the game was not started', envRateLimited: 'GitHub has temporarily limited requests (60 an hour per network). Try again after {time}.', envConflict: 'Local scripts were changed, so nothing was switched or started. Resolve it in Settings and try again', envTableUnreadable: 'Could not read the rule version list; playing with the current scripts', envNoTime: 'The replay has no start time, so its rule version is unknown; playing with the current scripts', envSavedOnly: 'Replay saved; the game was not started', envUnknownInstalled: 'unknown',
     failed: 'Operation failed', setName: 'Set your game name in Settings first', openDeck: 'Save and edit',
     openReplay: 'Save and play', update: 'Update old ruling scripts', checking: 'Working…',
     roomGone: 'The room closed or changed. Refresh and try again', roomLocked: 'This room cannot be joined or watched directly',
@@ -109,7 +109,7 @@ const messages: Record<Language, Record<string, string>> = {
     copied: '복사됨: ',
     savedDeck: '덱을 저장하고 게임에서 열었습니다', savedReplay: '리플레이를 저장하고 게임에서 재생했습니다',
     savedNotOpened: '파일은 저장했지만 게임을 실행하지 못했습니다', retryOpen: '다시 열기',
-    envPrompt: '이 리플레이가 시작될 때 서버 규칙 버전은 {target}이었습니다. 설치된 옛 재정 스크립트는 {installed}입니다. 버전이 다르면 리플레이가 제대로 재생되지 않을 수 있습니다.', envSwitchPlay: '전환 후 재생', envPlayAnyway: '그대로 재생', envCancel: '취소', envDontAsk: '다시 묻지 않기(설정에서 다시 켤 수 있음)', envSwitching: '규칙 버전 전환 중…', envSwitchFailed: '규칙 버전을 전환하지 못해 게임을 실행하지 않았습니다', envConflict: '로컬 스크립트가 바뀌어 전환도 실행도 하지 않았습니다. 설정에서 처리한 뒤 다시 시도하세요', envTableUnreadable: '규칙 버전 목록을 읽지 못해 현재 스크립트로 재생합니다', envNoTime: '리플레이에 시작 시각이 없어 규칙 버전을 알 수 없으므로 현재 스크립트로 재생합니다', envSavedOnly: '리플레이를 저장했습니다. 게임은 실행하지 않았습니다', envUnknownInstalled: '알 수 없음',
+    envPrompt: '이 리플레이가 시작될 때 서버 규칙 버전은 {target}이었습니다. 설치된 옛 재정 스크립트는 {installed}입니다. 버전이 다르면 리플레이가 제대로 재생되지 않을 수 있습니다.', envSwitchPlay: '전환 후 재생', envPlayAnyway: '그대로 재생', envCancel: '취소', envDontAsk: '다시 묻지 않기(설정에서 다시 켤 수 있음)', envSwitching: '규칙 버전 전환 중…', envSwitchFailed: '규칙 버전을 전환하지 못해 게임을 실행하지 않았습니다', envRateLimited: 'GitHub 요청 횟수 제한(같은 네트워크에서 시간당 60회)에 걸렸습니다. {time} 이후에 다시 시도하세요.', envConflict: '로컬 스크립트가 바뀌어 전환도 실행도 하지 않았습니다. 설정에서 처리한 뒤 다시 시도하세요', envTableUnreadable: '규칙 버전 목록을 읽지 못해 현재 스크립트로 재생합니다', envNoTime: '리플레이에 시작 시각이 없어 규칙 버전을 알 수 없으므로 현재 스크립트로 재생합니다', envSavedOnly: '리플레이를 저장했습니다. 게임은 실행하지 않았습니다', envUnknownInstalled: '알 수 없음',
     failed: '작업 실패', setName: '설정에서 게임 이름을 입력하세요', openDeck: '저장 후 편집',
     openReplay: '저장 후 재생', update: '옛 재정 스크립트 업데이트', checking: '처리 중…',
     roomGone: '방이 종료되었거나 상태가 변경되었습니다. 새로고침하세요', roomLocked: '이 방은 직접 참가하거나 관전할 수 없습니다',
@@ -413,7 +413,10 @@ async function checkReplayEnvironment(start: number | null): Promise<Environment
     }
   } catch (error) {
     // Includes "close the game first": the updater refuses while the game runs.
-    toast(msg('envSwitchFailed') + ': ' + String(error), true);
+    const detail = String(error);
+    const reset = /SCRIPT_HTTP:(?:403|429):.*; reset=(\d+)/.exec(detail);
+    const time = reset && new Date(Number(reset[1]) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    toast(msg('envSwitchFailed') + ': ' + (time ? msg('envRateLimited').replace('{time}', time) + '\n' : '') + detail, true);
     return { action: 'stop' };
   }
   return { action: 'play' };

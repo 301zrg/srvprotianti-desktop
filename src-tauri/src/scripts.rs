@@ -362,6 +362,15 @@ fn changed_paths(
     }
     Ok(changed)
 }
+/// GitHub's unauthenticated quota (60 requests an hour per address) is spent when a
+/// 403/429 says no requests remain; the reset time is Unix seconds.
+fn rate_limit_reset(status: u16, remaining: Option<&str>, reset: Option<&str>) -> Option<u64> {
+    if !matches!(status, 403 | 429) || remaining.map(str::trim) != Some("0") {
+        return None;
+    }
+    reset.and_then(|value| value.trim().parse().ok())
+}
+
 fn get_json<T: for<'de> Deserialize<'de>>(client: &Client, address: &str) -> Result<T, String> {
     let bytes = download_bytes(client, address, "GitHub metadata", 2 * 1024 * 1024)?;
     serde_json::from_slice(&bytes).map_err(|_| "GitHub response was invalid".into())
@@ -383,6 +392,22 @@ fn download_bytes(
                 let status = response.status();
                 if !status.is_success() {
                     last_error = format!("SCRIPT_HTTP:{}: {label}", status.as_u16());
+                    let header = |name| {
+                        response
+                            .headers()
+                            .get(name)
+                            .and_then(|value| value.to_str().ok())
+                    };
+                    let reset = rate_limit_reset(
+                        status.as_u16(),
+                        header("x-ratelimit-remaining"),
+                        header("x-ratelimit-reset"),
+                    );
+                    if let Some(reset) = reset {
+                        // Retrying cannot help before the quota resets; the page shows when.
+                        last_error.push_str(&format!("; reset={reset}"));
+                        break;
+                    }
                     if status.as_u16() != 408 && status.as_u16() != 429 && !status.is_server_error()
                     {
                         break;
@@ -1202,6 +1227,20 @@ mod tests {
             Ok(Some(list)) => assert!(!list.environments.is_empty() && valid_sha(&list.master)),
             Err(error) => panic!("environment table lookup failed: {error}"),
         }
+    }
+
+    #[test]
+    fn spent_github_quota_reports_its_reset_time() {
+        assert_eq!(
+            rate_limit_reset(403, Some("0"), Some("1794263763")),
+            Some(1794263763)
+        );
+        assert_eq!(rate_limit_reset(429, Some(" 0 "), Some("5")), Some(5));
+        // A 403 with quota left (e.g. a private repository) is not a rate limit.
+        assert_eq!(rate_limit_reset(403, Some("12"), Some("5")), None);
+        assert_eq!(rate_limit_reset(403, None, Some("5")), None);
+        assert_eq!(rate_limit_reset(404, Some("0"), Some("5")), None);
+        assert_eq!(rate_limit_reset(403, Some("0"), Some("soon")), None);
     }
 
     #[test]

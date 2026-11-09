@@ -36,7 +36,7 @@ async function run(browser,fixture,interact){
       if(command==='save_and_open')return {filename:args.filename,savedPath:'fixture/'+args.filename,launchError:null,replayStart:f.start,launched:args.launch!==false};
       if(command==='script_environments'){if(f.table==='error')throw 'SCRIPT_NETWORK: offline';return f.table==='none'?null:f.envs;}
       if(command==='script_state')return {commit:'x',canRestore:false,updatedAt:null,tree:f.tree,environmentChoice:null,installedEnvironment:f.installed};
-      if(command==='update_scripts'){if(f.update==='error')throw 'Close this game executable before applying or restoring scripts';return {status:f.update==='conflict'?'conflict':'updated',files:f.update==='conflict'?['c1.lua']:[]};}
+      if(command==='update_scripts'){if(f.update==='rate')throw 'SCRIPT_HTTP:403: GitHub metadata; reset=1794263763';if(f.update==='error')throw 'Close this game executable before applying or restoring scripts';return {status:f.update==='conflict'?'conflict':'updated',files:f.update==='conflict'?['c1.lua']:[]};}
       if(command==='save_settings')return args.settings;
       if(command==='open_saved')return null;
       if(command==='api_request'){
@@ -105,6 +105,9 @@ try{
   assert.ok(!r.launched);assert.match(r.toast,/Local scripts were changed/);
   r=await run(browser,{...base,update:'error'},click('switch'));
   assert.ok(!r.launched);assert.match(r.toast,/Could not switch the rule version/);assert.match(r.toast,/Close this game/);
+  // A spent GitHub quota says when to retry.
+  r=await run(browser,{...base,update:'rate'},click('switch'));
+  assert.ok(!r.launched);assert.match(r.toast,/temporarily limited requests/);assert.match(r.toast,/Try again after \d{1,2}:\d{2}/);
   // Installed by an older assistant (no recorded id): a unique 706 subtree match counts.
   r=await run(browser,{...base,installed:null,tree:B});
   assert.ok(r.launched&&!r.update,'unique tree match is treated as installed');
@@ -136,7 +139,7 @@ try{
     await context.close();
     assert.deepEqual(errors,[],language);
   }
-  console.log('Save and play: prompt off/no table/unreadable/no time/same version play; switch/play/cancel/don\'t-ask; conflict and failed switch never launch; legacy tree match; settings Mind Master note in 4 languages');
+  console.log('Save and play: prompt off/no table/unreadable/no time/same version play; switch/play/cancel/don\'t-ask; conflict and failed switch never launch; legacy tree match; rate-limit retry time; settings Mind Master note in 4 languages');
 }finally{
   await browser?.close();server.close();
 }
