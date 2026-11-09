@@ -1161,7 +1161,10 @@ mod tests {
         let state = load_state(&root).unwrap().unwrap();
         assert_eq!(state.revision, REVISION);
         assert_eq!(state.phase, "active");
-        assert!(state.entries.iter().all(|e| e.pending_previous_sha256.is_none()));
+        assert!(state
+            .entries
+            .iter()
+            .all(|e| e.pending_previous_sha256.is_none()));
         let config = settings::load(&root).unwrap();
         prepare_launch(&root, &config).unwrap();
         restore(&root).unwrap();
@@ -1264,8 +1267,8 @@ mod tests {
         let root = fixture(false);
         install(&root).unwrap();
         let fake = as_v1_install(&root);
-        let error = migrate_with(&root, &[(fake.as_str(), "zh-CN/missing.cdb")], false)
-            .unwrap_err();
+        let error =
+            migrate_with(&root, &[(fake.as_str(), "zh-CN/missing.cdb")], false).unwrap_err();
         assert!(error.contains("rolled back"), "{error}");
         assert!(!state_path(&root).exists());
         assert_eq!(
@@ -1288,7 +1291,9 @@ mod tests {
         state.phase = "installing".into();
         save_state(&root, &state).unwrap();
         let config = settings::load(&root).unwrap();
-        assert!(prepare_launch(&root, &config).unwrap_err().contains("needs recovery"));
+        assert!(prepare_launch(&root, &config)
+            .unwrap_err()
+            .contains("needs recovery"));
         assert!(install(&root).is_err());
         restore(&root).unwrap();
         assert_eq!(
