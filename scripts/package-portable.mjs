@@ -17,8 +17,8 @@ await copyFile(
   path.join(output, 'srvprotianti-desktop-data', 'config.default.json')
 );
 await cp(
-  path.join(root, 'src-tauri', 'resources', 'environment', '1103-201103-v1'),
-  path.join(output, 'srvprotianti-desktop-data', 'resources', '1103-201103-v1'),
+  path.join(root, 'src-tauri', 'resources', 'environment', '1103-201103-v2'),
+  path.join(output, 'srvprotianti-desktop-data', 'resources', '1103-201103-v2'),
   { recursive: true, force: true }
 );
 console.log('Portable files prepared in ' + output);

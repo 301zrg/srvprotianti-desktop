@@ -402,7 +402,7 @@ Tauri capabilities 只授予打包的本地窗口；本地自定义命令仍逐�
 
 ## 14. 1103 环境资源与下载发布补充设计
 
-资源包从 `srvprotiantiweb/public/environment/1103-201103-v1` 已处理的四语输出复制到桌面工程 `src-tauri/resources/environment/1103-201103-v1`。不是从 `resources-staging/1103` 的未裁剪源库直接发布。每个 CDB 含相同的 5267 个可用 ID；清单给出各文件 SHA-256，安装前校验。2011.3.1 禁卡表与四语 `strings.conf` 同包。资源更新以桌面新版本替换，不增加在线下载源。
+资源包从 `srvprotiantiweb/public/environment/1103-201103-v2` 已处理的四语输出逐字节复制到桌面工程 `src-tauri/resources/environment/1103-201103-v2`。不是从 `resources-staging/1103` 的未裁剪源库直接发布。每个 CDB 含相同的 5267 个可用 ID；清单给出各文件 SHA-256，安装前校验。2011.3.1 禁卡表与四语 `strings.conf` 同包。资源更新以桌面新版本替换，不增加在线下载源。v0.2.3 起随包为 v2：与 v1 只差中文 CDB 中石像怪道化师（42647539）的卡文（"对方1只"改为"对象1只"），其余文件逐字节相同。新版仍识别 v1 安装状态，在启动游戏前或"安装／更新 1103 环境"时就地迁移：只把仍为 v1 中文 CDB 的托管文件换成 v2，其他文件不写；任一托管文件被外部修改或游戏仍在运行时不写任何文件；写入失败时按原有流程恢复玩家的原文件。原文件备份不变。0.2.2 不识别 v2 状态，退回旧版前须先恢复原环境。
 
 设置页将资源操作与 706 旧裁定脚本操作分开。用户选择游戏 EXE 后点击“安装／更新 1103 环境”；操作前检查游戏进程，识别 KoishiPro 标记，验证资源和文件路径。KoishiPro 从现有 `locales/zh-CN`、`ja-JP`、`en-US`、`ko-KR` 各复制出 `1103_` 同名目录，覆盖其中的卡池及文字，保留原版 `servers.conf` 条目并添加 `706 Ladder|<当前游戏主机>:<端口>`。原版 YGOPro 备份并替换根目录 `cards.cdb`；不要求其支持 KoishiPro locale 切换。两者都把 2011.3.1 禁卡表置于 `expansions/lflist.conf` 开头，配置 `use_lflist=1`、`default_lflist=0`；KoishiPro 还在 `system_user.conf` 设置对应 `1103_` locale。启用期间暂存 `expansions` 根层的其他 CDB，避免混入目标卡池。语言和服务器地址在下次启动游戏时同步；若游戏仍在运行，只允许无需修改资源的启动。
 

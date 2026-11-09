@@ -5,7 +5,16 @@ use std::fs;
 use std::path::{Component, Path, PathBuf};
 use uuid::Uuid;
 
-const REVISION: &str = "1103-201103-v1";
+const REVISION: &str = "1103-201103-v2";
+/// The only older installed revision this build upgrades in place.
+const PREVIOUS_REVISION: &str = "1103-201103-v1";
+/// v1 -> v2 changes only the zh-CN card database (Gargoyle Clown 42647539
+/// text fix). A managed file still holding the v1 bytes gets the v2 asset;
+/// every other managed file is byte-identical between the two revisions.
+const V1_REPLACEMENTS: &[(&str, &str)] = &[(
+    "74d86a08815739ae2f5be0a0cd0a208f748129409e462fbdfc93a9f7704b749f",
+    "zh-CN/cards.cdb",
+)];
 const LANGUAGES: [(&str, &str); 4] = [
     ("zh", "zh-CN"),
     ("ja", "ja-JP"),
@@ -145,7 +154,9 @@ fn load_state(root: &Path) -> Result<Option<InstallState>, String> {
     };
     let state: InstallState = serde_json::from_slice(&bytes)
         .map_err(|error| format!("Environment state is damaged; keep its backups: {error}"))?;
-    if state.schema_version != 1 || state.revision != REVISION {
+    if state.schema_version != 1
+        || (state.revision != REVISION && state.revision != PREVIOUS_REVISION)
+    {
         return Err("Unsupported environment state; keep its backups".into());
     }
     backup_root(root, &state)?;
@@ -597,6 +608,66 @@ fn stage_expansion_databases(root: &Path, state: &mut InstallState) -> Result<()
     Ok(())
 }
 
+/// Upgrades an active v1 installation in place. Nothing is written unless every
+/// managed file still matches its record and the game is closed; a failed write
+/// falls back to the player's original files, like any other environment write.
+fn migrate(
+    root: &Path,
+    state: &mut InstallState,
+    replacements: &[(&str, &str)],
+    running: &dyn Fn() -> bool,
+) -> Result<(), String> {
+    if state.revision == REVISION {
+        return Ok(());
+    }
+    if state.phase != "active" {
+        return Err("The 1103 environment needs recovery. Close the game, then use Settings > Restore original environment before launching".into());
+    }
+    verified_assets(root)?;
+    for entry in &state.entries {
+        verify_managed(root, entry)?;
+    }
+    let targets: Vec<(String, String)> = state
+        .entries
+        .iter()
+        .filter_map(|entry| {
+            let managed = entry.managed_sha256.as_deref()?;
+            replacements
+                .iter()
+                .find(|(sha256, _)| *sha256 == managed)
+                .map(|(_, name)| (entry.path.clone(), (*name).to_string()))
+        })
+        .collect();
+    if targets.is_empty() {
+        state.revision = REVISION.into();
+        return save_state(root, state);
+    }
+    if running() {
+        return Err("Close the running game before updating the 1103 card database".into());
+    }
+    state.phase = "installing".into();
+    save_state(root, state)?;
+    let result = (|| {
+        for (path, name) in &targets {
+            let bytes = asset(root, name)?;
+            put(root, state, path, &bytes)?;
+        }
+        state.revision = REVISION.into();
+        state.phase = "active".into();
+        save_state(root, state)
+    })();
+    if let Err(error) = result {
+        let rollback = restore_inner(root, state);
+        return Err(match rollback {
+            Ok(()) => format!("1103 card database update rolled back to the original files; reinstall the environment: {error}"),
+            Err(recovery) => {
+                format!("1103 card database update stopped: {error}; recovery needed: {recovery}")
+            }
+        });
+    }
+    Ok(())
+}
+
 pub fn install(root: &Path) -> Result<StateView, String> {
     let config = ensure_stopped(root)?;
     verified_assets(root)?;
@@ -605,10 +676,13 @@ pub fn install(root: &Path) -> Result<StateView, String> {
     } else {
         "ygopro"
     };
-    let mut state = if let Some(state) = load_state(root)? {
+    let mut state = if let Some(mut state) = load_state(root)? {
         if state.phase != "active" || state.kind != kind {
             return Err("Environment needs recovery or the game executable changed".into());
         }
+        migrate(root, &mut state, V1_REPLACEMENTS, &|| {
+            scripts::game_running(root, &config.game.executable)
+        })?;
         for entry in &state.entries {
             verify_managed(root, entry)?;
         }
@@ -719,6 +793,9 @@ pub fn prepare_launch(root: &Path, config: &settings::Settings) -> Result<(), St
     if state.phase != "active" {
         return Err("The 1103 environment needs recovery. Close the game, then use Settings > Restore original environment before launching".into());
     }
+    migrate(root, &mut state, V1_REPLACEMENTS, &|| {
+        scripts::game_running(root, &config.game.executable)
+    })?;
     verified_assets(root)?;
     for entry in &state.entries {
         verify_managed(root, entry)?;
@@ -1031,6 +1108,214 @@ mod tests {
             fs::read(root.join("expansions/lflist.conf")).unwrap(),
             banlist
         );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    const FAKE_V1_ZH: &[u8] = b"v1 zh-CN database";
+
+    /// Turns a fresh install into what 0.2.2 left behind: a v1 state whose
+    /// managed zh-CN database still holds the old bytes. Returns their hash,
+    /// which stands in for the real v1 hash in the migration table.
+    fn as_v1_install(root: &Path) -> String {
+        let fake = hash(FAKE_V1_ZH);
+        let zh = hash(&asset(root, "zh-CN/cards.cdb").unwrap());
+        let mut state = load_state(root).unwrap().unwrap();
+        for entry in &mut state.entries {
+            if entry.managed_sha256.as_deref() == Some(zh.as_str()) {
+                fs::write(root.join(&entry.path), FAKE_V1_ZH).unwrap();
+                entry.managed_sha256 = Some(fake.clone());
+            }
+        }
+        state.revision = PREVIOUS_REVISION.into();
+        save_state(root, &state).unwrap();
+        fake
+    }
+
+    fn migrate_with(root: &Path, table: &[(&str, &str)], running: bool) -> Result<(), String> {
+        let mut state = load_state(root).unwrap().unwrap();
+        migrate(root, &mut state, table, &|| running)
+    }
+
+    #[test]
+    fn v1_table_targets_only_the_zh_database_and_differs_from_v2() {
+        assert_eq!(V1_REPLACEMENTS.len(), 1);
+        assert_eq!(V1_REPLACEMENTS[0].1, "zh-CN/cards.cdb");
+        let root = fixture(false);
+        assert_ne!(
+            hash(&asset(&root, "zh-CN/cards.cdb").unwrap()),
+            V1_REPLACEMENTS[0].0
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ygopro_v1_zh_database_is_replaced_and_still_restores_originals() {
+        let root = fixture(false);
+        install(&root).unwrap();
+        let fake = as_v1_install(&root);
+        migrate_with(&root, &[(fake.as_str(), "zh-CN/cards.cdb")], false).unwrap();
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            asset(&root, "zh-CN/cards.cdb").unwrap()
+        );
+        let state = load_state(&root).unwrap().unwrap();
+        assert_eq!(state.revision, REVISION);
+        assert_eq!(state.phase, "active");
+        assert!(state.entries.iter().all(|e| e.pending_previous_sha256.is_none()));
+        let config = settings::load(&root).unwrap();
+        prepare_launch(&root, &config).unwrap();
+        restore(&root).unwrap();
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            b"original root database"
+        );
+        assert_eq!(
+            fs::read(root.join("expansions/extra.cdb")).unwrap(),
+            b"extra database"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ygopro_v1_in_another_language_only_updates_the_revision() {
+        let root = fixture(false);
+        install(&root).unwrap();
+        let mut config = settings::load(&root).unwrap();
+        config.ui.language = "ja".into();
+        prepare_launch(&root, &config).unwrap();
+        let mut state = load_state(&root).unwrap().unwrap();
+        state.revision = PREVIOUS_REVISION.into();
+        save_state(&root, &state).unwrap();
+        // Production table: no managed file holds the v1 zh-CN bytes.
+        prepare_launch(&root, &config).unwrap();
+        assert_eq!(load_state(&root).unwrap().unwrap().revision, REVISION);
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            asset(&root, "ja-JP/cards.cdb").unwrap()
+        );
+        config.ui.language = "zh".into();
+        prepare_launch(&root, &config).unwrap();
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            asset(&root, "zh-CN/cards.cdb").unwrap()
+        );
+        restore(&root).unwrap();
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            b"original root database"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn koishi_v1_replaces_only_the_zh_locale_database() {
+        let root = fixture(true);
+        install(&root).unwrap();
+        let fake = as_v1_install(&root);
+        assert_eq!(
+            fs::read(root.join("locales/1103_zh-CN/cards.cdb")).unwrap(),
+            FAKE_V1_ZH
+        );
+        migrate_with(&root, &[(fake.as_str(), "zh-CN/cards.cdb")], false).unwrap();
+        for (_, locale) in LANGUAGES {
+            assert_eq!(
+                fs::read(root.join(format!("locales/1103_{locale}/cards.cdb"))).unwrap(),
+                asset(&root, &format!("{locale}/cards.cdb")).unwrap()
+            );
+        }
+        assert_eq!(
+            fs::read(root.join("locales/zh-CN/cards.cdb")).unwrap(),
+            b"base database"
+        );
+        assert_eq!(load_state(&root).unwrap().unwrap().revision, REVISION);
+        restore(&root).unwrap();
+        assert!(!root.join("locales/1103_zh-CN").exists());
+        assert_eq!(
+            fs::read(root.join("locales/zh-CN/cards.cdb")).unwrap(),
+            b"base database"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn edited_v1_file_or_running_game_blocks_migration_without_writing() {
+        for edited in [true, false] {
+            let root = fixture(false);
+            install(&root).unwrap();
+            let fake = as_v1_install(&root);
+            let expected: &[u8] = if edited {
+                fs::write(root.join("cards.cdb"), b"player edit").unwrap();
+                b"player edit"
+            } else {
+                FAKE_V1_ZH
+            };
+            let running = !edited;
+            assert!(migrate_with(&root, &[(fake.as_str(), "zh-CN/cards.cdb")], running).is_err());
+            assert_eq!(fs::read(root.join("cards.cdb")).unwrap(), expected);
+            let state = load_state(&root).unwrap().unwrap();
+            assert_eq!(state.revision, PREVIOUS_REVISION);
+            assert_eq!(state.phase, "active");
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
+    fn failed_migration_write_restores_original_files() {
+        let root = fixture(false);
+        install(&root).unwrap();
+        let fake = as_v1_install(&root);
+        let error = migrate_with(&root, &[(fake.as_str(), "zh-CN/missing.cdb")], false)
+            .unwrap_err();
+        assert!(error.contains("rolled back"), "{error}");
+        assert!(!state_path(&root).exists());
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            b"original root database"
+        );
+        assert_eq!(
+            fs::read(root.join("system_user.conf")).unwrap(),
+            b"sound = 1\nlocale = zh-CN\n"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn interrupted_v1_migration_needs_recovery_and_restores() {
+        let root = fixture(false);
+        install(&root).unwrap();
+        as_v1_install(&root);
+        let mut state = load_state(&root).unwrap().unwrap();
+        state.phase = "installing".into();
+        save_state(&root, &state).unwrap();
+        let config = settings::load(&root).unwrap();
+        assert!(prepare_launch(&root, &config).unwrap_err().contains("needs recovery"));
+        assert!(install(&root).is_err());
+        restore(&root).unwrap();
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            b"original root database"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn v1_state_restores_without_migrating_and_unknown_revision_is_kept() {
+        let root = fixture(false);
+        install(&root).unwrap();
+        as_v1_install(&root);
+        assert!(state(&root).unwrap().installed);
+        restore(&root).unwrap();
+        assert_eq!(
+            fs::read(root.join("cards.cdb")).unwrap(),
+            b"original root database"
+        );
+        install(&root).unwrap();
+        let mut unknown = load_state(&root).unwrap().unwrap();
+        unknown.revision = "1103-201103-v0".into();
+        save_state(&root, &unknown).unwrap();
+        assert!(load_state(&root).is_err());
+        assert!(restore(&root).is_err());
+        assert!(state_path(&root).exists());
         fs::remove_dir_all(root).unwrap();
     }
 }

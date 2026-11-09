@@ -1,6 +1,6 @@
 # 桌面助手当前实现架构
 
-更新日期：2026-10-28。本文描述应用 `0.2.2` 源码；签名页面更新已自 v0.2.0 正式提供，原生读图已随 v0.2.2 发布。页面包可以独立迭代，实际生产版本以正式 Release、签名索引与发布回执为准。原有游戏/脚本与环境模块职责保持现有实现；构建、WebView 验证与用户实际游戏验收分别记录。
+更新日期：2026-11-09。本文描述应用 `0.2.3` 源码；签名页面更新已自 v0.2.0 正式提供，原生读图已随 v0.2.2 发布。页面包可以独立迭代，实际生产版本以正式 Release、签名索引与发布回执为准。原有游戏/脚本与环境模块职责保持现有实现；构建、WebView 验证与用户实际游戏验收分别记录。
 
 ## 1. 文档分工与架构结论
 
@@ -42,7 +42,7 @@ flowchart LR
 
 `server.apiBaseUrl` 与 `server.gameHost/gamePort` 是独立配置。桌面页面查询 HTTP API；游戏进程在联机时根据启动参数连接 TCP 服务，卡组编辑和本地录像播放不要求建立这条连接。更改 API 地址不会自动更改游戏目标地址。`srvprotiantiweb` 在这里提供过资源来源，桌面程序运行时不依赖它的网页客户端、WebSocket 链路或浏览器对战运行时。
 
-页面快照位于 `web-source/`；环境资源位于 `src-tauri/resources/environment/1103-201103-v1/`。相邻仓库不是桌面构建命令自动拉取的依赖。页面来源和资源来源分别见 [README](../README.md) 与 [DESIGN 第 14 节](../DESIGN.md#14-1103-环境资源与下载发布补充设计)。
+页面快照位于 `web-source/`；环境资源位于 `src-tauri/resources/environment/1103-201103-v2/`。相邻仓库不是桌面构建命令自动拉取的依赖。页面来源和资源来源分别见 [README](../README.md) 与 [DESIGN 第 14 节](../DESIGN.md#14-1103-环境资源与下载发布补充设计)。
 
 ## 3. 运行组件与信任边界
 
@@ -228,7 +228,7 @@ flowchart LR
       transactions/<UUID>/           journal.json 与本次修改前备份
     environment-state.json           资源清单、散列、备份 ID 与阶段
     environment-backups/<UUID>/      环境改动前的文件
-    resources/1103-201103-v1/         随便携包发布的离线环境资源
+    resources/1103-201103-v2/         随便携包发布的离线环境资源
     page-packages/
       state.json                     最高 sequence、当前/候选/上一版与启动确认
       packages/<版本>/manifest.json  已验证的签名清单
@@ -297,7 +297,7 @@ stateDiagram-v2
     Recovery --> Restoring: 用户处理原因后再次恢复
 ```
 
-`Recovery` 是对外 `needsRecovery` 的说明，磁盘状态实际保留 `installing` 或 `restoring` 阶段。脚本在助手启动时尝试自动恢复；环境资源的未完成状态则要求从设置页恢复，启动游戏前的 `prepare_launch` 会拒绝未完成状态。已安装且状态正常时，启动前同步所选语言与服务器；如果需要写文件而游戏仍运行，会拒绝继续。环境恢复成功后原备份目录仍保留。
+`Recovery` 是对外 `needsRecovery` 的说明，磁盘状态实际保留 `installing` 或 `restoring` 阶段。脚本在助手启动时尝试自动恢复；环境资源的未完成状态则要求从设置页恢复，启动游戏前的 `prepare_launch` 会拒绝未完成状态。已安装且状态正常时，启动前同步所选语言与服务器；如果需要写文件而游戏仍运行，会拒绝继续。环境恢复成功后原备份目录仍保留。v1 安装状态仍可读取和恢复；启动前与重新安装时先经 `migrate` 就地升级到 v2，只替换托管散列等于 v1 中文 CDB 的文件，写入失败按安装失败的方式恢复原文件。
 
 ## 6. 页面构建与发布链路
 
@@ -341,7 +341,7 @@ flowchart TB
 
 源码统一归并到 `main`，稳定索引仍由独立的 `page-updates` 历史承载。候选签名前先确认源码及所需可信工具已进入主线；分支保护、本地同步与候选清理规则见 [开发流程](DEVELOPMENT_WORKFLOW.md)。
 
-便携包的环境资源实际路径为 `release-portable/srvprotianti-desktop-data/resources/1103-201103-v1/`。可选 NSIS 构建没有通过 Tauri bundle 配置携带这批环境文件；若使用安装器，须另外保持这个相对游戏根目录的数据目录结构。
+便携包的环境资源实际路径为 `release-portable/srvprotianti-desktop-data/resources/1103-201103-v2/`。可选 NSIS 构建没有通过 Tauri bundle 配置携带这批环境文件；若使用安装器，须另外保持这个相对游戏根目录的数据目录结构。
 
 助手更新由 [原生检查器](../src-tauri/src/updater.rs)、[设置页适配](../src/desktop-updates.js) 和 [发布脚本](../scripts/desktop-release.mjs) 协作。检查器以专用 HTTPS 客户端读取最新 Release 的静态 `desktop-update.json`，不依赖 REST API 匿名额度，成功结果缓存 600 秒，失败冷却并保留带原时间的旧结果。共享的附件跳转域名约束归 `release_http.rs`，业务 API 客户端仍禁止跳转。检查后的 ZIP 链接固定已验证版本，页面始终有官方下载页入口；仍由系统浏览器下载、玩家手动覆盖。清单 SHA-256 用于发布附件核对，不宣称助手已校验浏览器下载的 ZIP。完整契约见 [DESIGN](../DESIGN.md#121-助手版本清单2026-10-26-v021)。v0.2.1 及页面包 1.0.2 已正式发布并核验，源码/标签仍固定 `22f1128`；草稿发布查询的修复只影响后续发布工具，不改写这个已发布提交或制品。
 
