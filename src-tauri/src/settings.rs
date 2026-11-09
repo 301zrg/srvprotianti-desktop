@@ -40,6 +40,15 @@ pub struct Game {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Ui {
     pub language: String,
+    /// Ask before "save and play" when the replay's rule environment differs from the
+    /// installed one (plan 02 §4.2). Existing installs keep an older default file that
+    /// lacks the key, so it must default here rather than in the file.
+    #[serde(rename = "replayEnvironmentPrompt", default = "enabled")]
+    pub replay_environment_prompt: bool,
+}
+
+fn enabled() -> bool {
+    true
 }
 
 pub fn data_dir(root: &Path) -> PathBuf {
@@ -240,6 +249,18 @@ pub fn validate(settings: &Settings) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn replay_prompt_defaults_on_for_older_default_files() {
+        // A player's data folder keeps the default file written by an older version.
+        let old = r#"{"schemaVersion":1,"player":{"launchName":""},"server":{"gameHost":"h","gamePort":7911,"apiBaseUrl":"http://h"},"game":{"executable":"ygopro.exe"},"ui":{"language":"zh"}}"#;
+        let settings: Settings = serde_json::from_str(old).unwrap();
+        assert!(settings.ui.replay_environment_prompt);
+        let current: Settings = serde_json::from_str(DEFAULT_CONFIG).unwrap();
+        assert!(current.ui.replay_environment_prompt);
+        let json = serde_json::to_value(&current).unwrap();
+        assert_eq!(json["ui"]["replayEnvironmentPrompt"], true);
+    }
 
     #[test]
     fn login_string_allows_eighty_utf16_units() {

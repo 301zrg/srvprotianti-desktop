@@ -122,7 +122,7 @@ flowchart TB
 | [pages_cache.rs](../src-tauri/src/pages_cache.rs) | 页面专属缓存、递增 sequence、候选/上一版、启动确认与隔离恢复 |
 | [pages_runtime.rs](../src-tauri/src/pages_runtime.rs) | 固定本地协议资源、后台受限 HTTPS 请求、页面状态与原生恢复入口 |
 
-`get_settings`、`save_settings`、`reset_settings`、`set_language` 管理配置；`api_request` 管理数据请求；`launch_game`、`save_and_open`、`open_saved` 管理启动和下载；`script_state`、`update_scripts`、`restore_scripts` 管理脚本；`environment_state`、`install_environment`、`restore_environment` 管理资源；`check_desktop_update`、`open_external` 管理版本检查和外部链接。
+`get_settings`、`save_settings`、`reset_settings`、`set_language` 管理配置；`api_request` 管理数据请求；`launch_game`、`save_and_open`、`open_saved` 管理启动和下载；`script_state`、`update_scripts`（可选 `environmentId`：环境 ID、`latest`，省略则沿用已保存的选择）、`script_environments`（从固定的 master commit 读取 `706-meta/versions.json`，未发布时为 null）、`restore_scripts` 管理脚本；`save_and_open` 的可选 `launch: false` 只保存并返回录像开局时间，由页面检查规则版本后再用 `open_saved` 启动；`environment_state`、`install_environment`、`restore_environment` 管理资源；`check_desktop_update`、`open_external` 管理版本检查和外部链接。
 
 卡组详情的单卡投入率使用独立懒加载请求 `GET /api/ladder/deck-detail?view=card-usage`，沿用 v0.2.0 已有的精确 GET 白名单。网页与助手共享单卡板块、数据和 XLSX/CSV 逻辑，按五分区导出；`sync-web-source.mjs` 与页面包来源清单都显式包含 `deck-card-usage.js`。本功能无需扩展 Rust 权限或重发 EXE。
 

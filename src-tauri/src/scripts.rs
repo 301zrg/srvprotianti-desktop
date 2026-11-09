@@ -34,6 +34,81 @@ struct ScriptState {
     last_transaction: Option<String>,
     #[serde(default)]
     updated_at: Option<u64>,
+    /// Environment the player chose; None follows the newest one (plan 02 §4.1).
+    #[serde(default)]
+    environment_choice: Option<String>,
+    /// Environment actually resolved by the last successful install; None before
+    /// 706-meta existed or for states written by older versions.
+    #[serde(default)]
+    installed_environment: Option<String>,
+}
+
+/// One rule environment from 706-meta/versions.json (plan 02 §2). Other fields are ignored.
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvironmentEntry {
+    pub id: String,
+    pub effective_from_unix: Option<i64>,
+    pub specials: EnvironmentSpecials,
+}
+#[derive(Clone, Serialize, Deserialize)]
+pub struct EnvironmentSpecials {
+    pub commit: String,
+    pub tree706: String,
+}
+#[derive(Deserialize)]
+struct VersionTable {
+    format: u32,
+    environments: Vec<EnvironmentEntry>,
+}
+/// The environment table read from one pinned master commit.
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnvironmentList {
+    pub master: String,
+    pub environments: Vec<EnvironmentEntry>,
+}
+
+fn environment_id_valid(id: &str) -> bool {
+    let bytes = id.as_bytes();
+    if !id.starts_with("706-") || bytes.len() < 12 || !bytes[4..12].iter().all(u8::is_ascii_digit) {
+        return false;
+    }
+    match &id[12..] {
+        "" => true,
+        rest => {
+            rest.len() > 1 && rest.starts_with('-') && rest[1..].bytes().all(|b| b.is_ascii_digit())
+        }
+    }
+}
+
+/// Rejects a table that breaks 02 §2: unique ids, only the first start is null,
+/// strictly increasing boundaries, well-formed commit and 706 tree ids.
+fn validate_environments(table: VersionTable) -> Result<Vec<EnvironmentEntry>, String> {
+    let list = table.environments;
+    if table.format != 1 || list.is_empty() || list.len() > 1000 {
+        return Err("The 706 environment table is invalid".into());
+    }
+    let mut seen = HashSet::new();
+    for (index, entry) in list.iter().enumerate() {
+        let start_ok = match (index, entry.effective_from_unix) {
+            (0, None) => true,
+            (0, Some(_)) | (_, None) => false,
+            (1, Some(_)) => true,
+            (_, Some(start)) => list[index - 1]
+                .effective_from_unix
+                .is_some_and(|prior| start > prior),
+        };
+        if !environment_id_valid(&entry.id)
+            || !seen.insert(entry.id.clone())
+            || !start_ok
+            || !valid_sha(&entry.specials.commit)
+            || !valid_sha(&entry.specials.tree706)
+        {
+            return Err("The 706 environment table is invalid".into());
+        }
+    }
+    Ok(list)
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -42,6 +117,25 @@ struct ManagedFile {
     blob_sha: String,
     installed_sha256: String,
     original_backup: Option<String>,
+    /// The original backup held exactly the bytes first installed over it, i.e. an
+    /// earlier copy of the same 706 script rather than the player's own file.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    original_matches_install: bool,
+}
+
+/// An unmanaged local file that already equals the remote blob loses nothing when
+/// it is taken over, so it is not a conflict (utility.lua has no real blob id).
+fn adoptable(path: &str, local: &[u8], remote_blob: &str) -> bool {
+    path != "utility.lua" && git_blob_sha(local) == remote_blob
+}
+
+/// What a file removed from the 706 set becomes. The player's own original comes
+/// back; an original that was only an earlier copy of the 706 script is dropped,
+/// otherwise a stale override would outlive its removal. The backup file stays.
+fn removal_result(managed: &ManagedFile, original: Option<Vec<u8>>) -> Option<Vec<u8>> {
+    original.filter(|bytes| {
+        !managed.original_matches_install && sha256(bytes) != managed.installed_sha256
+    })
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -99,6 +193,12 @@ pub struct StateView {
     pub commit: Option<String>,
     pub can_restore: bool,
     pub updated_at: Option<u64>,
+    /// Installed 706 subtree; compared with the table's tree706 to check local scripts.
+    pub tree: Option<String>,
+    /// The player's choice; None follows the newest environment.
+    pub environment_choice: Option<String>,
+    /// Environment resolved by the last successful install (None for older states).
+    pub installed_environment: Option<String>,
 }
 #[derive(Serialize)]
 pub struct UpdateResult {
@@ -262,6 +362,15 @@ fn changed_paths(
     }
     Ok(changed)
 }
+/// GitHub's unauthenticated quota (60 requests an hour per address) is spent when a
+/// 403/429 says no requests remain; the reset time is Unix seconds.
+fn rate_limit_reset(status: u16, remaining: Option<&str>, reset: Option<&str>) -> Option<u64> {
+    if !matches!(status, 403 | 429) || remaining.map(str::trim) != Some("0") {
+        return None;
+    }
+    reset.and_then(|value| value.trim().parse().ok())
+}
+
 fn get_json<T: for<'de> Deserialize<'de>>(client: &Client, address: &str) -> Result<T, String> {
     let bytes = download_bytes(client, address, "GitHub metadata", 2 * 1024 * 1024)?;
     serde_json::from_slice(&bytes).map_err(|_| "GitHub response was invalid".into())
@@ -283,6 +392,22 @@ fn download_bytes(
                 let status = response.status();
                 if !status.is_success() {
                     last_error = format!("SCRIPT_HTTP:{}: {label}", status.as_u16());
+                    let header = |name| {
+                        response
+                            .headers()
+                            .get(name)
+                            .and_then(|value| value.to_str().ok())
+                    };
+                    let reset = rate_limit_reset(
+                        status.as_u16(),
+                        header("x-ratelimit-remaining"),
+                        header("x-ratelimit-reset"),
+                    );
+                    if let Some(reset) = reset {
+                        // Retrying cannot help before the quota resets; the page shows when.
+                        last_error.push_str(&format!("; reset={reset}"));
+                        break;
+                    }
                     if status.as_u16() != 408 && status.as_u16() != 429 && !status.is_server_error()
                     {
                         break;
@@ -310,11 +435,92 @@ fn download_bytes(
 fn valid_sha(sha: &str) -> bool {
     sha.len() == 40 && sha.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
-fn latest_entries(client: &Client) -> Result<(String, String, Vec<GitEntry>), String> {
-    let commit: CommitResponse = get_json(client, &format!("{REPOSITORY}/commits/master"))?;
+fn get_commit(client: &Client, reference: &str) -> Result<CommitResponse, String> {
+    let commit: CommitResponse = get_json(client, &format!("{REPOSITORY}/commits/{reference}"))?;
     if !valid_sha(&commit.sha) || !valid_sha(&commit.commit.tree.sha) {
         return Err("GitHub supplied an invalid commit".into());
     }
+    Ok(commit)
+}
+
+/// The table at one pinned commit. Missing (before 706-meta existed) is Ok(None);
+/// any other failure is an error, never a silent fallback.
+fn environment_table(
+    client: &Client,
+    commit: &str,
+) -> Result<Option<Vec<EnvironmentEntry>>, String> {
+    let url = format!(
+        "https://raw.githubusercontent.com/301zrg/specials/{commit}/706-meta/versions.json"
+    );
+    match download_bytes(client, &url, "706 environment table", 1024 * 1024) {
+        Ok(bytes) => {
+            let table: VersionTable = serde_json::from_slice(&bytes)
+                .map_err(|_| "The 706 environment table is invalid")?;
+            validate_environments(table).map(Some)
+        }
+        Err(error) if error.starts_with("SCRIPT_HTTP:404") => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+/// GitHub client for scripts and the environment table: no redirects, bounded timeouts.
+fn github_client() -> Result<Client, String> {
+    Client::builder()
+        .timeout(Duration::from_secs(90))
+        .connect_timeout(Duration::from_secs(15))
+        .redirect(reqwest::redirect::Policy::none())
+        .user_agent("srvprotianti-desktop/0.1")
+        .build()
+        .map_err(|error| error.to_string())
+}
+
+pub fn environments() -> Result<Option<EnvironmentList>, String> {
+    let client = &github_client()?;
+    let master = get_commit(client, "master")?;
+    Ok(
+        environment_table(client, &master.sha)?.map(|environments| EnvironmentList {
+            master: master.sha,
+            environments,
+        }),
+    )
+}
+
+/// Resolves what to install: the chosen environment's S commit, or the newest one,
+/// or plain master while no table exists. The table and master are read once from
+/// the same pinned commit. Returns (commit, 706 tree, environment id, entries).
+fn select_entries(
+    client: &Client,
+    choice: Option<&str>,
+) -> Result<(String, String, Option<String>, Vec<GitEntry>), String> {
+    let master = get_commit(client, "master")?;
+    let table = environment_table(client, &master.sha)?;
+    let environment = match (table, choice) {
+        (None, None) => None,
+        (None, Some(_)) => return Err("The 706 environment table is not available yet".into()),
+        (Some(list), None) => list.last().cloned(),
+        (Some(list), Some(id)) => Some(
+            list.into_iter()
+                .find(|entry| entry.id == id)
+                .ok_or_else(|| format!("Unknown 706 environment: {id}"))?,
+        ),
+    };
+    let Some(environment) = environment else {
+        let (tree, entries) = entries_at(client, &master)?;
+        return Ok((master.sha, tree, None, entries));
+    };
+    let commit = get_commit(client, &environment.specials.commit)?;
+    if commit.sha != environment.specials.commit {
+        return Err("GitHub returned a different commit for the environment".into());
+    }
+    let (tree, entries) = entries_at(client, &commit)?;
+    // The table pins the 706 subtree; anything else is not this environment.
+    if tree != environment.specials.tree706 {
+        return Err("The environment's 706 tree does not match the table".into());
+    }
+    Ok((commit.sha, tree, Some(environment.id), entries))
+}
+
+fn entries_at(client: &Client, commit: &CommitResponse) -> Result<(String, Vec<GitEntry>), String> {
     let root: GitTree = get_json(
         client,
         &format!("{REPOSITORY}/git/trees/{}", commit.commit.tree.sha),
@@ -368,7 +574,7 @@ fn latest_entries(client: &Client) -> Result<(String, String, Vec<GitEntry>), St
     if entries.is_empty() || entries.len() > MAX_FILES {
         return Err("GitHub 706 file list is empty or too large".into());
     }
-    Ok((commit.sha, folder.sha, entries))
+    Ok((folder.sha, entries))
 }
 fn raw_url(commit: &str, path: &str) -> Result<reqwest::Url, String> {
     let mut url = reqwest::Url::parse("https://raw.githubusercontent.com/301zrg/specials/")
@@ -591,6 +797,9 @@ pub fn state(root: &Path) -> Result<StateView, String> {
         commit: record.commit,
         can_restore: record.last_transaction.is_some(),
         updated_at: record.updated_at,
+        tree: record.tree,
+        environment_choice: record.environment_choice,
+        installed_environment: record.installed_environment,
     })
 }
 fn emit_progress(app: &AppHandle, done: usize, total: usize) {
@@ -610,7 +819,13 @@ pub fn update(
     file_lock: &Mutex<()>,
     app: &AppHandle,
     overwrite_conflicts: bool,
+    environment: Option<&str>,
 ) -> Result<UpdateResult, String> {
+    if let Some(id) = environment {
+        if id != "latest" && !environment_id_valid(id) {
+            return Err("Invalid 706 environment id".into());
+        }
+    }
     {
         let _guard = file_lock
             .lock()
@@ -619,15 +834,15 @@ pub fn update(
         recover_pending(root)?;
         ensure_game_stopped(root)?;
     }
-    let client = &Client::builder()
-        .timeout(Duration::from_secs(90))
-        .connect_timeout(Duration::from_secs(15))
-        .redirect(reqwest::redirect::Policy::none())
-        .user_agent("srvprotianti-desktop/0.1")
-        .build()
-        .map_err(|error| error.to_string())?;
+    let client = &github_client()?;
     let previous = read_state(root)?;
-    let (commit, tree, mut entries) = latest_entries(client)?;
+    // None keeps the saved choice; "latest" follows the newest environment again.
+    let choice = match environment {
+        None => previous.environment_choice.clone(),
+        Some("latest") => None,
+        Some(id) => Some(id.to_string()),
+    };
+    let (commit, tree, resolved, mut entries) = select_entries(client, choice.as_deref())?;
     if !is_koishipro(root)? {
         let special = entries
             .iter()
@@ -665,10 +880,15 @@ pub fn update(
             continue;
         }
         let target = target_path(root, &entry.path)?;
-        let current_hash = file_hash(&target)?;
-        if current_hash.is_some() {
-            conflicts.push(entry.path.clone());
-        }
+        let current_hash = if target.exists() {
+            let local = fs::read(&target).map_err(|error| error.to_string())?;
+            if !adoptable(&entry.path, &local, &entry.sha) {
+                conflicts.push(entry.path.clone());
+            }
+            Some(sha256(&local))
+        } else {
+            None
+        };
         observed.insert(entry.path.clone(), current_hash);
     }
     if !conflicts.is_empty() && !overwrite_conflicts {
@@ -705,6 +925,8 @@ pub fn update(
     let mut next = previous.clone();
     next.commit = Some(commit.clone());
     next.tree = Some(tree.clone());
+    next.environment_choice = choice.clone();
+    next.installed_environment = resolved.clone();
     next.files.clear();
     let mut planned = Vec::new();
     let total = entries.len();
@@ -750,15 +972,18 @@ pub fn update(
             })?
         };
         let installed_sha256 = sha256(&bytes);
-        let original_backup = match prior {
-            Some(prior) => prior.original_backup.clone(),
+        let (original_backup, original_matches_install) = match prior {
+            Some(prior) => (
+                prior.original_backup.clone(),
+                prior.original_matches_install,
+            ),
             None if target.exists() => {
                 let relative = format!("backups/original/{}.bak", Uuid::new_v4());
                 let original = fs::read(&target).map_err(|error| error.to_string())?;
                 atomic_write(&settings::data_dir(root).join(&relative), &original)?;
-                Some(relative)
+                (Some(relative), sha256(&original) == installed_sha256)
             }
-            None => None,
+            None => (None, false),
         };
         next.files.insert(
             entry.path.clone(),
@@ -766,6 +991,7 @@ pub fn update(
                 blob_sha: entry.sha.clone(),
                 installed_sha256,
                 original_backup,
+                original_matches_install,
             },
         );
         planned.push(PlannedFile {
@@ -778,18 +1004,23 @@ pub fn update(
         if remote_paths.contains(path.as_str()) {
             continue;
         }
-        let after = managed
+        let original = managed
             .original_backup
             .as_ref()
             .map(|name| read_original(root, name))
             .transpose()?;
+        let after = removal_result(managed, original);
         planned.push(PlannedFile {
             path: path.clone(),
             after,
         });
     }
     if planned.is_empty() {
-        if previous.commit.as_deref() != Some(&commit) || previous.tree.as_deref() != Some(&tree) {
+        if previous.commit.as_deref() != Some(&commit)
+            || previous.tree.as_deref() != Some(&tree)
+            || previous.environment_choice != choice
+            || previous.installed_environment != resolved
+        {
             write_state(root, &next)?;
         }
         return Ok(UpdateResult {
@@ -899,6 +1130,171 @@ pub fn restore(root: &Path, file_lock: &Mutex<()>) -> Result<UpdateResult, Strin
 mod tests {
     use super::*;
     use std::io::Write;
+
+    fn env(id: &str, start: Option<i64>) -> EnvironmentEntry {
+        EnvironmentEntry {
+            id: id.into(),
+            effective_from_unix: start,
+            specials: EnvironmentSpecials {
+                commit: "a".repeat(40),
+                tree706: "b".repeat(40),
+            },
+        }
+    }
+    fn table(list: Vec<EnvironmentEntry>) -> Result<Vec<EnvironmentEntry>, String> {
+        validate_environments(VersionTable {
+            format: 1,
+            environments: list,
+        })
+    }
+
+    #[test]
+    fn environment_ids_follow_the_table_naming() {
+        for ok in ["706-20260907", "706-20261110-2", "706-20261110-12"] {
+            assert!(environment_id_valid(ok), "{ok}");
+        }
+        for bad in [
+            "706-2026090",
+            "706-2026-11-10",
+            "706-20261110-",
+            "706-20261110x",
+            "707-20261110",
+            "latest",
+            "",
+        ] {
+            assert!(!environment_id_valid(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn environment_table_rules_are_enforced() {
+        let first = env("706-20260907", None);
+        assert_eq!(
+            table(vec![
+                first.clone(),
+                env("706-20261110", Some(100)),
+                env("706-20261201", Some(200))
+            ])
+            .unwrap()
+            .len(),
+            3
+        );
+        assert!(table(vec![]).is_err(), "empty");
+        assert!(
+            table(vec![env("706-20260907", Some(1))]).is_err(),
+            "first must be null"
+        );
+        assert!(
+            table(vec![first.clone(), env("706-20261110", None)]).is_err(),
+            "only the first is null"
+        );
+        assert!(
+            table(vec![first.clone(), env("706-20260907", Some(5))]).is_err(),
+            "duplicate id"
+        );
+        assert!(
+            table(vec![
+                first.clone(),
+                env("706-20261110", Some(200)),
+                env("706-20261201", Some(200))
+            ])
+            .is_err(),
+            "boundaries strictly increase"
+        );
+        let mut bad_sha = env("706-20261110", Some(5));
+        bad_sha.specials.tree706 = "not-a-sha".into();
+        assert!(
+            table(vec![first.clone(), bad_sha]).is_err(),
+            "tree706 must be a sha"
+        );
+        assert!(
+            validate_environments(VersionTable {
+                format: 2,
+                environments: vec![first]
+            })
+            .is_err(),
+            "unknown format"
+        );
+    }
+
+    /// Network: run with `cargo test -- --ignored`. Until 706-meta exists on master
+    /// the table is absent and updates must keep following master as before.
+    #[test]
+    #[ignore]
+    fn live_table_is_absent_or_valid() {
+        match environments() {
+            Ok(None) => {}
+            Ok(Some(list)) => assert!(!list.environments.is_empty() && valid_sha(&list.master)),
+            Err(error) => panic!("environment table lookup failed: {error}"),
+        }
+    }
+
+    #[test]
+    fn spent_github_quota_reports_its_reset_time() {
+        assert_eq!(
+            rate_limit_reset(403, Some("0"), Some("1794263763")),
+            Some(1794263763)
+        );
+        assert_eq!(rate_limit_reset(429, Some(" 0 "), Some("5")), Some(5));
+        // A 403 with quota left (e.g. a private repository) is not a rate limit.
+        assert_eq!(rate_limit_reset(403, Some("12"), Some("5")), None);
+        assert_eq!(rate_limit_reset(403, None, Some("5")), None);
+        assert_eq!(rate_limit_reset(404, Some("0"), Some("5")), None);
+        assert_eq!(rate_limit_reset(403, Some("0"), Some("soon")), None);
+    }
+
+    #[test]
+    fn identical_unmanaged_files_are_adopted_without_conflict() {
+        let bytes = b"--old ruling\r\nlocal s,id=GetID()\r\n";
+        assert!(adoptable("c10032958.lua", bytes, &git_blob_sha(bytes)));
+        // One changed byte (here only the line ending) is still a conflict.
+        assert!(!adoptable(
+            "c10032958.lua",
+            b"--old ruling\nlocal s,id=GetID()\n",
+            &git_blob_sha(bytes)
+        ));
+        // utility.lua carries a synthetic id and is never adopted silently.
+        assert!(!adoptable("utility.lua", bytes, &git_blob_sha(bytes)));
+    }
+
+    #[test]
+    fn removed_scripts_drop_originals_that_were_706_copies() {
+        let installed = b"706 copy".to_vec();
+        let own = b"player's own script".to_vec();
+        let managed = |matches| ManagedFile {
+            blob_sha: git_blob_sha(&installed),
+            installed_sha256: sha256(&installed),
+            original_backup: Some("backups/original/x.bak".into()),
+            original_matches_install: matches,
+        };
+        // The player's own file comes back.
+        assert_eq!(
+            removal_result(&managed(false), Some(own.clone())),
+            Some(own.clone())
+        );
+        // An original equal to the installed copy is removed with it.
+        assert_eq!(
+            removal_result(&managed(false), Some(installed.clone())),
+            None
+        );
+        // Recorded at takeover: removed even after the 706 copy changed since.
+        assert_eq!(removal_result(&managed(true), Some(own)), None);
+        assert_eq!(removal_result(&managed(false), None), None);
+        // Older state files without the flag still read.
+        let old = r#"{"blobSha":"a","installedSha256":"b","originalBackup":null}"#;
+        let file: ManagedFile = serde_json::from_str(old).unwrap();
+        assert!(!file.original_matches_install);
+        assert!(!serde_json::to_string(&file)
+            .unwrap()
+            .contains("originalMatchesInstall"));
+    }
+
+    #[test]
+    fn older_state_files_read_without_environment_fields() {
+        let old = r#"{"commit":null,"tree":null,"files":{},"lastTransaction":null}"#;
+        let state: ScriptState = serde_json::from_str(old).unwrap();
+        assert!(state.environment_choice.is_none() && state.installed_environment.is_none());
+    }
 
     #[test]
     fn original_client_utility_runs_special_after_defining_it() {

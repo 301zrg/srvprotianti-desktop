@@ -12,6 +12,19 @@ pub struct SaveOutcome {
     pub filename: String,
     pub saved_path: String,
     pub launch_error: Option<String>,
+    /// YRP2 start time (Unix seconds, header offset 20); None for decks, YRP1 or 0.
+    pub replay_start: Option<u32>,
+    /// False when the caller asked to save only (it decides about launching itself).
+    pub launched: bool,
+}
+
+/// Start time from a YRP2 header; YRP1 has none and 0 means unknown (plan 02 §3.5).
+pub fn replay_start(bytes: &[u8]) -> Option<u32> {
+    if !bytes.starts_with(b"yrp2") || bytes.len() < 24 {
+        return None;
+    }
+    let start = u32::from_le_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]);
+    (start != 0).then_some(start)
 }
 
 fn safe_stem(name: &str, extension: &str) -> Result<String, String> {
@@ -179,6 +192,7 @@ pub fn save_and_open(
     filename: &str,
     route: Option<&str>,
     bytes_base64: Option<&str>,
+    launch: bool,
 ) -> Result<SaveOutcome, String> {
     let extension = match kind {
         "deck" => ".ydk",
@@ -242,7 +256,11 @@ pub fn save_and_open(
     if !target.exists() {
         settings::atomic_write(&target, &bytes)?;
     }
-    let launch_error = if scripts::has_pending(root) {
+    // Save only: the page checks the rule environment first and launches through
+    // open_saved, so the prompt always comes before the game starts (02 §4.2).
+    let launch_error = if !launch {
+        None
+    } else if scripts::has_pending(root) {
         Some("A script update needs recovery before starting the game".into())
     } else {
         game::launch_saved(root, kind, &saved_name).err()
@@ -251,12 +269,32 @@ pub fn save_and_open(
         filename: saved_name,
         saved_path: target.display().to_string(),
         launch_error,
+        replay_start: if kind == "replay" {
+            replay_start(&bytes)
+        } else {
+            None
+        },
+        launched: launch,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn replay_start_reads_yrp2_header_only() {
+        let mut yrp2 = b"yrp2".to_vec();
+        yrp2.resize(32, 0);
+        yrp2[20..24].copy_from_slice(&1_794_276_001u32.to_le_bytes());
+        assert_eq!(replay_start(&yrp2), Some(1_794_276_001));
+        yrp2[20..24].copy_from_slice(&0u32.to_le_bytes());
+        assert_eq!(replay_start(&yrp2), None, "0 means unknown");
+        let mut yrp1 = b"yrp1".to_vec();
+        yrp1.resize(32, 7);
+        assert_eq!(replay_start(&yrp1), None, "YRP1 has no start time");
+        assert_eq!(replay_start(b"yrp2short"), None);
+    }
 
     #[test]
     fn windows_names_are_safe_without_losing_extension() {
