@@ -573,7 +573,10 @@ document.addEventListener('DOMContentLoaded', () => {
   observer.observe(document.body, { childList: true, subtree: true });
 });
 document.addEventListener('srvpro-language-change', () => {
-  window.SrvproDesktop.setLanguage(currentLanguage());
+  // Chinese drops ?L= from the URL, so currentLanguage() would fall back to the previous
+  // stored language and save it again. Take the language the page shell just applied.
+  const shown = (window as unknown as { SrvproWeb?: { getLanguage?: () => string } }).SrvproWeb?.getLanguage?.();
+  window.SrvproDesktop.setLanguage(languages.includes(shown as Language) ? shown as Language : currentLanguage());
   updatePlatformControls();
 });
 

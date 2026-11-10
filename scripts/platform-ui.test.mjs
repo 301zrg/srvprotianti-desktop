@@ -86,6 +86,13 @@ try{
   await page.goto(base+'/ladder.html?L=en&month=202609&type=total');await page.locator('[data-query-self]').click();await expect(page.locator('#searchInput')).toHaveValue('Native');
   await page.locator('.lbtn-main').click();await page.getByRole('button',{name:'日本語',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='set_language').at(-1)?.args.language)).toBe('ja');
+  // Chinese has no ?L=; switching back to it must save zh, not the previous language.
+  await page.locator('.lbtn-main').click();await page.getByRole('button',{name:'中文',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='set_language').at(-1)?.args.language)).toBe('zh');
+  await expect(page.locator('[data-desktop-settings]')).toHaveText('设置');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('srvprotianti.language')),'zh');
+  await page.locator('.lbtn-main').click();await page.getByRole('button',{name:'日本語',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='set_language').at(-1)?.args.language)).toBe('ja');
   await page.locator('[data-desktop-settings]').click();await expect(page).toHaveURL(/\/settings.html\?L=ja/);assert.equal(await page.locator('.site-settings-dialog').count(),0);
   await page.goto(base+'/intro.html?L=en');await expect(page.locator('#deckGroups > .deck-group')).toHaveCount(2);
   const deckGroupGap=await page.locator('#deckGroups > .deck-group').evaluateAll(nodes=>{const first=nodes[0].getBoundingClientRect(),second=nodes[1].getBoundingClientRect();return Math.round(second.top-first.bottom);});
