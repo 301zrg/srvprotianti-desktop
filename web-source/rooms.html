@@ -50,9 +50,9 @@ var I18N = {
     title: '游戏王OCG201103天梯服务器 实时房间', rooms_total: '房间总数', playing_now: '对局中', players_online: '在线玩家', update_time: '更新时间',
     refresh: '手动刷新',
     th_roomname: '房名', th_type: '类型', th_mode: '模式', th_players: '玩家', th_status: '状态',
-    hint: '点击已开始对局的房名可在新标签页打开网页版观战；密码房需补充房间密码后手动连接。页面不会自动刷新，请点击「手动刷新」或按 F5；房间密码不会显示或写入链接。',
+    hint: '点击等待中的房名可在新标签页进入网页版并预填该房间，已保存昵称时直接加入（否则填写昵称后点击连接）；点击已开始对局的房名则打开网页版观战。密码房不会自动连接，需补充房间密码后手动连接。页面不会自动刷新，请点击「手动刷新」或按 F5；房间密码不会显示或写入链接。',
     hint_disabled: '网页版 YGOPro 入口暂未开放；可复制房间号，在本地游戏中连接。页面不会自动刷新，请点击「手动刷新」或按 F5；房间密码不会显示。',
-    watch_btn: '观战', watch_password: '观战·需密码', copy_short: '复制',
+    watch_btn: '观战', watch_password: '观战·需密码', join_btn: '加入', join_password: '加入·需密码', copy_short: '复制',
     waiting: '等待中', waiting_match: '等待匹配中', copy_btn: '点击复制房间号', copied: '已复制:', copy_fail: '复制失败', load_fail: '加载失败',
     ladder_match: '天梯随机(比赛)', random_single: '随机·单局', random_match: '随机·比赛', random_tag: '随机·双打', random_other: '其他随机模式', ai_battle: 'AI 对战', arena_room: '竞技场房', tournament_room: '赛事房', single_room: '单局房', match_room: '比赛房', tag_room: '双打房', unknown_room: '未知类型'
   },
@@ -60,9 +60,9 @@ var I18N = {
     title: '遊戯王OCG 201103 ランキングサーバー ルーム一覧', rooms_total: '全ルーム', playing_now: '対戦中', players_online: 'オンライン', update_time: '更新時刻',
     refresh: '更新',
     th_roomname: 'ルーム名', th_type: '種別', th_mode: 'モード', th_players: 'プレイヤー', th_status: '状態',
-    hint: '対戦開始済みのルーム名をクリックすると、新しいタブでウェブ観戦を開きます。パスワード付きルームは入力後に接続してください。自動更新はありません。「更新」またはF5をご利用ください。パスワードは表示もリンクへの追加もしません。',
+    hint: '待機中のルーム名をクリックすると、新しいタブでWeb版が開き、保存済みのニックネームがあればそのまま参加します（なければ入力して接続を押してください）。対戦開始済みのルーム名をクリックするとウェブ観戦を開きます。パスワード付きルームは入力後に接続してください。自動更新はありません。「更新」またはF5をご利用ください。パスワードは表示もリンクへの追加もしません。',
     hint_disabled: 'Web版 YGOPro へのリンクは現在無効です。ルーム名をコピーしてローカルゲームから接続できます。自動更新はありません。「更新」または F5 をご利用ください。パスワードは表示されません。',
-    watch_btn: '観戦', watch_password: '観戦・要パスワード', copy_short: 'コピー',
+    watch_btn: '観戦', watch_password: '観戦・要パスワード', join_btn: '参加', join_password: '参加・要パスワード', copy_short: 'コピー',
     waiting: '待機中', waiting_match: 'マッチ待ち', copy_btn: 'ルーム名コピー', copied: 'コピーしました:', copy_fail: 'コピー失敗', load_fail: '読み込み失敗',
     ladder_match: 'ランクマッチ(MT)', random_single: 'ランダム(1本)', random_match: 'ランダム(MT)', random_tag: 'ランダム(2v2)', random_other: 'その他のランダム', ai_battle: 'AI対戦', arena_room: 'アリーナ部屋', tournament_room: '大会部屋', single_room: 'シングル部屋', match_room: 'マッチ部屋', tag_room: '2v2部屋', unknown_room: '不明な種別'
   },
@@ -70,9 +70,9 @@ var I18N = {
     title: 'Yu-Gi-Oh! OCG 201103 Ladder Server Live Rooms', rooms_total: 'Rooms', playing_now: 'In Duel', players_online: 'Online Players', update_time: 'Updated',
     refresh: 'Refresh',
     th_roomname: 'Room', th_type: 'Type', th_mode: 'Mode', th_players: 'Players', th_status: 'Status',
-    hint: 'Click a started room name to spectate in the web client in a new tab. Password rooms require manual entry before connecting. Refresh manually or press F5. Room passwords are neither shown nor included in links.',
+    hint: 'Click a waiting room name to open the web client in a new tab and join it with your saved nickname (otherwise enter one and press connect). Click a started room name to spectate. Password rooms never connect automatically; enter the password and connect. Refresh manually or press F5. Room passwords are neither shown nor included in links.',
     hint_disabled: 'Web YGOPro links are currently disabled. Copy a room name to connect in your local game. Refresh manually or press F5. Room passwords are not shown.',
-    watch_btn: 'Watch', watch_password: 'Watch · password', copy_short: 'Copy',
+    watch_btn: 'Watch', watch_password: 'Watch · password', join_btn: 'Join', join_password: 'Join · password', copy_short: 'Copy',
     waiting: 'Waiting', waiting_match: 'Waiting for match', copy_btn: 'Copy room name', copied: 'Copied:', copy_fail: 'Copy failed', load_fail: 'Load failed',
     ladder_match: 'Ladder Match', random_single: 'Random Single', random_match: 'Random Match', random_tag: 'Random Tag', random_other: 'Other Random Mode', ai_battle: 'AI Battle', arena_room: 'Arena Room', tournament_room: 'Tournament Room', single_room: 'Single Room', match_room: 'Match Room', tag_room: 'Tag Room', unknown_room: 'Unknown Type'
   },
@@ -80,9 +80,9 @@ var I18N = {
     title: '유희왕 OCG 201103 랭킹 서버 라이브 룸', rooms_total: '전체 룸', playing_now: '듀얼 중', players_online: '온라인 플레이어', update_time: '업데이트',
     refresh: '새로고침',
     th_roomname: '룸 이름', th_type: '종류', th_mode: '모드', th_players: '플레이어', th_status: '상태',
-    hint: '시작된 방 이름을 클릭하면 새 탭에서 웹 관전이 열립니다. 비밀번호 방은 비밀번호 입력 후 접속하세요. 자동 새로고침은 없습니다. 「새로고침」 또는 F5를 사용하세요. 비밀번호는 표시하거나 링크에 넣지 않습니다.',
+    hint: '대기 중인 방 이름을 클릭하면 새 탭에서 웹 클라이언트가 열리고 저장된 닉네임으로 바로 참가합니다(없으면 입력 후 접속을 누르세요). 시작된 방 이름을 클릭하면 웹 관전이 열립니다. 비밀번호 방은 비밀번호 입력 후 접속하세요. 자동 새로고침은 없습니다. 「새로고침」 또는 F5를 사용하세요. 비밀번호는 표시하거나 링크에 넣지 않습니다.',
     hint_disabled: '웹 YGOPro 링크는 현재 비활성화되어 있습니다. 방 이름을 복사해 로컬 게임에서 접속할 수 있습니다. 자동 새로고침은 없으니 「새로고침」 또는 F5를 사용하세요. 비밀번호는 표시되지 않습니다.',
-    watch_btn: '관전', watch_password: '관전 · 비밀번호', copy_short: '복사',
+    watch_btn: '관전', watch_password: '관전 · 비밀번호', join_btn: '참가', join_password: '참가 · 비밀번호', copy_short: '복사',
     waiting: '대기 중', waiting_match: '매칭 대기 중', copy_btn: '룸 이름 복사', copied: '복사됨:', copy_fail: '복사 실패', load_fail: '로드 실패',
     ladder_match: '랭크 매치(MT)', random_single: '랜덤(1판)', random_match: '랜덤(MT)', random_tag: '랜덤(2v2)', random_other: '기타 랜덤 모드', ai_battle: 'AI 대전', arena_room: '아레나 룸', tournament_room: '대회 룸', single_room: '싱글 룸', match_room: '매치 룸', tag_room: '2v2 룸', unknown_room: '알 수 없는 종류'
   }
@@ -92,8 +92,8 @@ function t(key) { return SrvproWeb.t(I18N, key); }
 if (typeof SrvproWeb.clientEnabled === 'function' && !SrvproWeb.clientEnabled()) {
   document.querySelector('.hint').setAttribute('data-i18n', 'hint_disabled');
 }
-function spectatorUrl(roomName, needsPassword) {
-  try { return SrvproWeb.entryUrl('spectate', {room:roomName, autojoin:!needsPassword}).href; }
+function roomEntryUrl(intent, config) {
+  try { return SrvproWeb.entryUrl(intent, config).href; }
   catch (error) { return ''; }
 }
 const ROOM_TYPES = new Set(['ladder_match', 'random_single', 'random_match', 'random_tag', 'random_other',
@@ -162,17 +162,24 @@ async function refresh() {
         matchLink.className = 'spectate-badge';
         tr.firstElementChild.appendChild(matchLink);
       }
-      if (isPlaying && rawRoomName && roomName) {
+      // Started rooms are watched; waiting non-ladder rooms are joined by their original name,
+      // matching the desktop assistant. Ladder waiting rooms keep the TT match badge above.
+      const canJoin = r.istart === 'wait' && !isLadder;
+      if ((isPlaying || canJoin) && rawRoomName && roomName) {
         const needsPassword = r.needpass === 'true' || r.needpass === true || r.roomname.includes('$');
-        const href = spectatorUrl(roomName, needsPassword);
+        const intent = isPlaying ? 'spectate' : 'regular';
+        // Joining and watching both connect at once, except password rooms.
+        const config = {room:roomName, autojoin:!needsPassword};
+        const href = roomEntryUrl(intent, config);
         if (href) {
-          const link = SrvproWeb.createClientLink('spectate', {room:roomName, autojoin:!needsPassword});
+          const link = SrvproWeb.createClientLink(intent, config);
           link.textContent = '';
           link.className = 'spectate-link';
           link.href = href;
           link.target = '_blank';
           link.rel = 'noopener noreferrer';
-          const label = needsPassword ? t('watch_password') : t('watch_btn');
+          const label = isPlaying ? (needsPassword ? t('watch_password') : t('watch_btn'))
+            : (needsPassword ? t('join_password') : t('join_btn'));
           link.title = label;
           const name = document.createElement('span');
           name.textContent = roomName;

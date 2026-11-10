@@ -66,7 +66,11 @@ try{
   await page.goto(base+'/rooms.html?L=en');
   await page.locator('tr[data-room-name="TT,RANDOM#1"] [data-client-intent="ladder"]').click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='launch_game').at(-1)?.args.kind)).toBe('ladder');
-  await page.locator('tr[data-room-name="M#TT,RANDOM#2"] [data-native-room-action="join"]').click();
+  // The site links waiting rooms itself (intent "regular" + room); the assistant joins natively and adds no second button.
+  const waitingRow=page.locator('tr[data-room-name="M#TT,RANDOM#2"]');
+  await expect(waitingRow.locator('[data-client-intent="regular"][data-client-room]')).toHaveCount(1);
+  assert.equal(await waitingRow.locator('[data-native-room-action]').count(),0);
+  await waitingRow.locator('[data-client-intent="regular"]').click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='launch_game').at(-1)?.args)).toEqual({kind:'join',roomName:'M#TT,RANDOM#2'});
   await page.locator('tr[data-room-name="Playing"] [data-client-intent="spectate"]').click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='launch_game').at(-1)?.args)).toEqual({kind:'watch',roomName:'Playing'});

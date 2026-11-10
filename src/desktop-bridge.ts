@@ -305,7 +305,10 @@ document.addEventListener('click', event => {
     return;
   }
   const intent = control.dataset.clientIntent;
-  if (intent === 'spectate' || control.dataset.nativeRoomAction) {
+  // The rooms page links waiting rooms as intent "regular" with a room; join that room
+  // natively instead of only starting the game.
+  const roomJoin = intent === 'regular' && Boolean(control.dataset.clientRoom);
+  if (intent === 'spectate' || roomJoin || control.dataset.nativeRoomAction) {
     const name = control.dataset.clientRoom || control.closest<HTMLElement>('tr[data-room-name]')?.dataset.roomName;
     if (name) void openNativeRoomByName(name, intent === 'spectate' || control.dataset.nativeRoomAction === 'watch' ? 'watch' : 'join');
     return;
@@ -554,7 +557,9 @@ function updatePlatformControls() {
   document.querySelectorAll<HTMLElement>('tr[data-room-name]').forEach(row => {
     const waiting = row.dataset.roomState === 'wait';
     const watch = /^Duel:\d+ (?:Turn:\d+|Siding)$/.test(row.dataset.roomState || '');
-    if ((waiting && row.dataset.roomType !== 'ladder_match') || (watch && !row.querySelector('[data-client-intent="spectate"]'))) {
+    // A site link for the same action already does it natively (click handler above).
+    const siteJoin = row.querySelector('[data-client-intent="regular"][data-client-room]');
+    if ((waiting && row.dataset.roomType !== 'ladder_match' && !siteJoin) || (watch && !row.querySelector('[data-client-intent="spectate"]'))) {
       if (row.querySelector('[data-native-room-action]')) return;
       const button = document.createElement('button'); button.type = 'button';
       button.className = 'desktop-room-action'; button.dataset.nativeRoomAction = waiting ? 'join' : 'watch';
