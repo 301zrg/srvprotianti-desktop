@@ -66,7 +66,11 @@ try{
   await page.goto(base+'/rooms.html?L=en');
   await page.locator('tr[data-room-name="TT,RANDOM#1"] [data-client-intent="ladder"]').click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='launch_game').at(-1)?.args.kind)).toBe('ladder');
-  await page.locator('tr[data-room-name="M#TT,RANDOM#2"] [data-native-room-action="join"]').click();
+  // The site links waiting rooms itself (intent "regular" + room); the assistant joins natively and adds no second button.
+  const waitingRow=page.locator('tr[data-room-name="M#TT,RANDOM#2"]');
+  await expect(waitingRow.locator('[data-client-intent="regular"][data-client-room]')).toHaveCount(1);
+  assert.equal(await waitingRow.locator('[data-native-room-action]').count(),0);
+  await waitingRow.locator('[data-client-intent="regular"]').click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='launch_game').at(-1)?.args)).toEqual({kind:'join',roomName:'M#TT,RANDOM#2'});
   await page.locator('tr[data-room-name="Playing"] [data-client-intent="spectate"]').click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='launch_game').at(-1)?.args)).toEqual({kind:'watch',roomName:'Playing'});
@@ -84,6 +88,13 @@ try{
   await page.goto(base+'/player-stats.html?L=en&self=1&month=202609');
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='api_request'&&c.args.route==='/api/ladder/player').map(c=>JSON.parse(c.args.body)).at(-1)?.password)).toBe('secret');assert.equal(new URL(page.url()).searchParams.has('self'),false);
   await page.goto(base+'/ladder.html?L=en&month=202609&type=total');await page.locator('[data-query-self]').click();await expect(page.locator('#searchInput')).toHaveValue('Native');
+  await page.locator('.lbtn-main').click();await page.getByRole('button',{name:'日本語',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='set_language').at(-1)?.args.language)).toBe('ja');
+  // Chinese has no ?L=; switching back to it must save zh, not the previous language.
+  await page.locator('.lbtn-main').click();await page.getByRole('button',{name:'中文',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='set_language').at(-1)?.args.language)).toBe('zh');
+  await expect(page.locator('[data-desktop-settings]')).toHaveText('设置');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('srvprotianti.language')),'zh');
   await page.locator('.lbtn-main').click();await page.getByRole('button',{name:'日本語',exact:true}).click();
   await expect.poll(()=>page.evaluate(()=>window.__nativeCalls.filter(c=>c.command==='set_language').at(-1)?.args.language)).toBe('ja');
   await page.locator('[data-desktop-settings]').click();await expect(page).toHaveURL(/\/settings.html\?L=ja/);assert.equal(await page.locator('.site-settings-dialog').count(),0);

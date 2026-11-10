@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "generatorVersion": 1,
-  "websiteCommit": "794c68f0d05c2d13351c1eb642c3cece50d9daf0",
-  "websiteBaseCommit": "794c68f0d05c2d13351c1eb642c3cece50d9daf0",
+  "websiteCommit": "d677554099fd215270e222426c5c83ab1aea88c4",
+  "websiteBaseCommit": "d677554099fd215270e222426c5c83ab1aea88c4",
   "sourceFiles": [
     {
       "path": "intro.html",
-      "size": 39892,
-      "sha256": "e2e0201c052440c3bcc9c55df44e6bbb49e6b8b20da8d79c6333d3e45ef6871f"
+      "size": 40913,
+      "sha256": "9b07b35b7bb4bd6557d240c0e4c76c7e4fa74df428e094f4749dc5f5b518a25c"
     },
     {
       "path": "rooms.html",
-      "size": 15027,
-      "sha256": "2e202bbd7ad964cdb52e5dec400dc7e3d2607c98ec3272c29fd7bf1534cf4d4e"
+      "size": 16365,
+      "sha256": "dad360bf1df0b5182c9bd7450d5d6679f45be13ac06cb79d97fd479fe5908182"
     },
     {
       "path": "replays.html",
@@ -93,13 +93,13 @@
   "generatedFiles": [
     {
       "path": "intro.html",
-      "size": 39006,
-      "sha256": "3495681a89021e6267ef89707c44d2faa567dffb0110417ea3413432c8e9ac8e"
+      "size": 40027,
+      "sha256": "35073903db7f78a56f3fc548d9dc075f607e6dd30f68de29d7816012bacd863c"
     },
     {
       "path": "rooms.html",
-      "size": 14964,
-      "sha256": "74af771c4ac2b7b1e46108a72ab32ca88131bc08af7cb002da87b1ae8914bf23"
+      "size": 16302,
+      "sha256": "6e43a6fd3824a10535491dd630c33b78e86a3afbdf4bd7362065e8bddd762d04"
     },
     {
       "path": "replays.html",
