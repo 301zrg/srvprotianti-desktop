@@ -24,6 +24,12 @@ const MAX_FILES: usize = 4096;
 const MAX_FILE_BYTES: usize = 4 * 1024 * 1024;
 const MAX_TOTAL_BYTES: usize = 100 * 1024 * 1024;
 const MAX_ARCHIVE_BYTES: usize = 32 * 1024 * 1024;
+/// Git smart-HTTP ref advertisement: not the REST API, so it does not spend the
+/// unauthenticated 60-an-hour quota.
+const REFS_URL: &str = "https://github.com/301zrg/specials.git/info/refs?service=git-upload-pack";
+const REFS_LIMIT: usize = 64 * 1024;
+/// File lists verified against their 706 tree id, one per environment.
+const TREE_CACHE_LIMIT: usize = 16;
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -173,7 +179,7 @@ struct GitTree {
     truncated: bool,
     tree: Vec<GitEntry>,
 }
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct GitEntry {
     path: String,
     mode: String,
@@ -474,26 +480,83 @@ fn github_client() -> Result<Client, String> {
         .map_err(|error| error.to_string())
 }
 
+/// Master's commit from the git ref advertisement (pkt-lines). Anything unexpected
+/// is an error, never a guess.
+fn parse_master_ref(bytes: &[u8]) -> Result<String, String> {
+    let invalid = || "The specials ref list is invalid".to_string();
+    let mut rest = bytes;
+    let mut master = None;
+    while !rest.is_empty() {
+        let length = rest
+            .get(..4)
+            .and_then(|digits| std::str::from_utf8(digits).ok())
+            .and_then(|digits| usize::from_str_radix(digits, 16).ok())
+            .ok_or_else(invalid)?;
+        if length == 0 {
+            rest = &rest[4..];
+            continue;
+        }
+        if length < 4 || length > rest.len() {
+            return Err(invalid());
+        }
+        let line = &rest[4..length];
+        rest = &rest[length..];
+        // The first ref carries capabilities after a NUL.
+        let line = line.split(|byte| *byte == 0).next().unwrap_or_default();
+        let line = line.strip_suffix(b"\n").unwrap_or(line);
+        if let Some(sha) = line.strip_suffix(b" refs/heads/master") {
+            let sha = std::str::from_utf8(sha).map_err(|_| invalid())?;
+            if !valid_sha(sha) || master.replace(sha.to_string()).is_some() {
+                return Err(invalid());
+            }
+        }
+    }
+    master.ok_or_else(|| "The specials ref list has no master".into())
+}
+
+/// Master's commit without the REST API; the API is only the fallback.
+fn master_commit(client: &Client) -> Result<String, String> {
+    let refs = download_bytes(client, REFS_URL, "GitHub master reference", REFS_LIMIT)
+        .and_then(|bytes| parse_master_ref(&bytes));
+    match refs {
+        Ok(sha) => Ok(sha),
+        Err(error) => {
+            eprintln!("Reading master from git refs failed, using the GitHub API: {error}");
+            get_commit(client, "master").map(|commit| commit.sha)
+        }
+    }
+}
+
 pub fn environments() -> Result<Option<EnvironmentList>, String> {
     let client = &github_client()?;
-    let master = get_commit(client, "master")?;
+    let master = master_commit(client)?;
     Ok(
-        environment_table(client, &master.sha)?.map(|environments| EnvironmentList {
-            master: master.sha,
+        environment_table(client, &master)?.map(|environments| EnvironmentList {
+            master,
             environments,
         }),
     )
 }
 
+/// 706 script bytes by path.
+type ScriptFiles = HashMap<String, Vec<u8>>;
+
+/// What to install. `files` holds every 706 script when the list came from the
+/// archive, so nothing is downloaded twice.
+struct Selection {
+    commit: String,
+    tree: String,
+    environment: Option<String>,
+    entries: Vec<GitEntry>,
+    files: Option<ScriptFiles>,
+}
+
 /// Resolves what to install: the chosen environment's S commit, or the newest one,
 /// or plain master while no table exists. The table and master are read once from
-/// the same pinned commit. Returns (commit, 706 tree, environment id, entries).
-fn select_entries(
-    client: &Client,
-    choice: Option<&str>,
-) -> Result<(String, String, Option<String>, Vec<GitEntry>), String> {
-    let master = get_commit(client, "master")?;
-    let table = environment_table(client, &master.sha)?;
+/// the same pinned commit.
+fn select_entries(client: &Client, root: &Path, choice: Option<&str>) -> Result<Selection, String> {
+    let master = master_commit(client)?;
+    let table = environment_table(client, &master)?;
     let environment = match (table, choice) {
         (None, None) => None,
         (None, Some(_)) => return Err("The 706 environment table is not available yet".into()),
@@ -505,19 +568,230 @@ fn select_entries(
         ),
     };
     let Some(environment) = environment else {
+        let master = get_commit(client, &master)?;
         let (tree, entries) = entries_at(client, &master)?;
-        return Ok((master.sha, tree, None, entries));
+        return Ok(Selection {
+            commit: master.sha,
+            tree,
+            environment: None,
+            entries,
+            files: None,
+        });
     };
-    let commit = get_commit(client, &environment.specials.commit)?;
-    if commit.sha != environment.specials.commit {
-        return Err("GitHub returned a different commit for the environment".into());
-    }
-    let (tree, entries) = entries_at(client, &commit)?;
+    let commit = environment.specials.commit;
     // The table pins the 706 subtree; anything else is not this environment.
-    if tree != environment.specials.tree706 {
-        return Err("The environment's 706 tree does not match the table".into());
+    let tree = environment.specials.tree706;
+    let local = match local_entries(client, root, &commit, &tree) {
+        Ok((entries, files)) => {
+            return Ok(Selection {
+                commit,
+                tree,
+                environment: Some(environment.id),
+                entries,
+                files,
+            })
+        }
+        Err(error) => error,
+    };
+    eprintln!("Verifying the 706 list without the GitHub API failed, using the API: {local}");
+    let with_api = || -> Result<Vec<GitEntry>, String> {
+        let response = get_commit(client, &commit)?;
+        if response.sha != commit {
+            return Err("GitHub returned a different commit for the environment".into());
+        }
+        let (api_tree, entries) = entries_at(client, &response)?;
+        if api_tree != tree {
+            return Err("The environment's 706 tree does not match the table".into());
+        }
+        Ok(entries)
+    };
+    let entries = with_api().map_err(|error| format!("{error}; without the API: {local}"))?;
+    Ok(Selection {
+        commit,
+        tree,
+        environment: Some(environment.id),
+        entries,
+        files: None,
+    })
+}
+
+/// The 706 file list for a pinned tree: from the cache, or from the commit's
+/// archive. Either way it is used only if its git tree id equals `tree706`.
+fn local_entries(
+    client: &Client,
+    root: &Path,
+    commit: &str,
+    tree706: &str,
+) -> Result<(Vec<GitEntry>, Option<ScriptFiles>), String> {
+    let cache = tree_cache_dir(root).join(format!("{tree706}.json"));
+    if let Some(entries) = read_tree_cache(&cache, tree706) {
+        return Ok((entries, None));
     }
-    Ok((commit.sha, tree, Some(environment.id), entries))
+    let address = format!("https://codeload.github.com/301zrg/specials/zip/{commit}");
+    let bytes = download_bytes(client, &address, "GitHub script archive", MAX_ARCHIVE_BYTES)?;
+    let (entries, files) = archive_tree(bytes, commit)?;
+    if tree_sha(&entries)? != tree706 {
+        return Err("The script archive does not match the environment's 706 tree".into());
+    }
+    if let Err(error) = write_tree_cache(root, &cache, &entries) {
+        eprintln!("Cannot cache the 706 file list: {error}");
+    }
+    Ok((entries, Some(files)))
+}
+
+fn tree_cache_dir(root: &Path) -> PathBuf {
+    settings::data_dir(root).join("script-trees")
+}
+
+/// A cached list that is unreadable or does not hash to its tree is dropped.
+fn read_tree_cache(path: &Path, tree706: &str) -> Option<Vec<GitEntry>> {
+    let bytes = read_small(path)?;
+    let verified = serde_json::from_slice::<Vec<GitEntry>>(&bytes)
+        .ok()
+        .and_then(|entries| validate_entries(entries).ok())
+        .filter(|entries| tree_sha(entries).ok().as_deref() == Some(tree706));
+    if verified.is_none() {
+        let _ = fs::remove_file(path);
+    }
+    verified
+}
+
+fn read_small(path: &Path) -> Option<Vec<u8>> {
+    let file = fs::File::open(path).ok()?;
+    let mut bytes = Vec::new();
+    file.take(2 * 1024 * 1024 + 1)
+        .read_to_end(&mut bytes)
+        .ok()?;
+    (bytes.len() <= 2 * 1024 * 1024).then_some(bytes)
+}
+
+fn write_tree_cache(root: &Path, path: &Path, entries: &[GitEntry]) -> Result<(), String> {
+    let bytes = serde_json::to_vec(entries).map_err(|error| error.to_string())?;
+    atomic_write(path, &bytes)?;
+    // Keep the newest lists only; any of them can be rebuilt from its archive.
+    let mut cached: Vec<(SystemTime, PathBuf)> = fs::read_dir(tree_cache_dir(root))
+        .map_err(|error| error.to_string())?
+        .filter_map(Result::ok)
+        .filter(|item| item.path() != path)
+        .filter(|item| item.path().extension().is_some_and(|ext| ext == "json"))
+        .filter_map(|item| Some((item.metadata().ok()?.modified().ok()?, item.path())))
+        .collect();
+    cached.sort();
+    let excess = cached.len().saturating_sub(TREE_CACHE_LIMIT - 1);
+    for (_, old) in cached.into_iter().take(excess) {
+        let _ = fs::remove_file(old);
+    }
+    Ok(())
+}
+
+/// Every file under 706/ in a codeload archive, with git blob ids. The archive
+/// carries no file modes, so all files count as 100644; anything else (an
+/// executable or a link) changes the tree id and is caught by the caller.
+fn archive_tree(bytes: Vec<u8>, commit: &str) -> Result<(Vec<GitEntry>, ScriptFiles), String> {
+    let mut archive = zip::ZipArchive::new(Cursor::new(bytes))
+        .map_err(|error| format!("Invalid GitHub script archive: {error}"))?;
+    let prefix = format!("specials-{commit}/706/");
+    let mut entries = Vec::new();
+    let mut files = HashMap::new();
+    let mut total = 0usize;
+    for index in 0..archive.len() {
+        let file = archive.by_index(index).map_err(|error| error.to_string())?;
+        if file.is_dir() {
+            continue;
+        }
+        let Some(name) = file.name().strip_prefix(&prefix).map(str::to_string) else {
+            continue;
+        };
+        if file.size() > MAX_FILE_BYTES as u64 {
+            return Err(format!("Archive script is too large: {name}"));
+        }
+        let mut content = Vec::new();
+        file.take(MAX_FILE_BYTES as u64 + 1)
+            .read_to_end(&mut content)
+            .map_err(|error| format!("Failed to read archive script {name}: {error}"))?;
+        if content.len() > MAX_FILE_BYTES {
+            return Err(format!("Archive script is too large: {name}"));
+        }
+        total = total
+            .checked_add(content.len())
+            .ok_or("Script size overflow")?;
+        if total > MAX_TOTAL_BYTES {
+            return Err("Script set exceeds the size limit".into());
+        }
+        entries.push(GitEntry {
+            path: name.clone(),
+            mode: "100644".into(),
+            kind: "blob".into(),
+            sha: git_blob_sha(&content),
+            size: Some(content.len()),
+        });
+        if files.insert(name.clone(), content).is_some() {
+            return Err(format!("Duplicate archive script: {name}"));
+        }
+    }
+    Ok((validate_entries(entries)?, files))
+}
+
+/// Git's tree id for a flat list of blobs (paths may contain '/'), computed the
+/// way git does: one tree object per directory, entries in git's order.
+fn tree_sha(entries: &[GitEntry]) -> Result<String, String> {
+    enum Node {
+        Blob(String, [u8; 20]),
+        Tree(BTreeMap<String, Node>),
+    }
+    fn raw_sha(hex: &str) -> Result<[u8; 20], String> {
+        let mut out = [0u8; 20];
+        if !valid_sha(hex) {
+            return Err("Invalid blob id".into());
+        }
+        for (index, byte) in out.iter_mut().enumerate() {
+            *byte = u8::from_str_radix(&hex[index * 2..index * 2 + 2], 16)
+                .map_err(|_| "Invalid blob id")?;
+        }
+        Ok(out)
+    }
+    fn hash(tree: &BTreeMap<String, Node>) -> [u8; 20] {
+        let mut items: Vec<(Vec<u8>, Vec<u8>)> = tree
+            .iter()
+            .map(|(name, node)| {
+                let (mode, sha, key) = match node {
+                    Node::Blob(mode, sha) => (mode.as_str(), *sha, name.clone()),
+                    // Git orders a directory as if its name ended with '/'.
+                    Node::Tree(children) => ("40000", hash(children), format!("{name}/")),
+                };
+                let mut record = format!("{mode} {name}\0").into_bytes();
+                record.extend_from_slice(&sha);
+                (key.into_bytes(), record)
+            })
+            .collect();
+        items.sort();
+        let body: Vec<u8> = items.into_iter().flat_map(|(_, record)| record).collect();
+        let mut sha = Sha1::new();
+        sha.update(format!("tree {}\0", body.len()).as_bytes());
+        sha.update(&body);
+        sha.finalize().into()
+    }
+    let mut top = BTreeMap::new();
+    for entry in entries {
+        let mut parts: Vec<&str> = entry.path.split('/').collect();
+        let name = parts.pop().ok_or("Empty script path")?;
+        let mut folder = &mut top;
+        for part in parts {
+            let node = folder
+                .entry(part.to_string())
+                .or_insert_with(|| Node::Tree(BTreeMap::new()));
+            folder = match node {
+                Node::Tree(children) => children,
+                Node::Blob(..) => return Err("A script path is both a file and a folder".into()),
+            };
+        }
+        let blob = Node::Blob(entry.mode.clone(), raw_sha(&entry.sha)?);
+        if folder.insert(name.to_string(), blob).is_some() {
+            return Err("A script path is listed twice".into());
+        }
+    }
+    let sha = hash(&top);
+    Ok(sha.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
 fn entries_at(client: &Client, commit: &CommitResponse) -> Result<(String, Vec<GitEntry>), String> {
@@ -543,13 +817,20 @@ fn entries_at(client: &Client, commit: &CommitResponse) -> Result<(String, Vec<G
     if children.truncated {
         return Err("GitHub 706 tree was truncated".into());
     }
-    let mut entries = Vec::new();
+    let entries = children
+        .tree
+        .into_iter()
+        .filter(|entry| entry.kind != "tree")
+        .collect();
+    Ok((folder.sha, validate_entries(entries)?))
+}
+
+/// The same limits for every source of a 706 list: plain files with safe,
+/// case-distinct names, valid ids and bounded sizes.
+fn validate_entries(entries: Vec<GitEntry>) -> Result<Vec<GitEntry>, String> {
     let mut names = HashSet::new();
     let mut total = 0usize;
-    for entry in children.tree {
-        if entry.kind == "tree" {
-            continue;
-        }
+    for entry in &entries {
         if entry.kind != "blob"
             || !matches!(entry.mode.as_str(), "100644" | "100755")
             || !safe_path(&entry.path)
@@ -569,12 +850,11 @@ fn entries_at(client: &Client, commit: &CommitResponse) -> Result<(String, Vec<G
         if total > MAX_TOTAL_BYTES {
             return Err("Script set exceeds the size limit".into());
         }
-        entries.push(entry);
     }
     if entries.is_empty() || entries.len() > MAX_FILES {
         return Err("GitHub 706 file list is empty or too large".into());
     }
-    Ok((folder.sha, entries))
+    Ok(entries)
 }
 fn raw_url(commit: &str, path: &str) -> Result<reqwest::Url, String> {
     let mut url = reqwest::Url::parse("https://raw.githubusercontent.com/301zrg/specials/")
@@ -842,7 +1122,13 @@ pub fn update(
         Some("latest") => None,
         Some(id) => Some(id.to_string()),
     };
-    let (commit, tree, resolved, mut entries) = select_entries(client, choice.as_deref())?;
+    let Selection {
+        commit,
+        tree,
+        environment: resolved,
+        mut entries,
+        files: prefetched,
+    } = select_entries(client, root, choice.as_deref())?;
     if !is_koishipro(root)? {
         let special = entries
             .iter()
@@ -911,7 +1197,9 @@ pub fn update(
         .cloned()
         .collect();
     let mut archive_error = None;
-    let archive = if needed.len() > 4 {
+    let archive = if prefetched.is_some() {
+        prefetched
+    } else if needed.len() > 4 {
         match archive_scripts(client, &commit, &needed) {
             Ok(files) => Some(files),
             Err(error) => {
@@ -1354,6 +1642,178 @@ mod tests {
         let mut bad = entry;
         bad.sha = "0000000000000000000000000000000000000000".into();
         assert!(parse_archive(bytes, commit, &[bad]).is_err());
+    }
+
+    fn blob(path: &str, content: &[u8]) -> GitEntry {
+        GitEntry {
+            path: path.into(),
+            mode: "100644".into(),
+            kind: "blob".into(),
+            sha: git_blob_sha(content),
+            size: Some(content.len()),
+        }
+    }
+    /// `git write-tree` of these four files; "sub.lua" sorts before folder "sub".
+    const VECTOR_TREE: &str = "6f30343bea9d213b313f654c37c42d7127876ef9";
+    fn vector() -> Vec<(&'static str, &'static [u8])> {
+        vec![
+            ("sub/deep/c.lua", b"w\n"),
+            ("a.lua", b"x\n"),
+            ("sub/b.lua", b"z\n"),
+            ("sub.lua", b"y\n"),
+        ]
+    }
+    fn vector_archive(commit: &str, files: &[(&str, &[u8])]) -> Vec<u8> {
+        let mut writer = zip::ZipWriter::new(Cursor::new(Vec::new()));
+        let options = zip::write::FileOptions::default();
+        writer
+            .add_directory(format!("specials-{commit}/706/sub/"), options)
+            .unwrap();
+        for (path, content) in files {
+            writer
+                .start_file(format!("specials-{commit}/706/{path}"), options)
+                .unwrap();
+            writer.write_all(content).unwrap();
+        }
+        writer
+            .start_file(format!("specials-{commit}/706-meta/versions.json"), options)
+            .unwrap();
+        writer.write_all(b"{}").unwrap();
+        writer.finish().unwrap().into_inner()
+    }
+
+    #[test]
+    fn tree_id_matches_git_write_tree() {
+        let entries: Vec<GitEntry> = vector().into_iter().map(|(p, c)| blob(p, c)).collect();
+        assert_eq!(tree_sha(&entries).unwrap(), VECTOR_TREE);
+        // A different mode or content is a different tree.
+        let mut executable = entries.clone();
+        executable[1].mode = "100755".into();
+        assert_ne!(tree_sha(&executable).unwrap(), VECTOR_TREE);
+        let mut twice = entries.clone();
+        twice.push(blob("a.lua", b"x\n"));
+        assert!(tree_sha(&twice).is_err());
+        let mut both = entries;
+        both.push(blob("a.lua/inner.lua", b"x\n"));
+        assert!(tree_sha(&both).is_err());
+    }
+
+    #[test]
+    fn master_is_read_from_the_git_ref_list() {
+        fn pkt(line: &[u8]) -> Vec<u8> {
+            let mut out = format!("{:04x}", line.len() + 4).into_bytes();
+            out.extend_from_slice(line);
+            out
+        }
+        let master = "40c4b3b391624f39c6e5aa8da2cbe8205a62651f";
+        let list = |refs: &[Vec<u8>]| {
+            let mut out = pkt(b"# service=git-upload-pack\n");
+            out.extend_from_slice(b"0000");
+            for line in refs {
+                out.extend(pkt(line));
+            }
+            out.extend_from_slice(b"0000");
+            out
+        };
+        let head = format!("{master} HEAD\0multi_ack symref=HEAD:refs/heads/master\n").into_bytes();
+        let good = list(&[
+            head.clone(),
+            format!("{} refs/heads/main\n", "1".repeat(40)).into_bytes(),
+            format!("{master} refs/heads/master\n").into_bytes(),
+        ]);
+        assert_eq!(parse_master_ref(&good).unwrap(), master);
+        // Master as the first ref carries the capabilities.
+        let first = list(&[format!("{master} refs/heads/master\0caps\n").into_bytes()]);
+        assert_eq!(parse_master_ref(&first).unwrap(), master);
+        assert!(parse_master_ref(&list(&[head])).is_err());
+        let twice = list(&[
+            format!("{master} refs/heads/master\n").into_bytes(),
+            format!("{master} refs/heads/master\n").into_bytes(),
+        ]);
+        assert!(parse_master_ref(&twice).is_err());
+        assert!(parse_master_ref(&list(&[b"nothex refs/heads/master\n".to_vec()])).is_err());
+        let mut cut = good.clone();
+        cut.truncate(good.len() - 10);
+        assert!(parse_master_ref(&cut).is_err());
+        assert!(parse_master_ref(b"<html>rate limited</html>").is_err());
+    }
+
+    #[test]
+    fn archive_list_is_verified_cached_and_rejected_when_tampered() {
+        let commit = "0123456789abcdef0123456789abcdef01234567";
+        let (entries, files) = archive_tree(vector_archive(commit, &vector()), commit).unwrap();
+        assert_eq!(tree_sha(&entries).unwrap(), VECTOR_TREE);
+        assert_eq!(files.len(), 4);
+        assert_eq!(files.get("sub/deep/c.lua").unwrap().as_slice(), b"w\n");
+        // A changed script gives another tree id.
+        let mut changed = vector();
+        changed[1].1 = b"X\n";
+        let (other, _) = archive_tree(vector_archive(commit, &changed), commit).unwrap();
+        assert_ne!(tree_sha(&other).unwrap(), VECTOR_TREE);
+        // Nothing under 706/ is an error, not an empty environment.
+        assert!(archive_tree(vector_archive(commit, &[]), commit).is_err());
+
+        let root = std::env::temp_dir().join(format!("srvpro-script-test-{}", Uuid::new_v4()));
+        let cache = tree_cache_dir(&root).join(format!("{VECTOR_TREE}.json"));
+        write_tree_cache(&root, &cache, &entries).unwrap();
+        assert_eq!(read_tree_cache(&cache, VECTOR_TREE).unwrap().len(), 4);
+        // Read under another tree id, or after an edit, the list is dropped.
+        assert!(read_tree_cache(&cache, &"0".repeat(40)).is_none());
+        assert!(!cache.exists());
+        let mut tampered = entries.clone();
+        tampered[0].sha = git_blob_sha(b"other");
+        write_tree_cache(&root, &cache, &tampered).unwrap();
+        assert!(read_tree_cache(&cache, VECTOR_TREE).is_none());
+        assert!(!cache.exists());
+        fs::write(&cache, b"not json").unwrap();
+        assert!(read_tree_cache(&cache, VECTOR_TREE).is_none());
+        // Only the newest lists are kept.
+        for index in 0..TREE_CACHE_LIMIT + 3 {
+            let path = tree_cache_dir(&root).join(format!("{index:040}.json"));
+            write_tree_cache(&root, &path, &entries).unwrap();
+        }
+        assert_eq!(
+            fs::read_dir(tree_cache_dir(&root)).unwrap().count(),
+            TREE_CACHE_LIMIT
+        );
+        let last = format!("{:040}.json", TREE_CACHE_LIMIT + 2);
+        assert!(tree_cache_dir(&root).join(last).exists());
+        assert!(root.starts_with(std::env::temp_dir()));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// Network: run with `cargo test -- --ignored`. Every live environment's 706
+    /// list is rebuilt from its archive alone and must match the table.
+    #[test]
+    #[ignore]
+    fn live_environments_verify_without_the_rest_api() {
+        let client = &github_client().unwrap();
+        let master =
+            parse_master_ref(&download_bytes(client, REFS_URL, "refs", REFS_LIMIT).unwrap())
+                .unwrap();
+        let list = environment_table(client, &master).unwrap().unwrap();
+        let root = std::env::temp_dir().join(format!("srvpro-script-test-{}", Uuid::new_v4()));
+        for entry in list {
+            let (entries, files) = local_entries(
+                client,
+                &root,
+                &entry.specials.commit,
+                &entry.specials.tree706,
+            )
+            .unwrap_or_else(|error| panic!("{}: {error}", entry.id));
+            assert_eq!(files.unwrap().len(), entries.len(), "{}", entry.id);
+            // Second time from the cache, without downloading.
+            let (cached, none) = local_entries(
+                client,
+                &root,
+                &entry.specials.commit,
+                &entry.specials.tree706,
+            )
+            .unwrap();
+            assert!(none.is_none() && cached.len() == entries.len());
+        }
+        assert!(root.starts_with(std::env::temp_dir()));
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
