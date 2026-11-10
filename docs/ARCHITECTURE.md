@@ -263,7 +263,9 @@ flowchart LR
 
 ### 5.1 脚本更新事务
 
-更新器固定一次 GitHub commit，定位 706 子树，校验 Git blob SHA，并记录本地 SHA-256。较多文件变化时先尝试固定 commit 的 ZIP，失败后退回固定 commit 的 raw 文件。原版 YGOPro 另用固定版本的官方 `utility.lua` 与该次 `special.lua` 生成扩展脚本；KoishiPro 不生成这份额外文件。
+更新器固定一次 GitHub commit，定位 706 子树，校验 Git blob SHA，并记录本地 SHA-256。较多文件变化时先尝试固定 commit 的 ZIP，失败后退回固定 commit 的 raw 文件。
+
+v0.2.5 起，有版本表时常规路径不调用 REST API（匿名每网络每小时 60 次）：master 的 commit 从 git 引用列表 `info/refs` 读取，版本表走 raw；706 文件清单优先取 `srvprotianti-desktop-data/script-trees/<tree706>.json`，否则下载环境 S 提交的 ZIP，在本地按 git 规则计算树 ID，等于版本表的 `tree706` 才使用（缓存每次读取都重算，最多保留 16 份）。codeload ZIP 不带文件模式，一律按 `100644` 计算，出现其他模式时树 ID 不符。任一步失败都退回原来的 `commits`/`git/trees` 接口路径；没有版本表、跟随 master 的旧路径仍用接口。原版 YGOPro 另用固定版本的官方 `utility.lua` 与该次 `special.lua` 生成扩展脚本；KoishiPro 不生成这份额外文件。
 
 ```mermaid
 flowchart TB
