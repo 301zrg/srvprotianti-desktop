@@ -61,32 +61,46 @@ fn get_settings(state: State<'_, AppState>) -> Result<Settings, String> {
 }
 
 #[tauri::command]
-fn save_settings(state: State<'_, AppState>, settings: Settings) -> Result<Settings, String> {
+fn save_settings(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    settings: Settings,
+) -> Result<Settings, String> {
     let _guard = state
         .config_lock
         .lock()
         .map_err(|_| "Settings lock is unavailable")?;
-    settings::save(&state.root, &settings)
+    let saved = settings::save(&state.root, &settings)?;
+    pages_runtime::refresh_menu_language(&app, &saved.ui.language);
+    Ok(saved)
 }
 
 #[tauri::command]
-fn reset_settings(state: State<'_, AppState>) -> Result<Settings, String> {
+fn reset_settings(app: AppHandle, state: State<'_, AppState>) -> Result<Settings, String> {
     let _guard = state
         .config_lock
         .lock()
         .map_err(|_| "Settings lock is unavailable")?;
-    settings::reset(&state.root)
+    let saved = settings::reset(&state.root)?;
+    pages_runtime::refresh_menu_language(&app, &saved.ui.language);
+    Ok(saved)
 }
 
 #[tauri::command]
-fn set_language(state: State<'_, AppState>, language: String) -> Result<(), String> {
+fn set_language(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    language: String,
+) -> Result<(), String> {
     let _guard = state
         .config_lock
         .lock()
         .map_err(|_| "Settings lock is unavailable")?;
     let mut settings = settings::load(&state.root)?;
     settings.ui.language = language;
-    settings::save(&state.root, &settings).map(|_| ())
+    let saved = settings::save(&state.root, &settings)?;
+    pages_runtime::refresh_menu_language(&app, &saved.ui.language);
+    Ok(())
 }
 
 #[tauri::command]

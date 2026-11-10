@@ -10,6 +10,7 @@ use tauri::{AppHandle, Emitter, Manager};
 
 const CSP:&str="default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost";
 const RECOVER_MENU: &str = "recover-builtin-pages";
+const RECOVER_SUBMENU: &str = "page-recovery";
 
 pub use crate::release_http::allowed_asset_redirect as allowed_redirect;
 pub fn local_path(path: &str) -> Result<String, String> {
@@ -317,19 +318,46 @@ pub fn serve(
         })
         .unwrap()
 }
+/// (menu item, submenu title) for the native page-recovery menu.
+fn menu_text(language: &str) -> (&'static str, &'static str) {
+    match language {
+        "en" => ("Use built-in pages on next launch", "Page recovery"),
+        "ja" => ("次回起動時に内蔵ページを使用", "ページの復旧"),
+        "ko" => ("다음 실행 시 내장 페이지 사용", "페이지 복구"),
+        _ => ("下次启动使用内置页面", "页面恢复"),
+    }
+}
+
+/// The native menu is built once at startup; relabel it when the saved language changes.
+pub fn refresh_menu_language(app: &AppHandle, language: &str) {
+    let (label, title) = menu_text(language);
+    let Some(submenu) = app
+        .menu()
+        .and_then(|menu| menu.get(RECOVER_SUBMENU))
+        .and_then(|kind| kind.as_submenu().cloned())
+    else {
+        return;
+    };
+    let item = submenu
+        .get(RECOVER_MENU)
+        .and_then(|kind| kind.as_menuitem().cloned());
+    // A failed relabel only leaves the startup language; the menu still works.
+    if let Err(error) = submenu.set_text(title) {
+        eprintln!("Cannot relabel page recovery menu: {error}");
+    }
+    if let Some(Err(error)) = item.map(|item| item.set_text(label)) {
+        eprintln!("Cannot relabel page recovery menu item: {error}");
+    }
+}
+
 pub fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     use tauri::menu::{Menu, MenuItem, Submenu};
     let language = crate::settings::load(&app.state::<crate::AppState>().root)?
         .ui
         .language;
-    let (label, title) = match language.as_str() {
-        "en" => ("Use built-in pages on next launch", "Page recovery"),
-        "ja" => ("次回起動時に内蔵ページを使用", "ページの復旧"),
-        "ko" => ("다음 실행 시 내장 페이지 사용", "페이지 복구"),
-        _ => ("下次启动使用内置页面", "页面恢复"),
-    };
+    let (label, title) = menu_text(&language);
     let item = MenuItem::with_id(app, RECOVER_MENU, label, true, Some("Ctrl+Shift+R"))?;
-    let submenu = Submenu::with_items(app, title, true, &[&item])?;
+    let submenu = Submenu::with_id_and_items(app, RECOVER_SUBMENU, title, true, &[&item])?;
     app.set_menu(Menu::with_items(app, &[&submenu])?)?;
     app.on_menu_event(|app, event| {
         if event.id().as_ref() == RECOVER_MENU {
@@ -393,6 +421,14 @@ fn native_message(message: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn menu_text_follows_each_language_and_defaults_to_chinese() {
+        assert_eq!(menu_text("en").1, "Page recovery");
+        assert_eq!(menu_text("ja").1, "ページの復旧");
+        assert_eq!(menu_text("ko").1, "페이지 복구");
+        assert_eq!(menu_text("zh"), ("下次启动使用内置页面", "页面恢复"));
+        assert_eq!(menu_text("unknown"), menu_text("zh"));
+    }
     #[test]
     fn permits_only_https_github_asset_redirects_without_credentials_or_foreign_ports() {
         for good in ["https://release-assets.githubusercontent.com/github-production-release-asset/abc?token=x","https://objects.githubusercontent.com/github-production-release-asset/abc"] {
