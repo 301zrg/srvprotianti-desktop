@@ -100,7 +100,7 @@ const I18N = {
     mindMaster: '{date} 之前安装的旧裁定脚本不含「精神脑魔」，本地会按客户端自带的（勘误后的）效果运行，与服务器不同。请点击“检查并更新”。', envLabel: '规则版本', envLatest: '跟随最新', envInstalled: '当前安装：', envUndetermined: '未确定（与多个版本的覆盖脚本相同）', envUnknown: '未知（旧版助手安装）', envTableMissing: '规则版本表尚未发布，按最新脚本更新。', envLayerNote: '只切换旧裁定覆盖脚本；游戏自带的基础脚本和程序不归助手管理，所以不保证与服务器完全一致。', envFrom: ' 起', envEarliest: '更早的录像（兼容版本）', envTableFailed: '读取规则版本表失败：', promptToggle: '通过“保存并播放”打开官网录像时，如果规则版本与本地不同，先提示我',
     updated: '脚本更新完成。', current: '已是最新，已校验本地文件。', restored: '已恢复上次更新。',
     conflict: '发现同名本地脚本或已修改的脚本。是否先备份这些文件，再使用仓库版本覆盖？',
-    failed: '操作失败：'
+    cancelled: '已取消更新，脚本未改动。', failed: '操作失败：'
   },
   ja: {
     title: '706 ランキング補助 設定', connection: '接続とゲーム', nickname: 'ログイン名（名前または名前$パスワード）',
@@ -116,7 +116,7 @@ const I18N = {
     mindMaster: '{date} より前にインストールした旧裁定スクリプトには「メンタルマスター」が含まれておらず、クライアント付属の（エラッタ後の）効果で動作するため、サーバーと異なります。「確認して更新」を押してください。', envLabel: 'ルールバージョン', envLatest: '最新に追従', envInstalled: '導入中：', envUndetermined: '未確定（複数のバージョンと上書きスクリプトが同じ）', envUnknown: '不明（旧版アシスタントで導入）', envTableMissing: 'ルールバージョン一覧はまだ公開されていないため、最新のスクリプトで更新します。', envLayerNote: '旧裁定の上書きスクリプトだけを切り替えます。ゲーム本体の基本スクリプトとプログラムは管理しないため、サーバーと完全に一致するとは限りません。', envFrom: ' から', envEarliest: 'それ以前のリプレイ（互換版）', envTableFailed: 'ルールバージョン一覧の読み込みに失敗：', promptToggle: '「保存して再生」で公式サイトのリプレイを開くとき、ルールバージョンが手元と違えば先に確認する',
     updated: '更新しました。', current: '最新版です。ローカルファイルも確認しました。', restored: '前回の更新を復元しました。',
     conflict: '同名のローカルスクリプト、または変更済みのスクリプトがあります。バックアップして上書きしますか？',
-    failed: '失敗：'
+    cancelled: '更新をキャンセルしました。スクリプトは変更していません。', failed: '失敗：'
   },
   en: {
     title: '706 Ladder Assistant Settings', connection: 'Connection and Game', nickname: 'Game login string (name or name$password)',
@@ -132,7 +132,7 @@ const I18N = {
     mindMaster: '“Mind Master” is not included in old-ruling scripts installed before {date}, so it runs with your client’s own (errata) script, which differs from the server. Click “Check and update”.', envLabel: 'Rule version', envLatest: 'Follow the newest', envInstalled: 'Installed: ', envUndetermined: 'undetermined (same override scripts as several versions)', envUnknown: 'unknown (installed by an older assistant)', envTableMissing: 'The rule version list is not published yet; updating to the newest scripts.', envLayerNote: 'Only the old-ruling override scripts are switched. The game’s own base scripts and program are not managed by the assistant, so an exact match with the server is not guaranteed.', envFrom: ' from', envEarliest: 'older replays (compatibility version)', envTableFailed: 'Could not read the rule version list: ', promptToggle: 'Ask me first when "Save and play" opens a site replay whose rule version differs from the installed one',
     updated: 'Scripts updated.', current: 'Already current; local files verified.', restored: 'Last update restored.',
     conflict: 'Same-name local scripts or edited scripts exist. Back them up and overwrite with the repository version?',
-    failed: 'Operation failed: '
+    cancelled: 'Update cancelled. No scripts were changed.', failed: 'Operation failed: '
   },
   ko: {
     title: '706 랭킹 도우미 설정', connection: '연결 및 게임', nickname: '게임 로그인 문자열 (이름 또는 이름$비밀번호)',
@@ -148,7 +148,7 @@ const I18N = {
     mindMaster: '{date} 이전에 설치한 구 재정 스크립트에는 「멘탈마스터」가 없어, 클라이언트에 포함된 (에라타 후) 효과로 동작하므로 서버와 다릅니다. 「확인 및 업데이트」를 눌러 주세요.', envLabel: '규칙 버전', envLatest: '최신 버전 따르기', envInstalled: '설치됨: ', envUndetermined: '확인 불가(여러 버전과 덮어쓰기 스크립트가 같음)', envUnknown: '알 수 없음(이전 도우미로 설치)', envTableMissing: '규칙 버전 목록이 아직 공개되지 않아 최신 스크립트로 업데이트합니다.', envLayerNote: '옛 재정 덮어쓰기 스크립트만 바꿉니다. 게임 자체의 기본 스크립트와 프로그램은 도우미가 관리하지 않으므로 서버와 완전히 같다고 보장하지 않습니다.', envFrom: '부터', envEarliest: '이전 리플레이(호환 버전)', envTableFailed: '규칙 버전 목록을 읽지 못했습니다: ', promptToggle: '"저장 후 재생"으로 공식 사이트 리플레이를 열 때 규칙 버전이 설치된 것과 다르면 먼저 묻기',
     updated: '스크립트를 업데이트했습니다.', current: '최신 버전이며 로컬 파일도 확인했습니다.', restored: '마지막 업데이트를 복원했습니다.',
     conflict: '이름이 같은 로컬 스크립트나 수정된 스크립트가 있습니다. 백업한 뒤 저장소 버전으로 덮어쓸까요?',
-    failed: '작업 실패: '
+    cancelled: '업데이트를 취소했습니다. 스크립트는 변경하지 않았습니다.', failed: '작업 실패: '
   }
 };
 const environmentText = {
@@ -290,7 +290,9 @@ async function runScriptOperation(operation) {
         result = await desktop.updateScripts(true, environmentId);
       }
     }
-    if (result.status === 'conflict') {
+    if (result.status === 'cancelled') {
+      setStatus(scriptStatus, t('cancelled'));
+    } else if (result.status === 'conflict') {
       setStatus(scriptStatus, conflictMessage(overwriteApproved ? 'changed' : 'kept') + '\n' + result.files.join('\n'), true);
     } else {
       setStatus(scriptStatus, t(result.status === 'current' ? 'current' : operation === 'update' ? 'updated' : 'restored'));

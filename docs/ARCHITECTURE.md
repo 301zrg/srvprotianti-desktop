@@ -124,6 +124,8 @@ flowchart TB
 
 `get_settings`、`save_settings`、`reset_settings`、`set_language` 管理配置；`api_request` 管理数据请求；`launch_game`、`save_and_open`、`open_saved` 管理启动和下载；`script_state`、`update_scripts`（可选 `environmentId`：环境 ID、`latest`，省略则沿用已保存的选择）、`script_environments`（从固定的 master commit 读取 `706-meta/versions.json`，未发布时为 null）、`restore_scripts` 管理脚本；`save_and_open` 的可选 `launch: false` 只保存并返回录像开局时间，由页面检查规则版本后再用 `open_saved` 启动；`environment_state`、`install_environment`、`restore_environment` 管理资源；`check_desktop_update`、`open_external` 管理版本检查和外部链接。
 
+移除旧裁定覆盖时，`originalMatchesInstall` 缺失表示旧记录的来源未知，不等同于明确的 `false`。可沿安装状态链接的本机事务记录，证明原备份曾等同于该路径安装过的 706 文件；仅有“原件与首次安装内容不同”不能证明是玩家自有文件。无法证明的旧备份由玩家逐文件选择移除覆盖或恢复原文件，备份始终保留。设置页更新和录像环境切换共用确认流程；`allowBackupConfirmation` 显式启用 `backup_confirmation` 响应，`backupDecisions` 携带绑定状态、目标和备份的确认令牌，过期选择拒绝应用。旧页面未声明支持时返回错误，避免误报成功或继续启动录像。该界面须与支持此契约的 EXE 配套发布。
+
 卡组详情的单卡投入率使用独立懒加载请求 `GET /api/ladder/deck-detail?view=card-usage`，沿用 v0.2.0 已有的精确 GET 白名单。网页与助手共享单卡板块、数据和 XLSX/CSV 逻辑，按五分区导出；`sync-web-source.mjs` 与页面包来源清单都显式包含 `deck-card-usage.js`。本功能无需扩展 Rust 权限或重发 EXE。
 
 使用率页的单卡“卡组分布”同理复用已放行的 `GET /api/ladder/usage/cards`，以 `view=deck-distribution` 区分；弹窗默认环形图，可切换完整列表，扇区或大号分类按钮只选中，明确的详情按钮再跳转。手机使用近全屏弹窗和固定详情栏，细小扇区通过分类列表选择；返回恢复同时处理重新加载与浏览器返回缓存。逻辑写在 `usage-stats.html` 内，样式在 `common.css`，不新增页面包资源文件，只需同步官网源码并发布页面包，无需改 Rust 白名单或重发 EXE。

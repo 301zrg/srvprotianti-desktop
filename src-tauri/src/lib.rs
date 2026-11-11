@@ -233,6 +233,8 @@ fn update_scripts(
     app: AppHandle,
     overwrite_conflicts: bool,
     environment_id: Option<String>,
+    allow_backup_confirmation: Option<bool>,
+    backup_decisions: Option<std::collections::BTreeMap<String, scripts::BackupDecision>>,
 ) -> Result<scripts::UpdateResult, String> {
     let _guard = state
         .script_lock
@@ -246,7 +248,9 @@ fn update_scripts(
         &app,
         overwrite_conflicts,
         environment_id.as_deref(),
-    )
+        backup_decisions.as_ref(),
+    )?
+    .for_pages(allow_backup_confirmation)
 }
 
 #[tauri::command]
