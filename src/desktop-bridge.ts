@@ -9,7 +9,9 @@ type Settings = {
   game: { executable: string };
   ui: { language: Language; replayEnvironmentPrompt?: boolean };
 };
-type ScriptResult = { status: string; files: string[] };
+type BackupRequest = { path: string; token: string };
+type BackupDecision = { token: string; action: 'drop' | 'restore' };
+type ScriptResult = { status: string; files: string[]; backupRequests?: BackupRequest[] };
 type ScriptState = {
   commit: string | null;
   canRestore: boolean;
@@ -344,6 +346,68 @@ function installedEnvironment(state: ScriptState, list: RuleEnvironment[]): stri
   const same = list.filter(e => state.tree && e.specials.tree706 === state.tree);
   return same.length === 1 ? same[0].id : null;
 }
+const backupMessages = {
+  zh: { title: '确认旧脚本备份的用途', text: '以下覆盖脚本已不在目标规则版本中，但旧安装记录无法证明备份的来源。请逐项选择：如果是以前手动复制的 706 脚本，移除覆盖；如果是你自己的脚本，恢复原文件。备份始终保留。取消不会应用本次更新。', choose: '请选择处理方式', drop: '移除覆盖，跟随目标规则版本', restore: '恢复我的原始文件', apply: '按所选方式继续更新', cancel: '取消更新', unavailable: '备份确认信息已变化，请重新检查更新。' },
+  ja: { title: '古いスクリプトのバックアップを確認', text: '次の上書きスクリプトは対象のルールバージョンにはありませんが、古いインストール記録からバックアップの由来を確認できません。以前手動でコピーした 706 スクリプトなら上書きを削除し、ご自身のスクリプトなら元のファイルを復元してください。バックアップは常に保持します。キャンセルすると今回の更新は適用しません。', choose: '処理方法を選択', drop: '上書きを削除して対象ルールに従う', restore: '自分の元のファイルを復元', apply: '選択した方法で更新を続行', cancel: '更新をキャンセル', unavailable: 'バックアップの確認情報が変わりました。更新を再確認してください。' },
+  en: { title: 'Identify old script backups', text: 'These overrides are absent from the target rule version, and old install records cannot establish where their backups came from. Choose for each file: remove the override if it was a manually copied 706 script, or restore the original if it was your own script. Backups are always kept. Cancelling will not apply this update.', choose: 'Choose an action', drop: 'Remove override and follow the target rules', restore: 'Restore my original file', apply: 'Continue with these choices', cancel: 'Cancel update', unavailable: 'Backup confirmation details changed. Check for updates again.' },
+  ko: { title: '이전 스크립트 백업 확인', text: '다음 덮어쓰기 스크립트는 대상 규칙 버전에 없지만, 이전 설치 기록으로 백업의 출처를 확인할 수 없습니다. 직접 복사한 706 스크립트라면 덮어쓰기를 제거하고, 본인의 스크립트라면 원본 파일을 복원하세요. 백업은 항상 보관합니다. 취소하면 이번 업데이트를 적용하지 않습니다.', choose: '처리 방법 선택', drop: '덮어쓰기를 제거하고 대상 규칙 따르기', restore: '내 원본 파일 복원', apply: '선택한 방법으로 업데이트 계속', cancel: '업데이트 취소', unavailable: '백업 확인 정보가 변경되었습니다. 업데이트를 다시 확인하세요.' }
+};
+function askScriptBackups(requests: BackupRequest[]): Promise<Record<string, BackupDecision> | null> {
+  const t = backupMessages[currentLanguage()];
+  return new Promise(resolve => {
+    const dialog = document.createElement('dialog');
+    dialog.id = 'desktop-backup-prompt';
+    dialog.setAttribute('aria-labelledby', 'desktop-backup-title');
+    dialog.setAttribute('aria-describedby', 'desktop-backup-text');
+    dialog.style.cssText = 'max-width:min(620px,92vw);max-height:85vh;overflow:auto;padding:20px;border:1px solid #556;border-radius:10px;background:#1d2230;color:#eef;font:14px/1.6 system-ui,sans-serif';
+    const title = document.createElement('h2');
+    title.id = 'desktop-backup-title'; title.textContent = t.title;
+    const text = document.createElement('p');
+    text.id = 'desktop-backup-text'; text.textContent = t.text;
+    dialog.append(title, text);
+    const selections: HTMLSelectElement[] = [];
+    const apply = document.createElement('button');
+    apply.type = 'button'; apply.dataset.action = 'apply'; apply.textContent = t.apply; apply.disabled = true;
+    for (const request of requests) {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:block;margin:14px 0;overflow-wrap:anywhere';
+      const name = document.createElement('span'); name.textContent = request.path;
+      const select = document.createElement('select');
+      select.style.cssText = 'display:block;max-width:100%;margin-top:4px';
+      for (const [value, text] of [['', t.choose], ['drop', t.drop], ['restore', t.restore]]) {
+        const option = document.createElement('option'); option.value = value; option.textContent = text; select.append(option);
+      }
+      select.onchange = () => { apply.disabled = selections.some(item => !item.value); };
+      selections.push(select); label.append(name, select); dialog.append(label);
+    }
+    const done = (result: Record<string, BackupDecision> | null) => {
+      dialog.close(); dialog.remove(); resolve(result);
+    };
+    apply.onclick = () => {
+      if (selections.some(select => !select.value)) return;
+      done(Object.fromEntries(requests.map((request, i) => [request.path, { token: request.token, action: selections[i].value as BackupDecision['action'] }])));
+    };
+    const cancel = document.createElement('button');
+    cancel.type = 'button'; cancel.dataset.action = 'cancel'; cancel.textContent = t.cancel; cancel.onclick = () => done(null);
+    const row = document.createElement('div'); row.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end';
+    row.append(cancel, apply); dialog.append(row);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); done(null); });
+    document.body.append(dialog); dialog.showModal(); cancel.focus();
+  });
+}
+async function updateScripts(overwriteConflicts: boolean, environmentId?: string): Promise<ScriptResult> {
+  const args = { overwriteConflicts, environmentId, allowBackupConfirmation: true };
+  let result = await invoke<ScriptResult>('update_scripts', args);
+  if (result.status === 'backup_confirmation') {
+    const requests = result.backupRequests;
+    if (!requests?.length) throw new Error(backupMessages[currentLanguage()].unavailable);
+    const backupDecisions = await askScriptBackups(requests);
+    if (!backupDecisions) return { status: 'cancelled', files: [] };
+    result = await invoke<ScriptResult>('update_scripts', { ...args, backupDecisions });
+  }
+  if (!['current', 'updated', 'conflict'].includes(result.status)) throw new Error(backupMessages[currentLanguage()].unavailable);
+  return result;
+}
 function askEnvironment(target: string, installed: string): Promise<{ action: 'switch' | 'play' | 'cancel'; dontAsk: boolean }> {
   return new Promise(resolve => {
     const dialog = document.createElement('dialog');
@@ -409,7 +473,8 @@ async function checkReplayEnvironment(start: number | null): Promise<Environment
   if (answer.action !== 'switch') return { action: answer.action };
   toast(msg('envSwitching'));
   try {
-    const result = await invoke<ScriptResult>('update_scripts', { overwriteConflicts: false, environmentId: target });
+    const result = await updateScripts(false, target);
+    if (result.status === 'cancelled') return { action: 'cancel' };
     if (result.status === 'conflict') {
       toast(msg('envConflict') + '\n' + result.files.join('\n'), true);
       return { action: 'stop' };
@@ -783,7 +848,7 @@ window.SrvproDesktop = {
   joinRoom: room => openRoom(room, 'join'),
   watchRoom: room => openRoom(room, 'watch'),
   scriptState: () => invoke('script_state'),
-  updateScripts: (overwriteConflicts, environmentId) => invoke('update_scripts', { overwriteConflicts, environmentId }),
+  updateScripts,
   scriptEnvironments: () => invoke('script_environments'),
   restoreScripts: () => invoke('restore_scripts'),
   environmentState: () => invoke('environment_state'),

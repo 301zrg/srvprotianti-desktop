@@ -125,8 +125,9 @@ struct ManagedFile {
     original_backup: Option<String>,
     /// The original backup held exactly the bytes first installed over it, i.e. an
     /// earlier copy of the same 706 script rather than the player's own file.
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    original_matches_install: bool,
+    /// Missing in legacy records: its origin must be established before removal.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    original_matches_install: Option<bool>,
 }
 
 /// An unmanaged local file that already equals the remote blob loses nothing when
@@ -140,7 +141,7 @@ fn adoptable(path: &str, local: &[u8], remote_blob: &str) -> bool {
 /// otherwise a stale override would outlive its removal. The backup file stays.
 fn removal_result(managed: &ManagedFile, original: Option<Vec<u8>>) -> Option<Vec<u8>> {
     original.filter(|bytes| {
-        !managed.original_matches_install && sha256(bytes) != managed.installed_sha256
+        managed.original_matches_install != Some(true) && sha256(bytes) != managed.installed_sha256
     })
 }
 
@@ -207,9 +208,38 @@ pub struct StateView {
     pub installed_environment: Option<String>,
 }
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateResult {
     pub status: &'static str,
     pub files: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub backup_requests: Vec<BackupRequest>,
+}
+impl UpdateResult {
+    pub fn for_pages(self, supports_confirmation: Option<bool>) -> Result<Self, String> {
+        // Old pages treat unfamiliar statuses as success and may launch a replay.
+        if self.status == "backup_confirmation" && supports_confirmation != Some(true) {
+            return Err("Old script backups need your confirmation. Update the assistant pages, restart the assistant, and check for script updates again. No script files were changed.".into());
+        }
+        Ok(self)
+    }
+}
+#[derive(Serialize)]
+pub struct BackupRequest {
+    path: String,
+    token: String,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum BackupAction {
+    Drop,
+    Restore,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BackupDecision {
+    token: String,
+    action: BackupAction,
 }
 #[derive(Serialize, Clone)]
 pub struct Progress {
@@ -1025,6 +1055,135 @@ fn tx_journal(root: &Path, id: &str) -> Result<Transaction, String> {
         .map_err(|error| format!("Script recovery journal is missing: {error}"))?;
     serde_json::from_slice(&bytes).map_err(|_| "Script recovery journal is invalid".into())
 }
+
+/// Only follow journals linked by the installed state, with the same original
+/// backup reference. Missing, corrupt or truncated history leaves the origin unknown.
+fn historical_origins(
+    root: &Path,
+    state: &ScriptState,
+    originals: &BTreeMap<String, String>,
+) -> BTreeMap<String, bool> {
+    let mut found = BTreeMap::new();
+    if originals.is_empty() {
+        return found;
+    }
+    let mut snapshot = state.clone();
+    let mut seen = HashSet::new();
+    let mut remaining = 64 * 1024 * 1024usize;
+    for _ in 0..128 {
+        for (path, hash) in originals {
+            let Some(managed) = snapshot
+                .files
+                .get(path)
+                .filter(|record| record.original_backup == state.files[path].original_backup)
+            else {
+                continue;
+            };
+            if let Some(known) = managed.original_matches_install {
+                found.entry(path.clone()).or_insert(known);
+            } else if &managed.installed_sha256 == hash {
+                found.entry(path.clone()).or_insert(true);
+            }
+        }
+        if found.len() == originals.len() {
+            break;
+        }
+        let Some(id) = snapshot.last_transaction.as_deref() else {
+            break;
+        };
+        if !seen.insert(id.to_string()) {
+            break;
+        }
+        let read = (|| -> Option<Transaction> {
+            let mut bytes = Vec::new();
+            fs::File::open(transaction_path(root, id).ok()?.join("journal.json"))
+                .ok()?
+                .take((remaining + 1) as u64)
+                .read_to_end(&mut bytes)
+                .ok()?;
+            if bytes.len() > remaining {
+                return None;
+            }
+            remaining -= bytes.len();
+            let journal: Transaction = serde_json::from_slice(&bytes).ok()?;
+            (journal.id == id).then_some(journal)
+        })();
+        let Some(journal) = read else { break };
+        snapshot = journal.previous;
+    }
+    found
+}
+
+fn plan_removals(
+    root: &Path,
+    previous: &ScriptState,
+    remote_paths: &HashSet<&str>,
+    commit: &str,
+    tree: &str,
+    observed: &BTreeMap<String, Option<String>>,
+    decisions: Option<&BTreeMap<String, BackupDecision>>,
+) -> Result<(Vec<PlannedFile>, Vec<BackupRequest>), String> {
+    let mut originals = BTreeMap::new();
+    let mut unknown_hashes = BTreeMap::new();
+    for (path, managed) in &previous.files {
+        if remote_paths.contains(path.as_str()) {
+            continue;
+        }
+        let original = managed
+            .original_backup
+            .as_ref()
+            .map(|name| read_original(root, name))
+            .transpose()?;
+        if managed.original_matches_install.is_none() {
+            if let Some(bytes) = &original {
+                unknown_hashes.insert(path.clone(), sha256(bytes));
+            }
+        }
+        originals.insert(path.clone(), original);
+    }
+    let origins = historical_origins(root, previous, &unknown_hashes);
+    let mut planned = Vec::new();
+    let mut requests = Vec::new();
+    let mut requested_paths = HashSet::new();
+    for (path, original) in originals {
+        let mut managed = previous.files[&path].clone();
+        managed.original_matches_install = managed
+            .original_matches_install
+            .or_else(|| origins.get(&path).copied());
+        if let Some(bytes) = &original {
+            if managed.original_matches_install.is_none() {
+                let token = sha256(
+                    &serde_json::to_vec(&(previous, commit, tree, observed, &path, sha256(bytes)))
+                        .map_err(|error| error.to_string())?,
+                );
+                requested_paths.insert(path.clone());
+                if let Some(decision) = decisions.and_then(|items| items.get(&path)) {
+                    if decision.token != token {
+                        return Err(
+                            "Script backups or update target changed; check for updates again"
+                                .into(),
+                        );
+                    }
+                    managed.original_matches_install =
+                        Some(matches!(decision.action, BackupAction::Drop));
+                } else {
+                    requests.push(BackupRequest {
+                        path: path.clone(),
+                        token,
+                    });
+                }
+            }
+        }
+        planned.push(PlannedFile {
+            path,
+            after: removal_result(&managed, original),
+        });
+    }
+    if decisions.is_some_and(|items| items.keys().any(|path| !requested_paths.contains(path))) {
+        return Err("Script backup confirmation no longer matches this update".into());
+    }
+    Ok((planned, requests))
+}
 fn preflight_transaction(root: &Path, transaction: &Transaction) -> Result<(), String> {
     // Check every file before changing any file; never erase a player's later edits.
     for touched in &transaction.touched {
@@ -1100,6 +1259,7 @@ pub fn update(
     app: &AppHandle,
     overwrite_conflicts: bool,
     environment: Option<&str>,
+    backup_decisions: Option<&BTreeMap<String, BackupDecision>>,
 ) -> Result<UpdateResult, String> {
     if let Some(id) = environment {
         if id != "latest" && !environment_id_valid(id) {
@@ -1181,6 +1341,27 @@ pub fn update(
         return Ok(UpdateResult {
             status: "conflict",
             files: conflicts,
+            backup_requests: Vec::new(),
+        });
+    }
+
+    let (removals, backup_requests) = plan_removals(
+        root,
+        &previous,
+        &remote_paths,
+        &commit,
+        &tree,
+        &observed,
+        backup_decisions,
+    )?;
+    if !backup_requests.is_empty() {
+        return Ok(UpdateResult {
+            status: "backup_confirmation",
+            files: backup_requests
+                .iter()
+                .map(|request| request.path.clone())
+                .collect(),
+            backup_requests,
         });
     }
 
@@ -1269,9 +1450,9 @@ pub fn update(
                 let relative = format!("backups/original/{}.bak", Uuid::new_v4());
                 let original = fs::read(&target).map_err(|error| error.to_string())?;
                 atomic_write(&settings::data_dir(root).join(&relative), &original)?;
-                (Some(relative), sha256(&original) == installed_sha256)
+                (Some(relative), Some(sha256(&original) == installed_sha256))
             }
-            None => (None, false),
+            None => (None, Some(false)),
         };
         next.files.insert(
             entry.path.clone(),
@@ -1288,21 +1469,7 @@ pub fn update(
         });
         emit_progress(app, index + 1, total);
     }
-    for (path, managed) in &previous.files {
-        if remote_paths.contains(path.as_str()) {
-            continue;
-        }
-        let original = managed
-            .original_backup
-            .as_ref()
-            .map(|name| read_original(root, name))
-            .transpose()?;
-        let after = removal_result(managed, original);
-        planned.push(PlannedFile {
-            path: path.clone(),
-            after,
-        });
-    }
+    planned.extend(removals);
     if planned.is_empty() {
         if previous.commit.as_deref() != Some(&commit)
             || previous.tree.as_deref() != Some(&tree)
@@ -1314,6 +1481,7 @@ pub fn update(
         return Ok(UpdateResult {
             status: "current",
             files: Vec::new(),
+            backup_requests: Vec::new(),
         });
     }
 
@@ -1326,6 +1494,7 @@ pub fn update(
         return Ok(UpdateResult {
             status: "conflict",
             files: changed_during_download,
+            backup_requests: Vec::new(),
         });
     }
     let id = Uuid::new_v4().to_string();
@@ -1390,6 +1559,7 @@ pub fn update(
     Ok(UpdateResult {
         status: "updated",
         files: Vec::new(),
+        backup_requests: Vec::new(),
     })
 }
 
@@ -1411,6 +1581,7 @@ pub fn restore(root: &Path, file_lock: &Mutex<()>) -> Result<UpdateResult, Strin
     Ok(UpdateResult {
         status: "restored",
         files: Vec::new(),
+        backup_requests: Vec::new(),
     })
 }
 
@@ -1553,7 +1724,7 @@ mod tests {
             blob_sha: git_blob_sha(&installed),
             installed_sha256: sha256(&installed),
             original_backup: Some("backups/original/x.bak".into()),
-            original_matches_install: matches,
+            original_matches_install: Some(matches),
         };
         // The player's own file comes back.
         assert_eq!(
@@ -1571,10 +1742,354 @@ mod tests {
         // Older state files without the flag still read.
         let old = r#"{"blobSha":"a","installedSha256":"b","originalBackup":null}"#;
         let file: ManagedFile = serde_json::from_str(old).unwrap();
-        assert!(!file.original_matches_install);
+        assert!(file.original_matches_install.is_none());
         assert!(!serde_json::to_string(&file)
             .unwrap()
             .contains("originalMatchesInstall"));
+    }
+
+    #[test]
+    fn original_provenance_distinguishes_legacy_absence_from_explicit_false() {
+        let old = r#"{"blobSha":"a","installedSha256":"b","originalBackup":null}"#;
+        let legacy: ManagedFile = serde_json::from_str(old).unwrap();
+        let known: ManagedFile =
+            serde_json::from_str(&old.replace("null}", "null,\"originalMatchesInstall\":false}"))
+                .unwrap();
+        assert!(serde_json::to_value(&legacy)
+            .unwrap()
+            .get("originalMatchesInstall")
+            .is_none());
+        assert_eq!(
+            serde_json::to_value(&known)
+                .unwrap()
+                .get("originalMatchesInstall"),
+            Some(&serde_json::json!(false))
+        );
+    }
+
+    #[test]
+    fn old_pages_never_receive_a_confirmation_status_they_mistake_for_success() {
+        let result = || UpdateResult {
+            status: "backup_confirmation",
+            files: vec!["c1.lua".into()],
+            backup_requests: vec![BackupRequest {
+                path: "c1.lua".into(),
+                token: "token".into(),
+            }],
+        };
+        assert!(result().for_pages(None).is_err());
+        assert!(result().for_pages(Some(false)).is_err());
+        assert!(result().for_pages(Some(true)).is_ok());
+        let value = serde_json::to_value(result()).unwrap();
+        assert_eq!(value["backupRequests"][0]["path"], "c1.lua");
+    }
+
+    struct OriginFixture {
+        root: PathBuf,
+        state: ScriptState,
+        observed: BTreeMap<String, Option<String>>,
+        original: Vec<u8>,
+    }
+    impl OriginFixture {
+        fn new(original: &[u8]) -> Self {
+            let root = std::env::temp_dir().join(format!("srvpro-origin-test-{}", Uuid::new_v4()));
+            let reference = "backups/original/test.bak";
+            atomic_write(&settings::data_dir(&root).join(reference), original).unwrap();
+            let a = b"706 A";
+            let b = b"706 B";
+            let first_id = Uuid::new_v4().to_string();
+            let second_id = Uuid::new_v4().to_string();
+            let first = Transaction {
+                id: first_id.clone(),
+                previous: ScriptState::default(),
+                touched: vec![TouchedFile {
+                    path: "c1.lua".into(),
+                    before_backup: Some("0.bak".into()),
+                    before_sha256: Some(sha256(original)),
+                    after_sha256: Some(sha256(a)),
+                }],
+            };
+            let mut state = ScriptState {
+                last_transaction: Some(first_id.clone()),
+                ..ScriptState::default()
+            };
+            state.files.insert(
+                "c1.lua".into(),
+                ManagedFile {
+                    blob_sha: git_blob_sha(a),
+                    installed_sha256: sha256(a),
+                    original_backup: Some(reference.into()),
+                    original_matches_install: None,
+                },
+            );
+            let second = Transaction {
+                id: second_id.clone(),
+                previous: state.clone(),
+                touched: vec![TouchedFile {
+                    path: "c1.lua".into(),
+                    before_backup: Some("0.bak".into()),
+                    before_sha256: Some(sha256(a)),
+                    after_sha256: Some(sha256(b)),
+                }],
+            };
+            for journal in [first, second] {
+                atomic_write(
+                    &transaction_path(&root, &journal.id)
+                        .unwrap()
+                        .join("journal.json"),
+                    &serde_json::to_vec(&journal).unwrap(),
+                )
+                .unwrap();
+            }
+            state.last_transaction = Some(second_id);
+            let managed = state.files.get_mut("c1.lua").unwrap();
+            managed.installed_sha256 = sha256(b);
+            managed.blob_sha = git_blob_sha(b);
+            atomic_write(&target_path(&root, "c1.lua").unwrap(), b).unwrap();
+            Self {
+                root,
+                state,
+                observed: BTreeMap::from([("c1.lua".into(), Some(sha256(b)))]),
+                original: original.to_vec(),
+            }
+        }
+        fn plan(
+            &self,
+            decisions: Option<&BTreeMap<String, BackupDecision>>,
+        ) -> Result<(Vec<PlannedFile>, Vec<BackupRequest>), String> {
+            plan_removals(
+                &self.root,
+                &self.state,
+                &HashSet::new(),
+                "commit",
+                "tree",
+                &self.observed,
+                decisions,
+            )
+        }
+        fn assert_untouched(&self) {
+            assert_eq!(
+                read_original(&self.root, "backups/original/test.bak").unwrap(),
+                self.original
+            );
+            assert_eq!(
+                fs::read(target_path(&self.root, "c1.lua").unwrap()).unwrap(),
+                b"706 B"
+            );
+            assert!(!pending_path(&self.root).exists());
+        }
+    }
+    impl Drop for OriginFixture {
+        fn drop(&mut self) {
+            assert!(self.root.starts_with(std::env::temp_dir()));
+            assert!(self
+                .root
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("srvpro-origin-test-"));
+            fs::remove_dir_all(&self.root).unwrap();
+        }
+    }
+
+    #[test]
+    fn legacy_a_to_b_then_removed_uses_only_positive_history_evidence() {
+        let copied = OriginFixture::new(b"706 A");
+        let (plan, requests) = copied.plan(None).unwrap();
+        assert!(requests.is_empty());
+        assert!(plan[0].after.is_none());
+        copied.assert_untouched();
+        let custom = OriginFixture::new(b"player's own original");
+        let (_, requests) = custom.plan(None).unwrap();
+        // A different first-install hash does not establish that this was the
+        // player's own file: it might also be an even older manually copied 706.
+        assert_eq!(requests.len(), 1);
+        let choices = BTreeMap::from([(
+            "c1.lua".into(),
+            BackupDecision {
+                token: requests[0].token.clone(),
+                action: BackupAction::Restore,
+            },
+        )]);
+        let (plan, requests) = custom.plan(Some(&choices)).unwrap();
+        assert!(requests.is_empty());
+        assert_eq!(plan[0].after.as_deref(), Some(custom.original.as_slice()));
+        custom.assert_untouched();
+        let mut old_copy = OriginFixture::new(b"706 A");
+        let newest = tx_journal(
+            &old_copy.root,
+            old_copy.state.last_transaction.as_deref().unwrap(),
+        )
+        .unwrap();
+        old_copy.state.last_transaction = newest.previous.last_transaction;
+        assert_eq!(
+            old_copy.plan(None).unwrap().1.len(),
+            1,
+            "an original that differs from the first installed version also needs confirmation"
+        );
+        old_copy.assert_untouched();
+    }
+
+    #[test]
+    fn known_originals_retained_files_and_missing_backups_are_handled_safely() {
+        let mut fixture = OriginFixture::new(b"player original");
+        fixture
+            .state
+            .files
+            .get_mut("c1.lua")
+            .unwrap()
+            .original_matches_install = Some(false);
+        fixture.state.last_transaction = None;
+        let (plan, requests) = fixture.plan(None).unwrap();
+        assert!(requests.is_empty());
+        assert_eq!(plan[0].after.as_deref(), Some(fixture.original.as_slice()));
+        let (plan, requests) = plan_removals(
+            &fixture.root,
+            &fixture.state,
+            &HashSet::from(["c1.lua"]),
+            "commit",
+            "tree",
+            &fixture.observed,
+            None,
+        )
+        .unwrap();
+        assert!(plan.is_empty() && requests.is_empty());
+        let backup = settings::data_dir(&fixture.root).join("backups/original/test.bak");
+        fs::remove_file(&backup).unwrap();
+        assert!(
+            fixture.plan(None).is_err(),
+            "never remove an override with an unreadable original backup"
+        );
+        atomic_write(&backup, &fixture.original).unwrap();
+        fixture.assert_untouched();
+    }
+
+    #[test]
+    fn unknown_origin_needs_confirmation_before_any_changes_and_keeps_backups() {
+        let mut fixture = OriginFixture::new(b"706 A");
+        fixture.state.last_transaction = None;
+        let (_, requests) = fixture.plan(None).unwrap();
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].path, "c1.lua");
+        for action in [BackupAction::Drop, BackupAction::Restore] {
+            let restore = matches!(action, BackupAction::Restore);
+            let choices = BTreeMap::from([(
+                "c1.lua".into(),
+                BackupDecision {
+                    token: requests[0].token.clone(),
+                    action,
+                },
+            )]);
+            let (plan, requests) = fixture.plan(Some(&choices)).unwrap();
+            assert!(requests.is_empty());
+            assert_eq!(
+                plan[0].after.as_deref(),
+                restore.then_some(fixture.original.as_slice())
+            );
+            fixture.assert_untouched();
+        }
+    }
+
+    #[test]
+    fn confirmation_is_invalidated_by_state_target_backup_or_current_file_changes() {
+        let mut fixture = OriginFixture::new(b"706 A");
+        fixture.state.last_transaction = None;
+        let (_, requests) = fixture.plan(None).unwrap();
+        let choices = BTreeMap::from([(
+            "c1.lua".into(),
+            BackupDecision {
+                token: requests[0].token.clone(),
+                action: BackupAction::Drop,
+            },
+        )]);
+        assert!(plan_removals(
+            &fixture.root,
+            &fixture.state,
+            &HashSet::new(),
+            "other commit",
+            "tree",
+            &fixture.observed,
+            Some(&choices)
+        )
+        .is_err());
+        fixture.state.commit = Some("other state".into());
+        assert!(fixture.plan(Some(&choices)).is_err());
+        fixture.state.commit = None;
+        fixture
+            .observed
+            .insert("c1.lua".into(), Some(sha256(b"edited")));
+        assert!(fixture.plan(Some(&choices)).is_err());
+        fixture
+            .observed
+            .insert("c1.lua".into(), Some(sha256(b"706 B")));
+        atomic_write(
+            &settings::data_dir(&fixture.root).join("backups/original/test.bak"),
+            b"changed backup",
+        )
+        .unwrap();
+        assert!(fixture.plan(Some(&choices)).is_err());
+        atomic_write(
+            &settings::data_dir(&fixture.root).join("backups/original/test.bak"),
+            &fixture.original,
+        )
+        .unwrap();
+        let extra = BTreeMap::from([(
+            "c2.lua".into(),
+            BackupDecision {
+                token: "invalid".into(),
+                action: BackupAction::Drop,
+            },
+        )]);
+        assert!(fixture.plan(Some(&extra)).is_err());
+        fixture.assert_untouched();
+    }
+
+    #[test]
+    fn incomplete_corrupt_or_unrelated_history_never_proves_a_backup_origin() {
+        for mode in [
+            "missing",
+            "corrupt",
+            "wrong id",
+            "different backup",
+            "cycle",
+        ] {
+            let mut fixture = OriginFixture::new(b"706 A");
+            let id = fixture.state.last_transaction.clone().unwrap();
+            let path = transaction_path(&fixture.root, &id)
+                .unwrap()
+                .join("journal.json");
+            let mut journal = tx_journal(&fixture.root, &id).unwrap();
+            match mode {
+                "missing" => {
+                    fs::remove_file(&path).unwrap();
+                }
+                "corrupt" => {
+                    fs::write(&path, b"invalid").unwrap();
+                }
+                "wrong id" => {
+                    journal.id = Uuid::new_v4().to_string();
+                }
+                "different backup" => {
+                    journal
+                        .previous
+                        .files
+                        .get_mut("c1.lua")
+                        .unwrap()
+                        .original_backup = Some("backups/original/other.bak".into());
+                }
+                "cycle" => {
+                    journal.previous = fixture.state.clone();
+                }
+                _ => unreachable!(),
+            }
+            if !matches!(mode, "missing" | "corrupt") {
+                fs::write(&path, serde_json::to_vec(&journal).unwrap()).unwrap();
+            }
+            let (_, requests) = fixture.plan(None).unwrap();
+            assert_eq!(requests.len(), 1, "{mode}");
+            fixture.assert_untouched();
+            fixture.state.last_transaction = None;
+        }
     }
 
     #[test]

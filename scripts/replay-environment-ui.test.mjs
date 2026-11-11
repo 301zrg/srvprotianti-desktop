@@ -36,7 +36,11 @@ async function run(browser,fixture,interact){
       if(command==='save_and_open')return {filename:args.filename,savedPath:'fixture/'+args.filename,launchError:null,replayStart:f.start,launched:args.launch!==false};
       if(command==='script_environments'){if(f.table==='error')throw 'SCRIPT_NETWORK: offline';return f.table==='none'?null:f.envs;}
       if(command==='script_state')return {commit:'x',canRestore:false,updatedAt:null,tree:f.tree,environmentChoice:null,installedEnvironment:f.installed};
-      if(command==='update_scripts'){if(f.update==='rate')throw 'SCRIPT_HTTP:403: GitHub metadata; reset=1794263763';if(f.update==='error')throw 'Close this game executable before applying or restoring scripts';return {status:f.update==='conflict'?'conflict':'updated',files:f.update==='conflict'?['c1.lua']:[]};}
+      if(command==='update_scripts'){
+        if(f.update.startsWith('backup')&&!args.backupDecisions)return {status:'backup_confirmation',files:['c1.lua','c2.lua'],backupRequests:[{path:'c1.lua',token:'first'},{path:'c2.lua',token:'second'}]};
+        if(f.update==='backup-error')throw 'Script backups or update target changed; check for updates again';
+        if(f.update==='rate')throw 'SCRIPT_HTTP:403: GitHub metadata; reset=1794263763';if(f.update==='error')throw 'Close this game executable before applying or restoring scripts';return {status:f.update==='conflict'?'conflict':'updated',files:f.update==='conflict'?['c1.lua']:[]};
+      }
       if(command==='save_settings')return args.settings;
       if(command==='open_saved')return null;
       if(command==='api_request'){
@@ -89,6 +93,37 @@ try{
   assert.equal(r.update?.args.environmentId,'706-20261110');
   assert.ok(r.launched);
   assert.ok(r.calls.findIndex(c=>c.command==='update_scripts')<r.calls.findIndex(c=>c.command==='open_saved'),'switch before launch');
+  // Legacy backups need an explicit, separate decision for each file.
+  r=await run(browser,{...base,update:'backup'},async page=>{
+    await click('switch')(page);
+    const dialog=page.locator('#desktop-backup-prompt');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('button[data-action="apply"]')).toBeDisabled();
+    await dialog.locator('select').nth(0).selectOption('drop');
+    await expect(dialog.locator('button[data-action="apply"]')).toBeDisabled();
+    await dialog.locator('select').nth(1).selectOption('restore');
+    await dialog.locator('button[data-action="apply"]').click();
+  });
+  assert.ok(r.launched);
+  const confirmed=r.calls.filter(c=>c.command==='update_scripts');
+  assert.equal(confirmed.length,2);
+  assert.deepEqual(confirmed[1].args.backupDecisions,{'c1.lua':{token:'first',action:'drop'},'c2.lua':{token:'second',action:'restore'}});
+  r=await run(browser,{...base,update:'backup'},async page=>{
+    await click('switch')(page);
+    await expect(page.locator('#desktop-backup-prompt')).toBeVisible();
+    await page.keyboard.press('Escape');
+  });
+  assert.ok(!r.launched,'cancelling backup confirmation never starts the game');
+  assert.equal(r.calls.filter(c=>c.command==='update_scripts').length,1);
+  r=await run(browser,{...base,update:'backup-error'},async page=>{
+    await click('switch')(page);
+    const dialog=page.locator('#desktop-backup-prompt');
+    await expect(dialog).toBeVisible();
+    for(const select of await dialog.locator('select').all())await select.selectOption('drop');
+    await dialog.locator('button[data-action="apply"]').click();
+  });
+  assert.ok(!r.launched,'stale confirmation never starts the game');
+  assert.match(r.toast,/changed; check for updates again/);
   // Play anyway: no switch.
   r=await run(browser,base,click('play'));
   assert.ok(r.launched&&!r.update);
@@ -113,6 +148,35 @@ try{
   assert.ok(r.launched&&!r.update,'unique tree match is treated as installed');
   r=await run(browser,{...base,installed:null,tree:'d'.repeat(40)},click('cancel'));
   assert.ok(!r.launched,'unknown installed version still asks');
+  // Manual settings updates share the same confirmation flow, in every language.
+  for(const language of ['zh','ja','en','ko'])for(const cancel of [false,true]){
+    const context=await browser.newContext();
+    await context.addInitScript(f=>{
+      window.__calls=[];
+      window.__TAURI_INTERNALS__={transformCallback:()=>1,invoke:async(command,args={})=>{
+        window.__calls.push({command,args});
+        if(command==='get_settings')return {player:{launchName:'P'},server:{gameHost:'h',gamePort:7911,apiBaseUrl:'http://api.fixture'},game:{executable:'ygopro.exe'},ui:{language:f.language}};
+        if(command==='script_environments')return f.envs;
+        if(command==='script_state')return {commit:'x',canRestore:false};
+        if(command==='environment_state')return {installed:false,needsRecovery:false};
+        if(command==='update_scripts')return args.backupDecisions?{status:'updated',files:[]}:{status:'backup_confirmation',files:['c1.lua'],backupRequests:[{path:'c1.lua',token:'manual'}]};
+        return null;
+      }};
+    },{language,envs:table});
+    const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.goto('http://127.0.0.1:'+server.address().port+'/settings.html?L='+language);
+    await page.locator('#updateScripts').click();
+    const dialog=page.locator('#desktop-backup-prompt');await expect(dialog).toBeVisible();
+    assert.ok((await dialog.locator('h2').textContent()).trim());
+    if(cancel)await dialog.locator('button[data-action="cancel"]').click();
+    else {await dialog.locator('select').selectOption('restore');await dialog.locator('button[data-action="apply"]').click();}
+    await expect(page.locator('#updateScripts')).toBeEnabled();
+    const calls=await page.evaluate(()=>window.__calls.filter(c=>c.command==='update_scripts'));
+    assert.equal(calls.length,cancel?1:2);
+    assert.equal(calls[0].args.allowBackupConfirmation,true);
+    if(!cancel)assert.deepEqual(calls[1].args.backupDecisions,{'c1.lua':{token:'manual',action:'restore'}});
+    assert.deepEqual(errors,[]);await context.close();
+  }
   // Plan 04 §1.2: the settings page dates the Mind Master note from the first dated
   // environment, and hides it while no table is published.
   for(const [language,word] of [['en','Mind Master'],['zh','精神脑魔'],['ja','メンタルマスター'],['ko','멘탈마스터']])for(const published of [true,false]){
@@ -139,7 +203,7 @@ try{
     await context.close();
     assert.deepEqual(errors,[],language);
   }
-  console.log('Save and play: prompt off/no table/unreadable/no time/same version play; switch/play/cancel/don\'t-ask; conflict and failed switch never launch; legacy tree match; rate-limit retry time; settings Mind Master note in 4 languages');
+  console.log('Save and play: environment flows; per-file legacy backup choices, cancel and stale confirmation never launch; manual backup confirmation and cancellation in 4 languages; settings Mind Master note in 4 languages');
 }finally{
   await browser?.close();server.close();
 }
