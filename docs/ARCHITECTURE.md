@@ -1,6 +1,6 @@
 # 桌面助手当前实现架构
 
-更新日期：2026-11-09。本文描述应用 `0.2.3` 源码；签名页面更新已自 v0.2.0 正式提供，原生读图已随 v0.2.2 发布。页面包可以独立迭代，实际生产版本以正式 Release、签名索引与发布回执为准。原有游戏/脚本与环境模块职责保持现有实现；构建、WebView 验证与用户实际游戏验收分别记录。
+更新日期：2026-11-12。本文核对应用 `0.2.6`、源码主线 `6fdb4e0`。当日只读核验的正式渠道为 [EXE v0.2.6](https://github.com/301zrg/srvprotianti-desktop/releases/tag/v0.2.6) 和 [页面 1.0.9](https://github.com/301zrg/srvprotianti-desktop/releases/tag/pages-v1.0.9)（sequence 10、最低应用版本 0.2.6，稳定索引验签通过）。源码主线、EXE 标签、页面包来源是分别固定的身份，后续状态以正式 Release、签名索引与发布回执为准。构建、WebView 验证与用户实际游戏验收分别记录。
 
 ## 1. 文档分工与架构结论
 
@@ -126,6 +126,8 @@ flowchart TB
 
 移除旧裁定覆盖时，`originalMatchesInstall` 缺失表示旧记录的来源未知，不等同于明确的 `false`。可沿安装状态链接的本机事务记录，证明原备份曾等同于该路径安装过的 706 文件；仅有“原件与首次安装内容不同”不能证明是玩家自有文件。无法证明的旧备份由玩家逐文件选择移除覆盖或恢复原文件，备份始终保留。设置页更新和录像环境切换共用确认流程；`allowBackupConfirmation` 显式启用 `backup_confirmation` 响应，`backupDecisions` 携带绑定状态、目标和备份的确认令牌，过期选择拒绝应用。旧页面未声明支持时返回错误，避免误报成功或继续启动录像。该界面须与支持此契约的 EXE 配套发布。
 
+上述 R01 兼容处理已随 v0.2.6 / 页面 1.0.9 发布。历史推断只沿当前状态关联的事务链、同一路径和相同原备份引用，最多读取 128 层、合计 64 MiB；链缺失、损坏、循环或超过边界时保留未知，不扫描无关备份猜测来源。确认发生在事务写入之前，取消不会应用本次更新。相关原生回归在 `scripts.rs`，四语设置及录像分支的模拟桥接验收在 `scripts/replay-environment-ui.test.mjs`；这些不代替玩家目录与真实游戏验收。
+
 卡组详情的单卡投入率使用独立懒加载请求 `GET /api/ladder/deck-detail?view=card-usage`，沿用 v0.2.0 已有的精确 GET 白名单。网页与助手共享单卡板块、数据和 XLSX/CSV 逻辑，按五分区导出；`sync-web-source.mjs` 与页面包来源清单都显式包含 `deck-card-usage.js`。本功能无需扩展 Rust 权限或重发 EXE。
 
 使用率页的单卡“卡组分布”同理复用已放行的 `GET /api/ladder/usage/cards`，以 `view=deck-distribution` 区分；弹窗默认环形图，可切换完整列表，扇区或大号分类按钮只选中，明确的详情按钮再跳转。手机使用近全屏弹窗和固定详情栏，细小扇区通过分类列表选择；返回恢复同时处理重新加载与浏览器返回缓存。逻辑写在 `usage-stats.html` 内，样式在 `common.css`，不新增页面包资源文件，只需同步官网源码并发布页面包，无需改 Rust 白名单或重发 EXE。
@@ -228,6 +230,7 @@ flowchart LR
     backups/
       original/                      首次接管脚本前的内容
       transactions/<UUID>/           journal.json 与本次修改前备份
+    script-trees/<tree706>.json       经 Git 树摘要核对的版本脚本清单缓存
     environment-state.json           资源清单、散列、备份 ID 与阶段
     environment-backups/<UUID>/      环境改动前的文件
     resources/1103-201103-v2/         随便携包发布的离线环境资源
@@ -275,7 +278,11 @@ flowchart TB
     Fetch --> Conflict{托管文件有冲突}
     Conflict -->|有| Choice[返回冲突，用户取消或允许备份覆盖]
     Choice -->|允许覆盖后重新执行| Check
-    Conflict -->|无| Lock[取得 file_lock，复查游戏与文件散列]
+    Conflict -->|无或已同意覆盖| Origin{移除项的原备份来源已知}
+    Origin -->|未知| Confirm[逐文件选择移除覆盖或恢复原文件]
+    Confirm -->|取消| Stop[保留脚本与备份，不启动录像]
+    Confirm -->|确认后重新执行并核对令牌| Check
+    Origin -->|已知或令牌有效| Lock[取得 file_lock，复查游戏与文件散列]
     Lock --> Journal[保存原文件、事务 journal 与 pending ID]
     Journal --> Apply[逐文件替换或移除托管文件]
     Apply -->|成功| Commit[写 script-state，移除 pending]
@@ -347,7 +354,9 @@ flowchart TB
 
 便携包的环境资源实际路径为 `release-portable/srvprotianti-desktop-data/resources/1103-201103-v2/`。可选 NSIS 构建没有通过 Tauri bundle 配置携带这批环境文件；若使用安装器，须另外保持这个相对游戏根目录的数据目录结构。
 
-助手更新由 [原生检查器](../src-tauri/src/updater.rs)、[设置页适配](../src/desktop-updates.js) 和 [发布脚本](../scripts/desktop-release.mjs) 协作。检查器以专用 HTTPS 客户端读取最新 Release 的静态 `desktop-update.json`，不依赖 REST API 匿名额度，成功结果缓存 600 秒，失败冷却并保留带原时间的旧结果。共享的附件跳转域名约束归 `release_http.rs`，业务 API 客户端仍禁止跳转。检查后的 ZIP 链接固定已验证版本，页面始终有官方下载页入口；仍由系统浏览器下载、玩家手动覆盖。清单 SHA-256 用于发布附件核对，不宣称助手已校验浏览器下载的 ZIP。完整契约见 [DESIGN](../DESIGN.md#121-助手版本清单2026-10-26-v021)。v0.2.1 及页面包 1.0.2 已正式发布并核验，源码/标签仍固定 `22f1128`；草稿发布查询的修复只影响后续发布工具，不改写这个已发布提交或制品。
+助手更新由 [原生检查器](../src-tauri/src/updater.rs)、[设置页适配](../src/desktop-updates.js) 和 [发布脚本](../scripts/desktop-release.mjs) 协作。检查器以专用 HTTPS 客户端读取最新 Release 的静态 `desktop-update.json`，不依赖 REST API 匿名额度，成功结果缓存 600 秒，失败冷却并保留带原时间的旧结果。共享的附件跳转域名约束归 `release_http.rs`，业务 API 客户端仍禁止跳转。检查后的 ZIP 链接固定已验证版本，页面始终有官方下载页入口；仍由系统浏览器下载、玩家手动覆盖。清单 SHA-256 用于发布附件核对，不宣称助手已校验浏览器下载的 ZIP。完整契约见 [DESIGN](../DESIGN.md#121-助手版本清单2026-10-26-v021)。历史 v0.2.1 / 页面 1.0.2 的标签与制品保持原样，不作为当前最新版说明。
+
+页面发布器将稳定索引内容绑定到确定的提交 SHA 后回读，最多进行五次只读确认；不会因分支名 Contents 缓存短暂陈旧而再次写入索引。页面 1.0.9 的工作流 [43127654771](https://github.com/301zrg/srvprotianti-desktop/actions/runs/43127654771) 曾在旧回读逻辑下报告失败，但 Release 与索引实际已发布；后续 PR #18 修复工具并合入主线。遇到发布结果不明，先核对标签、附件、稳定索引及签名，不重跑或覆盖历史发布。后续 CI 检出签名清单固定的源码执行发布器，因此所需工具修复必须包含在新的已审核来源提交中，不能靠移动旧标签获得。
 
 页面加载保持原 `tauri` 本地 origin 和 IPC/CSP 边界；每次启动固定使用通过签名与逐文件校验的缓存目录或内置资源。`page-packages/state.json` 保存已接受的最高 sequence 和候选/当前/上一版；候选启动先写 booting，再由页面 ready 确认，异常退出或 45 秒无确认则隔离并回退。网络下载发生在页面 ready 之后，更新成功也只在下次启动切换。原生菜单提供独立恢复入口；普通业务 API 错误不会触发回退。完整信任和缓存边界见 [页面包约定](PAGE_PACKAGE_UPDATE_PLAN.md)。
 
@@ -360,6 +369,8 @@ flowchart TB
 | 设置 schema 迁移 | 当前只接受 `schemaVersion = 1`，其他版本报错；DESIGN 中未来版本迁移流程不是已实现能力 |
 | 页面来源记录 | 同步器记录固定源清单、来源提交和源/生成 SHA；未固定实际功能提交的本地快照不能作为正式来源发布 |
 | 独立页面更新 | v0.2.0 与页面 1.0.0/sequence 1 已于 2026-10-25 正式发布；兼容原生能力的页面可独立更新 |
+| 706 多版本与录像提示 | v0.2.4 起可选规则环境并按官网录像开局时间提示切换；v0.2.5 起优先使用 git 引用、raw 版本表及本地校验 ZIP，REST API 是失败回退路径 |
+| 未知脚本备份确认 | v0.2.6 / 页面 1.0.9 已实现逐文件确认、令牌校验、旧页面拒绝及共用录像流程；真实双客户端脚本结果仍需独立验收 |
 | 脚本、环境恢复 | 源码有散列、事务及冲突处理和单元测试；这些不能替代真实游戏下的恢复验收 |
 | Windows 与游戏行为 | README/DESIGN 记录 CI 曾通过，同时仍要求两种游戏联机、卡组、录像、旧裁定脚本，以及缺失 WebView2 场景实测 |
 
@@ -372,7 +383,7 @@ flowchart TB
 | 页面内容、统计呈现、翻页筛选 | 官网源码，经 `sync-web-source.mjs` 同步 | 页面契约、源/生成 SHA、桌面事件绑定、四语言 |
 | 桌面平台适配、设置 | 同步器、`desktop-bridge.ts`、根设置页及手写适配脚本 | 不直接修改已登记快照；保留本地动作、账号与下载语义 |
 | 页面签名/缓存/加载 | `page-package.mjs`、`pages_package/cache/runtime.rs` | 固定来源、信任根、兼容、sequence、下次启动及独立恢复 |
-| API 传输或新增查询 | `release_http.rs` 与 `desktop-bridge.ts` | 路由白名单、方法、权限语义、响应限额 |
+| API 传输或新增查询 | `api.rs` 与 `desktop-bridge.ts` | 路由白名单、方法、权限语义、响应限额；`release_http.rs` 只维护 Release 附件跳转约束 |
 | 新增本地动作 | `lib.rs`、对应 Rust 模块与桥接类型 | 参数校验、游戏目录限制、互斥与错误显示 |
 | 游戏启动方式 | `game.rs` | 参数次序、单个登录串参数、真实游戏兼容、环境同步 |
 | 706 脚本行为 | `scripts.rs` | 固定来源与一致 commit、两种客户端、冲突、事务恢复 |

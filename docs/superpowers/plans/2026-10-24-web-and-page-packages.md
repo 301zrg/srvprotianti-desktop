@@ -1,5 +1,7 @@
 # 官网快捷入口与签名页面包实施计划
 
+> 历史实施记录（2026-10-24/25）。以下版本、测试数字、复选框和批次指令保留当时状态；首次迁移现已发布，当前版本和契约见 [README](../../../README.md)、[页面包约定](../../PAGE_PACKAGE_UPDATE_PLAN.md)。本记录不作为重跑已发布批次、恢复旧监控或覆盖历史标签的授权。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** 发布完整官网入口/设置功能，以及首次支持独立签名页面更新的桌面助手 v0.2.0。

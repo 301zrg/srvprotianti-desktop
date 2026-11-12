@@ -2,10 +2,12 @@
 
 放在 YGOPro 或 KoishiPro 根目录的 Windows 桌面客户端。独立签名页面更新自 v0.2.0 起提供，正式版本见 [Releases](https://github.com/301zrg/srvprotianti-desktop/releases)。需求与验收范围见 [DESIGN.md](DESIGN.md)。
 
+2026-11-12 核验：正式程序为 [v0.2.6](https://github.com/301zrg/srvprotianti-desktop/releases/tag/v0.2.6)，签名页面为 [1.0.9](https://github.com/301zrg/srvprotianti-desktop/releases/tag/pages-v1.0.9)（sequence 10、最低程序版本 0.2.6）。独立页面更新在下载成功后的下一次启动启用；发布成功不表示两种游戏的全部真实操作已经验收。
+
 维护者从 [当前实现架构](docs/ARCHITECTURE.md) 查看模块、调用流程、文件归属和构建发布关系；该文档区分已实现行为、设计目标与尚待游戏实测的项目。
 每次改动按 [架构维护规范](docs/ARCHITECTURE.md#9-架构影响与图文同步) 判断影响；关系变化时同步对应图和说明，现有图文准确且已覆盖时保留。
 
-服务端 Linux 部署、数据库/录像恢复与桌面连接地址迁移见 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/b6ebeb19a2436ca5df442d41d1f8c749345be88c/ops/README.md)。
+服务端 Linux 部署、数据库/录像恢复与桌面连接地址迁移见 [统一运维指南](https://github.com/301zrg/srvprotianti/blob/main/ops/README.md)。
 
 程序保留服务器网页的八个页面及中、日、英、韩四种语言。介绍页的 QQ 群号、IP、端口、合并地址和 TT 房间密码按钮可点击复制；常规联机行末的启动按钮只预填连接信息，天梯行末的启动按钮直接加入 TT。房间列表按公开 API 的 `roomtype` 显示实际类型；等待中的普通房间可点击加入，等待中的天梯房可直接进入 TT 匹配，已开局的房间可点击观战；密码房会要求当次输入密码。旧版 API 没有类型字段时，按严格房名格式识别已知随机房，其余按 `roommode` 显示。卡组与录像保存到游戏的 deck/replay 目录后直接打开。设置、1103 环境资源及旧裁定脚本更新位于设置页。
 
@@ -42,13 +44,15 @@ npm run build
 npm run package:portable
 ~~~
 
-上述命令构建无安装器的 exe，再把 exe、config.default.json 与四语资源放入 release-portable。将其内容复制到游戏根目录使用。可选 npm run build:installer 生成 NSIS 安装器；安装位置必须选择目标游戏根目录，且使用环境资源时还须复制 release-portable 中的 resources 目录。
+上述命令构建无安装器的 exe，再把 exe、默认配置、四语资源和第三方许可放入 release-portable。将其内容复制到游戏根目录使用。可选 npm run build:installer 生成 NSIS 安装器；安装位置必须选择目标游戏根目录，使用环境资源时还须另行复制 `release-portable/srvprotianti-desktop-data/resources/` 到游戏根目录的 `srvprotianti-desktop-data/resources/`。安装器本身未打包这批资源。
 
 Windows CI 每次构建提供用于检查的 ZIP 和版本清单 artifact。维护者确认版本后推送与 package.json、tauri.conf.json、Cargo.toml 一致的 `v<版本>` 标签（或既有显式 `release/v<版本>` 分支），CI 才会创建草稿 GitHub Release，上传固定名称 `srvprotianti-desktop-windows-x64.zip` 与 `desktop-update.json`，核对来源标签、附件大小与 SHA-256 后公开并设置 latest。已有 Release 或不明确的发布结果停止待复核，不自动覆盖/重放。介绍页的“最新 Windows ZIP”链接保持可用；检查后的下载使用对应版本标签。解压 ZIP 时将内容直接放进 YGOPro／KoishiPro 根目录，保留 `srvprotianti-desktop-data` 文件夹。
 
-项目仅保存首次运行后的用户配置在 srvprotianti-desktop-data/config.user.json；覆盖默认值后不修改 config.default.json。默认游戏地址 121.4.34.71:7911，网页/API 地址独立为 http://121.4.34.71:7922。完整的“昵称$密码”登录串按用户输入保存在本地 JSON 中，请自行保管该文件。
+用户设置保存在 `srvprotianti-desktop-data/config.user.json`，只记录与默认配置不同的值，不修改 `config.default.json`；脚本、环境与页面缓存各有独立状态。默认游戏地址 121.4.34.71:7911，网页/API 地址独立为 http://121.4.34.71:7922。完整的“昵称$密码”登录串按用户输入保存在本地 JSON 中，请自行保管该文件。
 
 “检查并更新”从 301zrg/specials 的 706 目录下载 Lua 到 expansions/script，并在同目录的应用数据中记录安装清单与备份。v0.2.4 起可在设置页选择规则版本（默认跟随最新），列表来自 specials 的 `706-meta/versions.json`；只切换旧裁定覆盖层，游戏自带的基础脚本和程序不归助手管理，所以不保证与服务器完全一致。通过“保存并播放”打开官网录像时，若录像当时的规则版本与本地不同，会在启动游戏前提示（设置中可关闭）。本地已有、与要安装的内容逐字节相同的文件直接接管，不算冲突；706 删掉某个脚本时，若接管前的原文件只是同一份 706 脚本的旧副本，就一并删除（备份仍保留），只有玩家自己的文件才放回。v0.2.5 起，有版本表时检查更新、设置页和“保存并播放”都不再调用 GitHub REST API（匿名每网络每小时 60 次），改由 git 引用列表和 ZIP 在本地核对 706 目录摘要，失败时才退回 API；窗口菜单「页面恢复」的文字也会随页面语言切换。第一个有生效时间的规则版本起，706 目录才收录服务器一直使用的旧版「精神脑魔」；设置页按版本表注明这个日期，此前安装的脚本需要重新更新。原版 YGOPro 还会从固定版本的官方 ygopro-scripts 取得纯净 utility.lua，将 706 的 special.lua 定义和调用嵌入扩展目录的 utility.lua；KoishiPro 不需要这份额外文件。程序不会修改游戏根目录的 script 或游戏配置。实际脚本优先级受目标游戏构建与“优先扩展脚本”设置影响。
+
+v0.2.6 起，旧安装记录无法证明某份备份来源时，会逐文件要求选择“移除覆盖并跟随目标规则”或“恢复我的原文件”；取消则不应用本次更新，备份始终保留。仅凭原文件与首次安装版本不同，不能认定它是玩家自己的文件。设置页和录像切换共用该流程；需要配套页面 1.0.9，旧页面遇到待确认备份会停止并报错，不会继续启动录像。这里只管理 706 覆盖层，不按录像自动替换 Core、卡库、基础脚本或禁卡表。
 
 “安装／更新 1103 环境”与旧脚本更新互相独立。环境资源随 ZIP 提供，含四种语言的 5267 张卡池和 2011.3.1 禁卡表，安装本身无需联网。KoishiPro 从普通 `locales/zh-CN`、`ja-JP`、`en-US`、`ko-KR` 克隆出对应 `1103_` 目录，替换卡池、文字并添加当前天梯主机到 `servers.conf`；原版 YGOPro 则备份并替换根目录 `cards.cdb`。两者都会把禁卡表放进 `expansions/lflist.conf` 开头，设置 `system_user.conf` 的禁卡表选项，并暂存 `expansions` 根层的额外 CDB。安装和恢复前须退出游戏；设置页可一键恢复原文件。启动游戏时会同步当前界面语言及游戏服务器地址；若需要改动文件而游戏仍在运行，会先要求退出。程序不会为其他语言生成环境，亦不会自动更新游戏本体或禁卡表。
 
