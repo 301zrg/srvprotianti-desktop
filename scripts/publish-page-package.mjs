@@ -22,7 +22,7 @@ export function localCredential(){
   return token;
 }
 
-export function createPublisher({fetchImpl=fetch,tokenProvider=localCredential}={}){
+export function createPublisher({fetchImpl=fetch,tokenProvider=localCredential,waitImpl=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}){
   let token;
   async function request(route,{method='GET',body,raw,type='application/json',missing=false}={}){
     token??=await tokenProvider();
@@ -34,7 +34,9 @@ export function createPublisher({fetchImpl=fetch,tokenProvider=localCredential}=
     catch{throw fail('PAGE_PUBLISH_REQUEST_UNCERTAIN');}
     if(missing&&response.status===404)return null;
     if(!response.ok)throw fail(`PAGE_PUBLISH_HTTP_${response.status}`);
-    try{return await response.json();}catch{throw fail('PAGE_PUBLISH_RESPONSE_INVALID');}
+    let contents;
+    try{contents=await response.text();}catch{throw fail('PAGE_PUBLISH_REQUEST_UNCERTAIN');}
+    try{return JSON.parse(contents);}catch{throw fail('PAGE_PUBLISH_RESPONSE_INVALID');}
   }
   async function ensureTag(tag,commit){
     let ref=await request(`/git/ref/tags/${tag}`,{missing:true});
@@ -73,11 +75,32 @@ export function createPublisher({fetchImpl=fetch,tokenProvider=localCredential}=
     if(latest.tag_name===tag||!latest.assets?.some(asset=>asset.name==='srvprotianti-desktop-windows-x64.zip'))throw fail('PAGE_PUBLISH_LATEST_CHANGED');
     return {id:value.id,url:value.html_url,latestApplication:latest.tag_name};
   }
+  async function confirmIndex(commit,previousSha,manifest){
+    // Only repeat reads: the ref write may have succeeded even if its reply was lost.
+    for(let attempt=0;attempt<5;attempt++){
+      if(attempt)await waitImpl(250*2**(attempt-1));
+      try{
+        const head=await request('/git/ref/heads/page-updates',{missing:true});
+        if(head?.object?.sha!==commit){
+          if(head?.object?.sha!==previousSha)throw fail('PAGE_PUBLISH_INDEX_RACED');
+          continue;
+        }
+        // A branch-name Contents URL can remain cached after the ref advances.
+        const result=await request(`/contents/stable.json?ref=${commit}`,{missing:true});
+        if(!result)continue;
+        if(result.encoding!=='base64'||digest(Buffer.from(result.content,'base64'))!==digest(manifest))throw fail('PAGE_PUBLISH_INDEX_UNCONFIRMED');
+        return;
+      }catch(error){
+        if(!['PAGE_PUBLISH_REQUEST_UNCERTAIN','PAGE_PUBLISH_HTTP_502','PAGE_PUBLISH_HTTP_503','PAGE_PUBLISH_HTTP_504'].includes(error.code))throw error;
+      }
+    }
+    throw fail('PAGE_PUBLISH_INDEX_UNCONFIRMED');
+  }
   async function index({manifest,sequence,publicKey,keyId}){
     const previous=await request('/git/ref/heads/page-updates',{missing:true});
     const previousSha=previous?.object?.sha;
     if(previous){
-      const current=await request('/contents/stable.json?ref=page-updates',{missing:true});
+      const current=await request(`/contents/stable.json?ref=${previousSha}`,{missing:true});
       if(!current||current.encoding!=='base64')throw fail('PAGE_PUBLISH_INDEX_INVALID');
       const bytes=Buffer.from(current.content,'base64');
       if(digest(bytes)===digest(manifest))return {commit:previousSha,alreadyPublished:true};
@@ -98,8 +121,7 @@ export function createPublisher({fetchImpl=fetch,tokenProvider=localCredential}=
       if(previousSha)await request('/git/refs/heads/page-updates',{method:'PATCH',body:{sha:commit.sha,force:false}});
       else await request('/git/refs',{method:'POST',body:{ref:'refs/heads/page-updates',sha:commit.sha}});
     }catch{}
-    const result=await request('/contents/stable.json?ref=page-updates');
-    if(result.encoding!=='base64'||digest(Buffer.from(result.content,'base64'))!==digest(manifest))throw fail('PAGE_PUBLISH_INDEX_UNCONFIRMED');
+    await confirmIndex(commit.sha,previousSha,manifest);
     return {commit:commit.sha,alreadyPublished:false};
   }
   return {request,release,index};
