@@ -143,11 +143,11 @@ test('signed channel sequence cannot be downgraded and corrupted index is never 
 });
 
 test('uncertain channel creation is read back without repeating a write',async()=>{
-  let created=false,writes=0;
+  let created=false,writes=0,confirmationReads=0;
   const manifest=Buffer.from('{"signed":"candidate"}');
-  const publisher=createPublisher({tokenProvider:()=> 'fixture-token',fetchImpl:async(url,init)=>{
+  const publisher=createPublisher({tokenProvider:()=> 'fixture-token',waitImpl:async()=>{},fetchImpl:async(url,init)=>{
     const route=new URL(url).pathname;
-    if(route.includes('/git/ref/'))return response(null,404);
+    if(route.includes('/git/ref/'))return created&&confirmationReads++>0?response({object:{sha:commit}}):response(null,404);
     if(route.endsWith('/git/trees'))return response({sha:'tree'});
     if(route.endsWith('/git/commits'))return response({sha:commit});
     if(route.endsWith('/git/refs')){writes++;created=true;throw Error('Lost reply');}
@@ -156,4 +156,86 @@ test('uncertain channel creation is read back without repeating a write',async()
   }});
   const result=await publisher.index({manifest,sequence:1,publicKey:'',keyId:'fixture'});
   assert.equal(result.commit,commit);assert.equal(writes,1);
+});
+
+function indexFixture(t,{refLag=0,contentLag=0,lostReply=false,readError=null,raced=false,wrongContent=false}={}){
+  const next='b'.repeat(40),{privateKey,publicKey}=generateKeyPairSync('ed25519');
+  const signed=sequence=>Buffer.from(JSON.stringify(signManifestPayload({application:'org.srvprotianti.desktop',channel:'stable',sequence},{privateKey,keyId:'fixture'})));
+  const before=signed(5),manifest=signed(6),calls=[],delays=[];let written=false,refReads=0,contentReads=0;
+  const publisher=createPublisher({tokenProvider:()=> 'fixture-token',waitImpl:async ms=>{delays.push(ms);},fetchImpl:async(url,init)=>{
+    const parsed=new URL(url),route=parsed.pathname;calls.push({route,method:init.method,ref:parsed.searchParams.get('ref')});
+    if(route.endsWith('/git/ref/heads/page-updates')){
+      if(!written)return response({object:{sha:commit}});
+      refReads++;
+      const error=Array.isArray(readError)?readError[refReads-1]:readError;
+      if(error){
+        if(error==='transport')throw Error('Connection reset');
+        if(error==='body')return new Response(new ReadableStream({start(controller){controller.error(new TypeError('Connection terminated during body transfer'));}}));
+        if(error==='json')return new Response('{invalid JSON');
+        return response({},error);
+      }
+      return response({object:{sha:raced?'c'.repeat(40):refReads<=refLag?commit:next}});
+    }
+    if(route.endsWith('/contents/stable.json')){
+      const ref=parsed.searchParams.get('ref');
+      // The mutable URL stays cached even after a successful branch update.
+      if(ref===commit||ref==='page-updates')return response({encoding:'base64',content:before.toString('base64')});
+      assert.equal(ref,next);contentReads++;
+      if(contentReads<=contentLag)return response(null,404);
+      return response({encoding:'base64',content:(wrongContent?before:manifest).toString('base64')});
+    }
+    if(route.endsWith('/git/trees'))return response({sha:'tree'});
+    if(route.endsWith('/git/commits'))return response({sha:next});
+    if(route.endsWith('/git/refs/heads/page-updates')){
+      written=true;if(lostReply)throw Error('Lost successful write reply');return response({});
+    }
+    assert.fail('Unexpected fixture route: '+route);
+  }});
+  t.after(()=>assert.equal(calls.filter(c=>c.method==='PATCH').length,1,'the channel write is never retried'));
+  return {run:()=>publisher.index({manifest,sequence:6,publicKey:publicKey.export({format:'der',type:'spki'}).subarray(-32).toString('base64'),keyId:'fixture'}),calls,delays,next};
+}
+
+test('channel confirmation reads immutable commits despite a cached mutable contents URL',async t=>{
+  const fixture=indexFixture(t),result=await fixture.run();
+  assert.equal(result.commit,fixture.next);assert.equal(result.alreadyPublished,false);
+  assert.deepEqual(fixture.calls.filter(c=>c.route.endsWith('/contents/stable.json')).map(c=>c.ref),[commit,fixture.next]);
+});
+
+test('delayed branch and commit visibility plus a lost write reply need only bounded read retries',async t=>{
+  const fixture=indexFixture(t,{refLag:1,contentLag:1,lostReply:true});
+  assert.equal((await fixture.run()).commit,fixture.next);assert.deepEqual(fixture.delays,[250,500]);
+});
+
+test('a branch that never becomes visible stops after five confirmation reads',async t=>{
+  const fixture=indexFixture(t,{refLag:Infinity});
+  await assert.rejects(fixture.run(),/INDEX_UNCONFIRMED/);assert.deepEqual(fixture.delays,[250,500,1000,2000]);
+});
+
+test('transport failures while confirming are bounded and never repeat the channel write',async t=>{
+  const fixture=indexFixture(t,{readError:'transport'});
+  await assert.rejects(fixture.run(),/INDEX_UNCONFIRMED/);assert.deepEqual(fixture.delays,[250,500,1000,2000]);
+});
+
+test('transient gateway and connection failures recover through reads only',async t=>{
+  const fixture=indexFixture(t,{readError:[503,'transport']});assert.equal((await fixture.run()).commit,fixture.next);assert.deepEqual(fixture.delays,[250,500]);
+});
+
+test('a disconnected response body can recover after headers were received',async t=>{
+  const fixture=indexFixture(t,{readError:['body']});assert.equal((await fixture.run()).commit,fixture.next);assert.deepEqual(fixture.delays,[250]);
+});
+
+test('repeating the same confirmed publication performs no additional writes',async t=>{
+  const fixture=indexFixture(t);await fixture.run();const writes=fixture.calls.filter(c=>c.method!=='GET').length;
+  assert.deepEqual(await fixture.run(),{commit:fixture.next,alreadyPublished:true});assert.equal(fixture.calls.filter(c=>c.method!=='GET').length,writes);
+});
+
+test('another writer advancing the channel is reported without retry or overwrite',async t=>{
+  const fixture=indexFixture(t,{raced:true});await assert.rejects(fixture.run(),/INDEX_RACED/);assert.deepEqual(fixture.delays,[]);
+});
+
+test('wrong immutable content and forbidden confirmation reads stop immediately',async t=>{
+  for(const options of [{wrongContent:true},{readError:401},{readError:403},{readError:429},{readError:'json'}]){
+    const expected=options.readError==='json'?/RESPONSE_INVALID/:options.readError?new RegExp('HTTP_'+options.readError):/INDEX_UNCONFIRMED/;
+    const fixture=indexFixture(t,options);await assert.rejects(fixture.run(),expected);assert.deepEqual(fixture.delays,[]);
+  }
 });
