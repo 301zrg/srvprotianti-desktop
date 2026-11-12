@@ -1,10 +1,10 @@
 # 页面包独立更新设计与实施约定
 
-更新日期：2026-10-28。
+更新日期：2026-11-12；现行实现核对应用 `0.2.6`、源码主线 `6fdb4e0`。
 
 **状态：独立签名页面更新已随 v0.2.0 正式发布，页面渠道继续独立迭代。本文保留设计、信任边界与历史迁移约定；当前发布状态以正式 Release、签名稳定索引和批次回执为准，后文的历史执行指令不作为重放批次的授权。分支及源码归并规则见 [开发流程](DEVELOPMENT_WORKFLOW.md)。**
 
-本文件保存功能、信任边界和发布约定；实现地图见 [当前架构](ARCHITECTURE.md)，本轮任务及验收见 [实施计划](superpowers/plans/2026-10-24-web-and-page-packages.md)。本地检查通过、真实游戏验收与正式发布分别记录。
+本文件保存功能、信任边界和发布约定；实现地图见 [当前架构](ARCHITECTURE.md)，首次迁移的历史任务及验收见 [实施记录](superpowers/plans/2026-10-24-web-and-page-packages.md)。本地检查通过、真实游戏验收与正式发布分别记录。2026-11-12 核验页面正式渠道为 1.0.9 / sequence 10 / 最低应用版本 0.2.6；来源提交固定在签名清单中，不要求等于后续文档或发布工具修复提交。
 
 ## 1. 目标与已确认边界
 
@@ -20,18 +20,18 @@
 
 调研时本地版本字段为 `0.1.4`；工作区有其他未提交改动，不代表这些改动已发布。恢复本项工作时必须重新核对版本和待发布内容。
 
-当前页面链路是 `web-source/` → `scripts/prepare-pages.mjs` 桌面适配 → `public/` 与 `dist/` → Tauri 编译并嵌入 exe。网页改动要进入助手，需同步页面快照并发布新程序；服务器数据本身无需随 exe 更新。设置页的程序更新检查只提供正式 ZIP 下载入口，由用户手动覆盖。
+改造前页面链路是 `web-source/` → `scripts/prepare-pages.mjs` 桌面适配 → `public/` 与 `dist/` → Tauri 编译并嵌入 exe。当时网页改动需要新程序；当前同一份 `dist/` 也可构建独立签名页面包，兼容既有原生能力时不必重发 exe。服务器数据本身无需随 exe 更新；程序版本检查仍只提供正式 ZIP 下载入口，由用户手动覆盖。
 
 主要入口：
 
 | 入口 | 与本方案的关系 |
 | --- | --- |
-| [页面生成器](../scripts/prepare-pages.mjs)、[构建命令](../package.json) | 拆出可独立发布的页面产物，保留桌面适配与检查 |
-| [desktop-bridge.ts](../src/desktop-bridge.ts) | 数据请求、下载和本地动作适配；需要明确兼容契约 |
-| [Tauri 配置](../src-tauri/tauri.conf.json)、[Rust 入口](../src-tauri/src/lib.rs) | 增加本地页面包加载、启动选择和恢复入口 |
+| [页面生成器](../scripts/prepare-pages.mjs)、[构建命令](../package.json) | 生成可独立发布的页面产物，保留桌面适配与检查 |
+| [desktop-bridge.ts](../src/desktop-bridge.ts) | 数据请求、下载和本地动作适配，沿用受限命令契约 |
+| [Tauri 配置](../src-tauri/tauri.conf.json)、[Rust 入口](../src-tauri/src/lib.rs) | 注册页面包加载、启动选择和原生恢复命令 |
 | [API 实现](../src-tauri/src/api.rs) | 保留固定方法/路由白名单，不因页面更新开放任意请求 |
-| [现有更新检查](../src-tauri/src/updater.rs) | 只处理程序正式版检查，不能当作现成页面包更新器 |
-| [当前发布工作流](../.github/workflows/windows-desktop.yml) | 区分页面包发布与现有 exe/便携 ZIP 发布 |
+| [程序更新检查](../src-tauri/src/updater.rs) | 只处理程序正式版检查；页面更新由 `pages_runtime/cache/package.rs` 处理 |
+| [EXE 工作流](../.github/workflows/windows-desktop.yml)、[页面工作流](../.github/workflows/desktop-pages.yml) | 分别构建/发布 exe 便携 ZIP 和签名页面包 |
 
 ## 3. 方案取舍
 
@@ -43,7 +43,7 @@
 
 “无需更新 exe”仍需要前端构建、验证和发布。只修改或上传官网 HTML，不会自动更新助手；统一发布流程应从明确的源码版本分别生成官网资源和桌面页面包。
 
-## 4. 目标结构
+## 4. 当前结构
 
 本轮沿用以下职责结构；具体模块与调用见当前架构图。
 
@@ -80,11 +80,14 @@ flowchart LR
 ## 6. 信任与兼容要求
 
 - HTTPS 验证保持开启；发布签名由程序内置的可信公钥验证，私钥仅留在受控发布环境。普通哈希文件不能替代签名。
-- 签名清单覆盖应用标识、渠道、页面版本、所需程序/桥接版本、文件清单与哈希等兼容信息；具体格式、签名库、密钥轮换和过期策略实施前确定。
+- 信封字段为 `schemaVersion: 1`、`keyId`、Base64 `payload` 与 `signature`；Ed25519 签名消息为 UTF-8 `srvprotianti-desktop-pages-v1` 加 NUL，再拼接 payload 原始 JSON 字节。Node 使用内置 crypto，Rust 使用 ring；公钥及 keyId 固定在 `src-tauri/page-update-public-key.json`，当前没有在线密钥轮换，信任根变更需要更新 exe。
+- payload 固定应用标识 `org.srvprotianti.desktop`、`stable` 渠道、稳定语义版本、严格递增 `sequence`、`bridgeVersion: 1`、`minAppVersion`、UTC 创建/过期时间、ZIP URL/长度/散列/展开大小、逐文件路径/长度/散列及桌面/官网 40 位来源提交。构建器从该源码的 `package.json` 取最低应用版本；不能为兼容旧程序手改已签清单。网络新包拒绝过期和超过五分钟的未来创建时间，已经接受的本地缓存可离线继续使用。
 - 验证下载来源、重定向、长度/展开大小、路径和文件类型，拒绝越界路径与链接文件；未校验内容不得进入 WebView 执行。
 - 程序版本与页面版本分别记录。不能满足本地能力或接口要求时，继续使用兼容版本；页面更新不能自行扩大 Rust 权限或 API 白名单。
 - 保留已接受版本记录，拒绝未授权的网络降级；本地故障回退是单独的恢复动作。正式撤回坏版本可用更高页面版本重新发布修复或旧内容，避免要求客户端无条件接受旧清单。
 - 页面包发布与业务 API 发布有先后关系时，先部署兼容 API，再发布页面；旧程序和旧页面在过渡期仍需获得可理解的降级行为。
+
+当前上限为：签名信封 1 MiB、ZIP 20 MiB、展开合计 50 MiB、单文件 5 MiB、4096 个文件、相对路径 240 字节。Node 与 Rust 两端都检查包边界，未知字段、越界路径、大小写重复和不允许的资源不能仅凭签名通过。精确校验见 `page-package.mjs` 与 `pages_package.rs`，兼容应用还须经 `pages_cache.rs` 判断。
 
 ## 7. 发布范围
 
@@ -105,6 +108,10 @@ flowchart LR
 
 本机直接使用 `publish-page-package.mjs` 同样必须提供 `--website-root <官网web目录>`，可指定 `--source-directory <桌面web-source>`；实际 Git 来源和本地快照核对通过后，还要将该快照清单的原始字节 SHA/size 与已签 ZIP 内清单对应。全部门禁通过后才读取发布 token 或访问网络。空来源、旧提交冒名、包与本地清单不一致均不能发布；本地 `websiteCommit=null` 的 draft 仅用于开发验证。
 
+工具链入口为 `page-package.mjs build/verify` → 候选公开清单 → `rebuild-page-package.mjs metadata/rebuild` → `publish-page-package.mjs`；具体参数用 `node scripts/page-package.mjs --help` 查看。`verify --min-sequence` 接收客户端已接受的最高值，候选必须严格大于它；还应使用 `--app-version` 验证支持与过旧程序的结果。签名/本地校验、推候选、CI 构建和正式发布分别授权、分别留证；签名不自动授予发布权限。
+
+发布器先读稳定索引所对应提交的内容，再以非强制快进写新索引；写后用确定提交 SHA 回读并比对原始清单散列，最多五次只读确认。请求结果不明或缓存延迟时先核对已写入的远端状态，不重复写或覆盖制品。页面 1.0.9 的旧工作流曾误报回读失败，实际 Release/签名索引已发布；后续修复只用于新来源，不重放该批次。CI 的发布脚本来自已签源码提交，因此新的工具修复须纳入未来候选绑定的已审核源码。
+
 ## 8. 成本与体验预期
 
 - 启动：目标是不等待网络；本地读取和校验仍有开销，须对比现有版本实测，不能承诺零延迟。
@@ -115,12 +122,12 @@ flowchart LR
 
 ## 9. 交付入口与验收
 
-本轮已经获准实施，继续交付时按以下顺序核对：
+机制已实现并正式发布，后续维护或发布按以下顺序核对；本节和历史计划不授予新的生产操作权限：
 
 1. 阅读本文件与当前 README/架构；核对待处理更新、工作区差异、最新 exe/页面/API 和实际发布状态，保留已有改动。不要自行推断“其他更新已完成”。
-2. 定稿公共源码归属、HTTPS 托管与页面发布索引、签名/版本契约、恢复行为和必要的四语用户文案；形成可执行实施计划。
-3. 验证页面加载与 Rust 桥接的兼容路径，再实现更新器、源码整合和发布流程；同步实际变更的 DESIGN 与架构图。
-4. 在发布前完成下表验收，区分合成检查、Windows 实测、真实游戏和线上验证。首次迁移发布仍需明确发布范围与授权。
+2. 判断改动是否复用已有本地命令/API，核对官网来源、最低应用版本、桥接版本、sequence、时效与四语提示；涉及新原生能力时配套 exe。
+3. 复用当前同步、构建、签名、候选 CI 与发布器，验证页面加载和 Rust 桥接兼容；源码/信任边界变化时同步 DESIGN 与架构图。
+4. 按影响范围完成下表验收，区分合成检查、Windows 实测、真实游戏和线上验证；完整首次验收表不代表每次纯文案维护都需重新执行全部游戏操作。正式发布仍须明确范围与授权。
 
 | 验收方面 | 必须覆盖 |
 | --- | --- |
@@ -134,11 +141,13 @@ flowchart LR
 ## 10. 技术参考
 
 - [Tauri 前端资源配置](https://v2.tauri.app/reference/config/#frontenddist)：本地嵌入与远程/自定义协议的区别。
-- [Tauri 2.12 自定义资源协议](https://docs.rs/tauri/2.12.0/tauri/struct.Builder.html#method.register_uri_scheme_protocol)：本地页面包加载的候选实现基础，尚未在本项目验证。
+- [Tauri 2.12 自定义资源协议](https://docs.rs/tauri/2.12.0/tauri/struct.Builder.html#method.register_uri_scheme_protocol)：本项目已在 `pages_runtime.rs` / `lib.rs` 注册本地 `tauri` 协议资源，固定单次运行的页面来源；参考链接不是全部游戏行为验收证明。
 - [Tauri 权限边界](https://v2.tauri.app/security/capabilities/)：页面与本地能力的权限约束。
 - [TUF 更新规范](https://theupdateframework.github.io/specification/latest/)：签名、版本和更新元数据有效性的参考；不代表已决定引入整套 TUF。
 
-## 11. 2026-10-24 已批准范围与最新发布边界
+## 11. 历史：2026-10-24 已批准范围与发布边界
+
+以下保留首次迁移时的版本建议、来源、批次与授权记录；“最新”“本次”“正在运行”均指当时，不是当前队列或重放授权。现行实现与维护流程以第 1–10 节、README 和开发流程为准。
 
 维护者已确认以下功能、渠道、签名方式和文案。2026-10-25 最新指令要求准备新批次并启动同一个 cmd，在空闲维护门禁通过后统一发布；此前暂缓指令已撤销。各渠道仍使用独立的固定来源、清单与核验回执。
 

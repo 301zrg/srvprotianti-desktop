@@ -1,5 +1,7 @@
 # Desktop update manifest implementation plan
 
+> 历史实施记录（2026-10-26）。以下候选版本、测试数字、环境限制和授权描述保留当时状态；静态程序版本清单现已发布，当前版本见 [README](../../../README.md)，现行契约见 [DESIGN §12.1](../../../DESIGN.md#121-助手版本清单2026-10-26-v021)。本记录不授予重放旧队列或历史发布的权限。
+
 > **For agentic workers:** Use superpowers:executing-plans to implement this plan task-by-task. Initial local-only work is complete; the user subsequently authorized source publication, release/queuing, and restarting the original cmd after verified recovery.
 
 **Goal:** Check assistant versions without unauthenticated GitHub REST requests; retain manual browser download and useful offline behavior.
