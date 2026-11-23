@@ -1,4 +1,22 @@
-# 706 天梯助手
+# 706 天梯助手 / 706 Ladder Desktop Helper
+
+给 PC 版 YGOPro / KoishiPro 玩家用的 Windows 小工具：一键进入 1103 环境（2011 年 3 月禁限表、大师规则 2）的天梯匹配，自动更新旧裁定脚本，安装 1103 卡池与禁卡表，并能直接打开官网上的卡组和录像。
+
+**下载：[最新版 Windows ZIP](https://github.com/301zrg/srvprotianti-desktop/releases/latest)**　解压后把全部内容直接放进 YGOPro 或 KoishiPro 的根目录（保留 `srvprotianti-desktop-data` 文件夹），运行助手即可。
+
+> **本程序已停止发布新版**，当前版本 v0.2.6 继续可用。旧裁定脚本的更新通道照常维护，在设置页点“检查并更新”即可拿到最新脚本。
+
+- 不想装软件：直接用网页版 <https://ocg1103nexus.com>
+- 有问题：[Discord](https://discord.gg/mkRz8mWRdq)
+- 服务端源码与自建方法：[srvprotianti](https://github.com/301zrg/srvprotianti)
+
+**English:** A small Windows helper for YGOPro / KoishiPro players of the Yu-Gi-Oh! OCG **"1103" format** (March 2011 banlist, Master Rule 2): one-click ranked matchmaking, automatic updates of the old-ruling scripts, the 1103 card pool and banlist, and opening decks and replays straight from the ladder website.
+**Download the [latest Windows ZIP](https://github.com/301zrg/srvprotianti-desktop/releases/latest)** and extract everything into your YGOPro or KoishiPro root folder (keep the `srvprotianti-desktop-data` folder).
+**No new releases are planned**; v0.2.6 keeps working, and script updates are still delivered through *Check and update* in Settings. Prefer not to install anything? Play in the browser at <https://ocg1103nexus.com>. Questions: [Discord](https://discord.gg/mkRz8mWRdq).
+
+---
+
+## 706 天梯助手
 
 放在 YGOPro 或 KoishiPro 根目录的 Windows 桌面客户端。独立签名页面更新自 v0.2.0 起提供，正式版本见 [Releases](https://github.com/301zrg/srvprotianti-desktop/releases)。需求与验收范围见 [DESIGN.md](DESIGN.md)。
 
